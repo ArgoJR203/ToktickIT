@@ -21,8 +21,15 @@ export async function checkSystem(): Promise<SystemStatus> {
   }
   if (!healthRes.ok) throw new Error("Backend is not responding");
 
-  // TODO(Issue 4): fetch `${API_URL}/api/categories`, throw if !ok, 
-  // return the real list below instead of the empty placeholder.
+  // Issue 4: call the categories endpoint
+  let catRes: Response;
+  try {
+    catRes = await fetch(`${API_URL}/api/categories`);
+  } catch {
+    throw new Error(`Unable to connect to API at ${API_URL}`);
+  }
+  if (!catRes.ok) throw new Error("Failed to load categories");
+  const categories: Category[] = await catRes.json();
 
-  return { online: true, categories: [] };
+  return { online: true, categories };
 }
