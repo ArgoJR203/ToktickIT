@@ -10,12 +10,19 @@ export interface SystemStatus {
   categories: Category[];
 }
 
-// Issue 2 + Issue 4 — call the backend.
-// Steps: fetch `${API_URL}/api/health`; if not ok, throw.
-//        then fetch `${API_URL}/api/categories`; if not ok, throw.
-//        return { online: true, categories }.
-// Throwing on failure lets the UI show a single Offline/error state.
+
 export async function checkSystem(): Promise<SystemStatus> {
-  // TODO(Issue 2 & 4): implement the two fetch calls described above.
-  throw new Error("checkSystem not implemented yet");
+  // Issue 2: call the health endpoint
+  let healthRes: Response;
+  try {
+    healthRes = await fetch(`${API_URL}/api/health`);
+  } catch {
+    throw new Error(`Unable to connect to API at ${API_URL}`);
+  }
+  if (!healthRes.ok) throw new Error("Backend is not responding");
+
+  // TODO(Issue 4): fetch `${API_URL}/api/categories`, throw if !ok, 
+  // return the real list below instead of the empty placeholder.
+
+  return { online: true, categories: [] };
 }
