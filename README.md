@@ -137,7 +137,8 @@ TokTickIT/
 │   ├── tsconfig.json
 │   └── vitest.config.ts
 ├── docs/                   # Lab documentation
-│   └── lab-01/
+│   ├── lab-01/
+│   └── lab-02/
 ├── .gitignore
 └── README.md
 ```
