@@ -40,7 +40,7 @@ The IT department requires a professional end-user facing web portal for submitt
 | :--- | :--- | :--- |
 | **FR-01** | Development Requester Selection | System shall allow selecting an active Development Requester to establish the current session context. |
 | **FR-02** | Ticket Creation | System shall allow the selected Requester to submit a ticket with category, related system, summary, description, requested priority, and initial attachments. |
-| **FR-03** | Ticket Number Generation | System shall automatically generate a unique, non-sequential or formatted Ticket Number (e.g., `TKT-2026-XXXXXX`) upon ticket creation. |
+| **FR-03** | Ticket Number Generation | System shall automatically generate a unique Ticket Number in the format `TKT-YYYY-XXXXXX` (year prefix + zero-padded 6-digit sequential ID) upon ticket creation. |
 | **FR-04** | My Tickets Listing | System shall display a list of tickets belonging strictly to the currently selected Development Requester. |
 | **FR-05** | Search and Filtering | System shall allow filtering tickets by search keyword (summary/number), category, priority, and status. |
 | **FR-06** | Sorting and Pagination | System shall allow sorting tickets by date/priority/status and support paginated viewing (default 10 items per page). |
@@ -64,7 +64,7 @@ The IT department requires a professional end-user facing web portal for submitt
 - **BR-07**: Default ticket list sorting is `createdAt` descending (newest tickets first).
 - **BR-08**: Ticket Summary is required, trimmed of leading/trailing whitespace, minimum 5 characters, maximum 100 characters.
 - **BR-09**: Ticket Description is required, trimmed, minimum 10 characters, maximum 2000 characters.
-- **BR-10**: Category and Related System are required selections from active database records. Selected Related System must belong to the selected Category if relationship constraints apply.
+- **BR-10**: Category and Related System are required selections from active database records. If the selected Related System has a non-NULL `categoryId`, it must match the selected Category. If the Related System has `categoryId = NULL` (uncategorized), it is treated as universal and may be used with any Category.
 - **BR-11**: Requested Priority is required and must be one of: `LOW`, `MEDIUM`, `HIGH`, `URGENT`.
 - **BR-12**: Permitted attachment file types are strictly: `image/jpeg`, `image/jpg`, `image/png`, `image/webp`, and `application/pdf`. Other file types must be rejected.
 - **BR-13**: Maximum file size for any single attachment is **5 MB** (5,242,880 bytes).
@@ -157,7 +157,7 @@ model Ticket {
   relatedSystem     RelatedSystem     @relation(fields: [relatedSystemId], references: [id])
   summary           String
   description       String
-  requestedPriority RequestedPriority @default(MEDIUM)
+  requestedPriority RequestedPriority
   currentStatus     CurrentStatus     @default(NEW)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -256,4 +256,4 @@ Refer to [api-spec.md](file:///d:/AllStudyProject/CPE334/TokTickIT/docs/lab-02/a
 1. **Simulated Authentication Header**: In Lab 2, client requests include the HTTP header `x-requester-id: <id>` to communicate the selected requester context to the backend cleanly.
 2. **File Storage Strategy**: Uploaded files are stored in the local server directory `server/uploads/` with sanitized, timestamp-prefixed filenames, while metadata is tracked in PostgreSQL.
 3. **Soft Removal Policy**: Removed files remain on disk for audit compliance, but database flags and API endpoints strictly prevent binary streaming or download for removed files.
-4. **Ticket Number Format**: Generated as `TKT-YYYY-XXXXXX` using current year and zero-padded sequential or unique alphanumeric string to ensure readability and professional format.
+4. **Ticket Number Format**: Generated as `TKT-YYYY-XXXXXX` using the current year and a zero-padded 6-digit sequential ID to ensure readability, uniqueness, and a professional format.
