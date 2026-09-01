@@ -17,7 +17,7 @@ const mockRequesters: api.RequesterUser[] = [
   { id: 2, name: "Sarah Johnson", email: "sarah.johnson@example.com", isActive: true },
 ];
 
-describe("My Tickets Dashboard & Requester Context (UI-01, AC-02)", () => {
+describe("Dev Requester Selector Component & Route Guard (UI-01, AC-02)", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
