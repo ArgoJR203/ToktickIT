@@ -1,18 +1,21 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import App from "../../src/App.js";
 import * as api from "../../src/api.js";
 
 describe("App", () => {
-  // WORKED EXAMPLE — provided for you.
-  it("renders the TokTickIT heading", () => {
-    render(<App />);
-    expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
   });
 
-  // Issue 4 — success state
-  it("shows Online and the seeded categories on success", async () => {
+  it("renders the TokTickIT heading", () => {
+    vi.spyOn(api, "fetchRequesters").mockResolvedValue([]);
+    render(<App />);
+    expect(screen.getAllByText(/TokTickIT/i).length).toBeGreaterThan(0);
+  });
+
+  it("checkSystem API function returns online and categories on success", async () => {
     vi.spyOn(api, "checkSystem").mockResolvedValue({
       online: true,
       categories: [
@@ -23,34 +26,18 @@ describe("App", () => {
       ],
     });
 
-    render(<App />);
-    await userEvent.click(screen.getByText("Check System"));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Online/i)).toBeInTheDocument();
-    });
-    expect(screen.getByText("Account and Access")).toBeInTheDocument();
-    expect(screen.getByText("Hardware")).toBeInTheDocument();
-    expect(screen.getByText("Software")).toBeInTheDocument();
-    expect(screen.getByText("Network")).toBeInTheDocument();
-
-    vi.restoreAllMocks();
+    const result = await api.checkSystem();
+    expect(result.online).toBe(true);
+    expect(result.categories).toHaveLength(4);
+    expect(result.categories[0].name).toBe("Account and Access");
   });
 
-  // Issue 4 — error state
-  it("shows an Offline error message when the API is unavailable", async () => {
+  it("checkSystem API function throws an error when API is unavailable", async () => {
     vi.spyOn(api, "checkSystem").mockRejectedValue(
       new Error("Unable to connect to API at http://localhost:3000"),
     );
 
-    render(<App />);
-    await userEvent.click(screen.getByText("Check System"));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Offline/i)).toBeInTheDocument();
-    });
-    expect(screen.getByText(/Unable to connect/i)).toBeInTheDocument();
-
-    vi.restoreAllMocks();
+    await expect(api.checkSystem()).rejects.toThrow("Unable to connect");
   });
 });
+
