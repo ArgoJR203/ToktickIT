@@ -72,4 +72,36 @@ describe("Dev Requester Selector Component & Route Guard (UI-01, AC-02)", () => 
 
     expect(screen.getByRole("button", { name: /Retry Connection/i })).toBeInTheDocument();
   });
+
+  it("resets requester context and returns to selector screen when Change Requester is clicked (BR-19)", async () => {
+    vi.mocked(api.fetchRequesters).mockResolvedValue(mockRequesters);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: /Jennifer Anderson/i })).toBeInTheDocument();
+    });
+
+    // Select Jennifer Anderson and Continue
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: "1" } });
+
+    const continueBtn = screen.getByRole("button", { name: /Continue/i });
+    fireEvent.click(continueBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Requester Context Established/i)).toBeInTheDocument();
+    });
+
+    // Click "Change Requester" button in header
+    const changeBtn = screen.getByRole("button", { name: /Change Requester/i });
+    expect(changeBtn).toBeInTheDocument();
+    fireEvent.click(changeBtn);
+
+    // Verify context is reset and returns to selector screen
+    await waitFor(() => {
+      expect(screen.getByText("Development Requester Selector")).toBeInTheDocument();
+    });
+    expect(localStorage.getItem("toktickit_requester")).toBeNull();
+  });
 });
