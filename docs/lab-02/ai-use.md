@@ -1,6 +1,6 @@
 # Lab 2 — AI Use and Reflection
 
-**LLM / Agent used:** Antigravity AI (Claude Opus 4.6 / Gemini 3.6 Flash)
+**LLM / Agent used:** Claude Opus 4.6 / Gemini 3.6 Flash
 
 ## Selected Key Prompts (6–10)
 
