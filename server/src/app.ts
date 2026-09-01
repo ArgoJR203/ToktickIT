@@ -17,6 +17,23 @@ app.get("/api/health", (_req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
+// Lab 2 — Fetch active development requesters (Issue #2-3)
+// ---------------------------------------------------------------------------
+app.get("/api/requesters", async (_req: Request, res: Response) => {
+  try {
+    const requesters = await getPrisma().requesterUser.findMany({
+      where: { isActive: true },
+      orderBy: { id: "asc" },
+      select: { id: true, name: true, email: true, isActive: true },
+    });
+    res.status(200).json(requesters);
+  } catch (err) {
+    console.error("Error in GET /api/requesters:", err);
+    res.status(500).json({ error: "Failed to load requesters" });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Issue 4 — Category list
 // ---------------------------------------------------------------------------
 app.get("/api/categories", async (_req: Request, res: Response) => {
@@ -26,9 +43,41 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
       select: { id: true, name: true },
     });
     res.status(200).json(categories);
-  } catch {
+  } catch (err) {
+    console.error("Error in GET /api/categories:", err);
     res.status(500).json({ error: "Failed to load categories" });
   }
 });
 
+// ---------------------------------------------------------------------------
+// Lab 2 — Fetch active related systems (Issue #2-3)
+// ---------------------------------------------------------------------------
+app.get("/api/related-systems", async (req: Request, res: Response) => {
+  try {
+    const { categoryId } = req.query;
+    let whereClause: Record<string, unknown> = { isActive: true };
+
+    if (typeof categoryId === "string" && categoryId.trim() !== "") {
+      const parsedCategoryId = Number(categoryId);
+      if (!isNaN(parsedCategoryId)) {
+        whereClause = {
+          isActive: true,
+          OR: [{ categoryId: parsedCategoryId }, { categoryId: null }],
+        };
+      }
+    }
+
+    const relatedSystems = await getPrisma().relatedSystem.findMany({
+      where: whereClause,
+      orderBy: { id: "asc" },
+      select: { id: true, name: true, categoryId: true, isActive: true },
+    });
+    res.status(200).json(relatedSystems);
+  } catch (err) {
+    console.error("Error in GET /api/related-systems:", err);
+    res.status(500).json({ error: "Failed to load related systems" });
+  }
+});
+
 export default app;
+
