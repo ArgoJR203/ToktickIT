@@ -11,10 +11,92 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// Issue 3 — Create and seed IT request categories
+// Enums
 // ---------------------------------------------------------------------------
-model Category {
+
+enum RequestedPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CurrentStatus {
+  NEW
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model RequesterUser {
   id        Int      @id @default(autoincrement())
-  name      String   @unique
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tickets   Ticket[]
+}
+
+model Category {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  createdAt      DateTime        @default(now())
+  tickets        Ticket[]
+  relatedSystems RelatedSystem[]
+}
+
+model RelatedSystem {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  isActive   Boolean   @default(true)
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  createdAt  DateTime  @default(now())
+  tickets    Ticket[]
+}
+
+model Ticket {
+  id                Int               @id @default(autoincrement())
+  ticketNumber      String            @unique
+  requesterId       Int
+  requester         RequesterUser     @relation(fields: [requesterId], references: [id])
+  categoryId        Int
+  category          Category          @relation(fields: [categoryId], references: [id])
+  relatedSystemId   Int
+  relatedSystem     RelatedSystem     @relation(fields: [relatedSystemId], references: [id])
+  summary           String
+  description       String
+  requestedPriority RequestedPriority
+  currentStatus     CurrentStatus     @default(NEW)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  attachments       Attachment[]
+
+  @@index([requesterId])
+  @@index([categoryId])
+  @@index([relatedSystemId])
+  @@index([createdAt])
+}
+
+model Attachment {
+  id            Int       @id @default(autoincrement())
+  ticketId      Int
+  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  filename      String
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  storagePath   String
+  isRemoved     Boolean   @default(false)
+  removalReason String?
+  removedAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([ticketId])
 }
