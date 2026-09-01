@@ -24,21 +24,22 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 | **API-05** | API | AC-03, BR-18 | Unauthorized ticket detail access | Returns `403 Forbidden` / `404 Not Found` when accessing other requester's ticket | `server/tests/lab-02/ticket-detail.api.test.ts` | [Pending] |
 | **API-06** | API | AC-06, BR-14 | Attachment upload to ticket | Saves file to server storage & creates database record | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
 | **API-07** | API | AC-08, BR-15 | Soft removal of attachment | Sets `isRemoved = true`, records reason/timestamp, blocks binary stream (`410`) | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
-| **UI-01** | UI | AC-02 | Requester context redirect | Displays Dev Requester selection screen if no requester context set | `client/src/lab-02/tests/RequesterSelector.test.tsx` | [Pending] |
-| **UI-02** | UI | AC-05 | Create Ticket validation display | Inline red validation error messages appear below invalid controls | `client/src/lab-02/tests/CreateTicket.test.tsx` | [Pending] |
-| **UI-03** | UI | FR-12 | Submit busy & loading state | Submit button disabled and shows spinner during request processing | `client/src/lab-02/tests/CreateTicket.test.tsx` | [Pending] |
-| **UI-04** | UI | AC-08 | Soft removal modal confirmation | Modal prompts for removal reason, disables confirm until valid reason entered | `client/src/lab-02/tests/AttachmentSection.test.tsx` | [Pending] |
-| **UI-05** | UI Style | Zen Green UI | CSS classes and color tokens | Verified `#006B3C` primary header, `#EAF6EF` section emphasis, red asterisks | `client/src/lab-02/tests/ZenGreenStyle.test.tsx` | [Pending] |
+| **UI-01** | UI | AC-02 | Requester context redirect | Displays Dev Requester selection screen if no requester context set | `client/tests/lab-02/RequesterSelector.test.tsx` | [Passed] |
+| **UI-02** | UI | AC-05 | Create Ticket validation display | Inline red validation error messages appear below invalid controls | `client/tests/lab-02/CreateTicket.test.tsx` | [Pending] |
+| **UI-03** | UI | FR-12 | Submit busy & loading state | Submit button disabled and shows spinner during request processing | `client/tests/lab-02/CreateTicket.test.tsx` | [Pending] |
+| **UI-04** | UI | AC-08 | Soft removal modal confirmation | Modal prompts for removal reason, disables confirm until valid reason entered | `client/tests/lab-02/AttachmentSection.test.tsx` | [Pending] |
+| **UI-05** | UI Style | Zen Green UI | CSS classes and color tokens | Verified `#006B3C` primary header, `#EAF6EF` section emphasis, red asterisks | `client/tests/lab-02/MyTickets.test.tsx` | [Pending] |
 | **E2E-01** | E2E | AC-01, AC-04 | Complete ticket submission & retrieval flow | Requester creates ticket, redirects to My Tickets, ticket appears in list | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Pending] |
 | **E2E-02** | E2E | AC-03 | Cross-requester context switching | Switch Requester A -> B; verified Requester A tickets disappear from view | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Pending] |
 | **E2E-03** | E2E | AC-08 | Attachment upload and soft removal flow | Upload PDF -> view active -> soft remove with reason -> verify "Removed" badge | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Pending] |
 | **API-08** | API | AC-07, BR-12, BR-13 | Attachment upload rejection (invalid type/oversize) | Returns `400 Bad Request` with `FILE_TOO_LARGE` or `INVALID_FILE_TYPE` error code | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
 | **API-09** | API | AC-08, BR-16 | Download soft-removed attachment returns 410 | GET download endpoint after soft removal returns `410 Gone` | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
-| **API-10** | API | FR-01, BR-04 | Fetch active requesters only | Returns only `isActive: true` requesters; excludes inactive | `server/tests/lab-02/requesters.api.test.ts` | [Pending] |
-| **API-11** | API | FR-02 | Fetch ticket categories | Returns all 4 seed categories | `server/tests/lab-02/categories.api.test.ts` | [Pending] |
-| **API-12** | API | FR-02 | Fetch related systems with optional category filter | Returns active systems; filters by `?categoryId` when provided | `server/tests/lab-02/related-systems.api.test.ts` | [Pending] |
-| **UI-06** | UI | AC-10 | Network error display & form preservation | Zen Green error banner shown on API failure; form inputs preserved | `client/src/lab-02/tests/CreateTicket.test.tsx` | [Pending] |
-| **RESP-01** | Responsive | AC-09 | Mobile card view layout at <768px | Tickets render as cards; no horizontal scrollbar; touch targets >= 44px | `client/src/lab-02/tests/ResponsiveLayout.test.tsx` | [Pending] |
+| **API-10** | API | FR-01, BR-04 | Fetch active requesters only | Returns only `isActive: true` requesters; excludes inactive | `server/tests/lab-02/requesters.api.test.ts` | [Passed] |
+| **API-11** | API | FR-02 | Fetch ticket categories | Returns all 4 seed categories | `server/tests/lab-02/categories.api.test.ts` | [Passed] |
+| **API-12** | API | FR-02 | Fetch related systems with optional category filter | Returns active systems; filters by `?categoryId` when provided | `server/tests/lab-02/related-systems.api.test.ts` | [Passed] |
+| **UI-06** | UI | AC-10 | Network error display & form preservation | Zen Green error banner shown on API failure; form inputs preserved | `client/tests/lab-02/CreateTicket.test.tsx` | [Pending] |
+| **UI-07** | UI | AC-03, FR-07 | Ticket detail view & metadata grid | Renders ticket header, status badge, metadata grid, and description | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | [Pending] |
+| **RESP-01** | Responsive | AC-09 | Mobile card view layout at <768px | Tickets render as cards; no horizontal scrollbar; touch targets >= 44px | `client/tests/lab-02/MyTickets.test.tsx` | [Pending] |
 
 ---
 
@@ -48,7 +49,7 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 | :--- | :--- | :--- |
 | **AC-01** (Valid ticket creation & Ticket Number) | API-01, E2E-01 | API test checks response `ticketNumber`; E2E verifies UI success page |
 | **AC-02** (Dev Requester selection redirect) | UI-01, E2E-02 | UI component test checks route guard; E2E tests app startup flow |
-| **AC-03** (Ownership isolation) | API-03, API-05, E2E-02 | API attempts cross-requester query; E2E switches user identity |
+| **AC-03** (Ownership isolation) | API-03, API-05, UI-07, E2E-02 | API attempts cross-requester query; UI renders ticket detail; E2E switches user identity |
 | **AC-04** (Search & Filtering) | API-04, E2E-01 | API queries params; E2E interacts with search input and filters |
 | **AC-05** (Field validation & error preservation) | API-02, UI-02 | Form submission without required fields verifies inline text |
 | **AC-06** (Attachment upload) | API-06, E2E-03 | File upload multipart request verifies database record & storage |
@@ -87,11 +88,11 @@ npx playwright test e2e/lab-02/
 
 ## 6. Final Results (Update as implementation proceeds)
 
-- **Total Planned Tests**: 24
-- **Passed**: 0 (Pending implementation)
+- **Total Planned Tests**: 25
+- **Passed**: 4 (API-10, API-11, API-12, UI-01)
 - **Failed**: 0
 - **Skipped**: 0
-- **Coverage Summary**: 24 tests planned tracing to 100% of Acceptance Criteria (AC-01 through AC-10) and all API endpoints.
+- **Coverage Summary**: 25 tests planned tracing to 100% of Acceptance Criteria (AC-01 through AC-10) and all API endpoints.
 
 ---
 

@@ -5,14 +5,65 @@ export interface Category {
   name: string;
 }
 
+export interface RelatedSystem {
+  id: number;
+  name: string;
+  categoryId: number | null;
+  isActive: boolean;
+}
+
+export interface RequesterUser {
+  id: number;
+  name: string;
+  email: string;
+  isActive: boolean;
+}
+
 export interface SystemStatus {
   online: boolean;
   categories: Category[];
 }
 
+/**
+ * Fetch active Development Requesters (Issue #2-3, #2-4)
+ */
+export async function fetchRequesters(): Promise<RequesterUser[]> {
+  const res = await fetch(`${API_URL}/api/requesters`);
+  if (!res.ok) {
+    throw new Error("Failed to load active development requesters.");
+  }
+  return res.json();
+}
 
+/**
+ * Fetch Categories (Issue #2-3)
+ */
+export async function fetchCategories(): Promise<Category[]> {
+  const res = await fetch(`${API_URL}/api/categories`);
+  if (!res.ok) {
+    throw new Error("Failed to load categories.");
+  }
+  return res.json();
+}
+
+/**
+ * Fetch Related Systems (Issue #2-3)
+ */
+export async function fetchRelatedSystems(categoryId?: number): Promise<RelatedSystem[]> {
+  const url = categoryId
+    ? `${API_URL}/api/related-systems?categoryId=${categoryId}`
+    : `${API_URL}/api/related-systems`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error("Failed to load related systems.");
+  }
+  return res.json();
+}
+
+/**
+ * Check System health and categories
+ */
 export async function checkSystem(): Promise<SystemStatus> {
-  // Issue 2: call the health endpoint
   let healthRes: Response;
   try {
     healthRes = await fetch(`${API_URL}/api/health`);
@@ -21,15 +72,6 @@ export async function checkSystem(): Promise<SystemStatus> {
   }
   if (!healthRes.ok) throw new Error("Backend is not responding");
 
-  // Issue 4: call the categories endpoint
-  let catRes: Response;
-  try {
-    catRes = await fetch(`${API_URL}/api/categories`);
-  } catch {
-    throw new Error(`Unable to connect to API at ${API_URL}`);
-  }
-  if (!catRes.ok) throw new Error("Failed to load categories");
-  const categories: Category[] = await catRes.json();
-
+  const categories = await fetchCategories();
   return { online: true, categories };
 }

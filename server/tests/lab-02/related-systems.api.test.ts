@@ -21,14 +21,12 @@ describe("GET /api/related-systems (API-12)", () => {
   });
 
   it("filters related systems by categoryId query parameter", async () => {
-    // Category 1 = "Account and Access" -> Email (categoryId: 1)
     const resCat1 = await request(app).get("/api/related-systems?categoryId=1");
     expect(resCat1.status).toBe(200);
     const cat1Names = resCat1.body.map((sys: { name: string }) => sys.name);
     expect(cat1Names).toContain("Email");
     expect(cat1Names).not.toContain("Campus Wi-Fi");
 
-    // Category 4 = "Network" -> Campus Wi-Fi, VPN (categoryId: 4)
     const resCat4 = await request(app).get("/api/related-systems?categoryId=4");
     expect(resCat4.status).toBe(200);
     const cat4Names = resCat4.body.map((sys: { name: string }) => sys.name);

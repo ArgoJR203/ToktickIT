@@ -1,68 +1,80 @@
-import { useState } from "react";
-import { checkSystem, Category } from "./api.js";
+import React, { useState } from "react";
+import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
+import { RequesterSelector } from "./components/RequesterSelector.js";
+import { Header } from "./components/Header.js";
 
-// UI states you must handle for Issue 4: idle, loading, success, error.
-type UiState = "idle" | "loading" | "success" | "error";
+type NavTab = "my-tickets" | "create-ticket";
 
-export default function App() {
-  const [state, setState] = useState<UiState>("idle");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [errorMsg, setErrorMsg] = useState("");
+function MainContent() {
+  const { currentRequester } = useRequester();
+  const [activeTab, setActiveTab] = useState<NavTab>("my-tickets");
 
-  async function handleCheck() {
-    // TODO(Issue 4): set loading, call checkSystem(), then either
-    //   - success: store categories and show Online + the list, or
-    //   - error: show Offline + a useful message.
-    setState("loading");
-    setErrorMsg("");
-    try {
-      const result = await checkSystem();
-      setCategories(result.categories);
-      setState("success");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Unknown error");
-      setState("error");
-    }
+  // Route Guard: If no requester context is selected, force Dev Requester Selector
+  if (!currentRequester) {
+    return <RequesterSelector />;
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 640 }}>
-      <h1 className="h3 mb-4">
-        TokTickIT <span className="text-success">IT Service Desk</span>
-      </h1>
+    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: "var(--color-bg-quiet)" }}>
+      <Header activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <button className="btn btn-success" onClick={handleCheck} disabled={state === "loading"}>
-        {state === "loading" ? "Loading…" : "Check System"}
-      </button>
+      <main className="container py-4 flex-grow-1">
+        {activeTab === "my-tickets" && (
+          <div className="zen-card p-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                <h2 className="h4 fw-bold mb-1" style={{ color: "var(--color-text-main)" }}>
+                  My Tickets
+                </h2>
+                <p className="text-muted small mb-0">
+                  Showing IT support tickets submitted by <strong>{currentRequester.name}</strong> ({currentRequester.email})
+                </p>
+              </div>
+              <button
+                className="btn btn-zen-primary"
+                onClick={() => setActiveTab("create-ticket")}
+              >
+                + Create Ticket
+              </button>
+            </div>
 
-      {state === "loading" && (
-        <div className="mt-3">
-          <div className="spinner-border text-success" role="status">
-            <span className="visually-hidden">Loading…</span>
+            {/* Dashboard placeholder until Issue #2-6 */}
+            <div className="alert zen-alert-success p-4 text-center">
+              <h3 className="h5 fw-semibold mb-2">Requester Context Established!</h3>
+              <p className="mb-0 small text-muted">
+                Active Requester: <strong>{currentRequester.name}</strong> (ID: {currentRequester.id})
+              </p>
+              <p className="mt-2 mb-0 small">
+                The My Tickets dashboard and Create Ticket workflows will be loaded in the upcoming feature steps.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {state === "success" && (
-        <div className="alert alert-success mt-3" role="alert">
-          <strong>Online</strong> — Backend is healthy.
-          <p className="mb-1">Supported Request Categories:</p>
-          {categories.length > 0 && (
-            <ul className="mb-0 mt-2">
-              {categories.map((c) => (
-                <li key={c.id}>{c.name}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+        {activeTab === "create-ticket" && (
+          <div className="zen-card p-4" style={{ maxWidth: 900, margin: "0 auto" }}>
+            <div className="mb-4">
+              <h2 className="h4 fw-bold mb-1">Create IT Support Ticket</h2>
+              <p className="text-muted small">Submit a new request for IT assistance</p>
+            </div>
 
-      {state === "error" && (
-        <div className="alert alert-danger mt-3" role="alert">
-          <strong>Offline</strong> — {errorMsg}
-        </div>
-      )}
+            {/* Form placeholder until Issue #2-5 */}
+            <div className="alert alert-light border p-4 text-center">
+              <p className="mb-0 text-muted">
+                Create Ticket form workflow is assigned to Feature #2-5.
+              </p>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
+export default function App() {
+  return (
+    <RequesterProvider>
+      <MainContent />
+    </RequesterProvider>
+  );
+}
