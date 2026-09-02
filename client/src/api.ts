@@ -75,3 +75,50 @@ export async function checkSystem(): Promise<SystemStatus> {
   const categories = await fetchCategories();
   return { online: true, categories };
 }
+
+export interface CreateTicketPayload {
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+}
+
+export interface Ticket {
+  id: number;
+  ticketNumber: string;
+  requesterId: number;
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  currentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Submit a new ticket (Issue #2-5)
+ */
+export async function createTicket(payload: CreateTicketPayload, requesterId: number): Promise<Ticket> {
+  const res = await fetch(`${API_URL}/api/tickets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-requester-id": requesterId.toString(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    const errorMsg = data.message || data.error || "Failed to create ticket.";
+    const err = new Error(errorMsg);
+    (err as Record<string, unknown>).details = data.details;
+    (err as Record<string, unknown>).status = res.status;
+    throw err;
+  }
+  return data;
+}
+

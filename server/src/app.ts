@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
+import { generateTicketNumber } from "./utils/ticket-generator.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -79,5 +80,154 @@ app.get("/api/related-systems", async (req: Request, res: Response) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Lab 2 — Create Ticket (Issue #2-5)
+// ---------------------------------------------------------------------------
+app.post("/api/tickets", async (req: Request, res: Response) => {
+  try {
+    const requesterHeader = req.header("x-requester-id");
+    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
+
+    if (isNaN(requesterId)) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid x-requester-id header",
+      });
+    }
+
+    const requester = await getPrisma().requesterUser.findUnique({
+      where: { id: requesterId },
+    });
+
+    if (!requester || !requester.isActive) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Development requester is invalid or inactive",
+      });
+    }
+
+    const { categoryId, relatedSystemId, summary, description, requestedPriority } = req.body;
+    const errors: Record<string, string> = {};
+
+    const parsedCategoryId = typeof categoryId === "number" ? categoryId : parseInt(categoryId, 10);
+    const parsedSystemId = typeof relatedSystemId === "number" ? relatedSystemId : parseInt(relatedSystemId, 10);
+
+    // Validate categoryId
+    if (isNaN(parsedCategoryId)) {
+      errors.categoryId = "Category selection is required.";
+    }
+
+    // Validate relatedSystemId
+    if (isNaN(parsedSystemId)) {
+      errors.relatedSystemId = "Related system selection is required.";
+    }
+
+    // Validate summary (min 5, max 100)
+    const trimmedSummary = typeof summary === "string" ? summary.trim() : "";
+    if (trimmedSummary.length < 5 || trimmedSummary.length > 100) {
+      errors.summary = "Ticket summary must be between 5 and 100 characters.";
+    }
+
+    // Validate description (min 10, max 2000)
+    const trimmedDescription = typeof description === "string" ? description.trim() : "";
+    if (trimmedDescription.length < 10 || trimmedDescription.length > 2000) {
+      errors.description = "Ticket description must be between 10 and 2000 characters.";
+    }
+
+    // Validate requestedPriority (LOW, MEDIUM, HIGH, URGENT)
+    const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+    if (!validPriorities.includes(requestedPriority)) {
+      errors.requestedPriority = "Requested priority must be LOW, MEDIUM, HIGH, or URGENT.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Validation failed for ticket creation",
+        details: errors,
+      });
+    }
+
+    // Database existence and relational compatibility checks
+    const category = await getPrisma().category.findUnique({
+      where: { id: parsedCategoryId },
+    });
+    if (!category) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Validation failed for ticket creation",
+        details: { categoryId: "Selected category does not exist." },
+      });
+    }
+
+    const relatedSystem = await getPrisma().relatedSystem.findUnique({
+      where: { id: parsedSystemId },
+    });
+    if (!relatedSystem || !relatedSystem.isActive) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Validation failed for ticket creation",
+        details: { relatedSystemId: "Selected related system is invalid or inactive." },
+      });
+    }
+
+    // BR-10 check: If RelatedSystem has non-NULL categoryId, it MUST match categoryId
+    if (relatedSystem.categoryId !== null && relatedSystem.categoryId !== parsedCategoryId) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Validation failed for ticket creation",
+        details: { relatedSystemId: `Related system '${relatedSystem.name}' does not belong to the selected category.` },
+      });
+    }
+
+    let attempt = 0;
+    let ticket;
+
+    while (attempt < 5) {
+      try {
+        ticket = await getPrisma().$transaction(async (tx) => {
+          const ticketNumber = await generateTicketNumber(tx);
+          return await tx.ticket.create({
+            data: {
+              ticketNumber,
+              requesterId,
+              categoryId: parsedCategoryId,
+              relatedSystemId: parsedSystemId,
+              summary: trimmedSummary,
+              description: trimmedDescription,
+              requestedPriority,
+              currentStatus: "NEW",
+            },
+          });
+        });
+        break;
+      } catch (err: unknown) {
+        const prismaErr = err as { code?: string; meta?: { target?: string[] | string } };
+        const isUniqueConstraintErr =
+          prismaErr.code === "P2002" &&
+          (Array.isArray(prismaErr.meta?.target)
+            ? prismaErr.meta?.target.includes("ticketNumber")
+            : typeof prismaErr.meta?.target === "string" && prismaErr.meta?.target.includes("ticketNumber"));
+
+        if (isUniqueConstraintErr && attempt < 4) {
+          attempt++;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!ticket) {
+      throw new Error("Failed to generate unique ticket number after multiple attempts");
+    }
+
+    return res.status(201).json(ticket);
+  } catch (err) {
+    console.error("Error in POST /api/tickets:", err);
+    return res.status(500).json({ error: "INTERNAL_ERROR", message: "Failed to create ticket" });
+  }
+});
+
 export default app;
+
 
