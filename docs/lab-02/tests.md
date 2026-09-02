@@ -15,18 +15,18 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **UNIT-01** | Unit | BR-01 | Ticket Number format generation | Returns string matching `TKT-\d{4}-\d{6}` | `server/tests/lab-02/ticket-generator.test.ts` | [Pending] |
+| **UNIT-01** | Unit | BR-01 | Ticket Number format generation | Returns string matching `TKT-\d{4}-\d{6}` | `server/tests/lab-02/ticket-generator.test.ts` | [Passed] |
 | **UNIT-02** | Unit | BR-12, BR-13 | Attachment validator | Accepts JPG/PNG/WEBP/PDF <= 5MB; rejects others | `server/tests/lab-02/attachment-validator.test.ts` | [Pending] |
-| **API-01** | API | AC-01, FR-02 | Create valid ticket via API | Returns `201 Created` with official `ticketNumber` & status `NEW` | `server/tests/lab-02/create-ticket.api.test.ts` | [Pending] |
-| **API-02** | API | AC-05, BR-08 | Create ticket invalid input | Returns `400 Bad Request` with field validation errors | `server/tests/lab-02/create-ticket.api.test.ts` | [Pending] |
+| **API-01** | API | AC-01, FR-02 | Create valid ticket via API | Returns `201 Created` with official `ticketNumber` & status `NEW` | `server/tests/lab-02/create-ticket.api.test.ts` | [Passed] |
+| **API-02** | API | AC-05, BR-08 | Create ticket invalid input | Returns `400 Bad Request` with field validation errors | `server/tests/lab-02/create-ticket.api.test.ts` | [Passed] |
 | **API-03** | API | AC-03, BR-05 | My Tickets ownership isolation | Returns `200 OK` with tickets belonging ONLY to `x-requester-id` | `server/tests/lab-02/my-tickets.api.test.ts` | [Pending] |
 | **API-04** | API | AC-04, FR-05 | My Tickets search & filtering | Filters by search keyword, category, priority, and status | `server/tests/lab-02/my-tickets.api.test.ts` | [Pending] |
 | **API-05** | API | AC-03, BR-18 | Unauthorized ticket detail access | Returns `403 Forbidden` / `404 Not Found` when accessing other requester's ticket | `server/tests/lab-02/ticket-detail.api.test.ts` | [Pending] |
 | **API-06** | API | AC-06, BR-14 | Attachment upload to ticket | Saves file to server storage & creates database record | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
 | **API-07** | API | AC-08, BR-15 | Soft removal of attachment | Sets `isRemoved = true`, records reason/timestamp, blocks binary stream (`410`) | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
 | **UI-01** | UI | AC-02 | Requester context redirect | Displays Dev Requester selection screen if no requester context set | `client/tests/lab-02/RequesterSelector.test.tsx` | [Passed] |
-| **UI-02** | UI | AC-05 | Create Ticket validation display | Inline red validation error messages appear below invalid controls | `client/tests/lab-02/CreateTicket.test.tsx` | [Pending] |
-| **UI-03** | UI | FR-12 | Submit busy & loading state | Submit button disabled and shows spinner during request processing | `client/tests/lab-02/CreateTicket.test.tsx` | [Pending] |
+| **UI-02** | UI | AC-05 | Create Ticket validation display | Inline red validation error messages appear below invalid controls | `client/tests/lab-02/CreateTicket.test.tsx` | [Passed] |
+| **UI-03** | UI | FR-12 | Submit busy & loading state | Submit button disabled and shows spinner during request processing | `client/tests/lab-02/CreateTicket.test.tsx` | [Passed] |
 | **UI-04** | UI | AC-08 | Soft removal modal confirmation | Modal prompts for removal reason, disables confirm until valid reason entered | `client/tests/lab-02/AttachmentSection.test.tsx` | [Pending] |
 | **UI-05** | UI Style | Zen Green UI | CSS classes and color tokens | Verified `#006B3C` primary header, `#EAF6EF` section emphasis, red asterisks | `client/tests/lab-02/MyTickets.test.tsx` | [Pending] |
 | **E2E-01** | E2E | AC-01, AC-04 | Complete ticket submission & retrieval flow | Requester creates ticket, redirects to My Tickets, ticket appears in list | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Pending] |
@@ -37,7 +37,7 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 | **API-10** | API | FR-01, BR-04 | Fetch active requesters only | Returns only `isActive: true` requesters; excludes inactive | `server/tests/lab-02/requesters.api.test.ts` | [Passed] |
 | **API-11** | API | FR-02 | Fetch ticket categories | Returns all 4 seed categories | `server/tests/lab-02/categories.api.test.ts` | [Passed] |
 | **API-12** | API | FR-02 | Fetch related systems with optional category filter | Returns active systems; filters by `?categoryId` when provided | `server/tests/lab-02/related-systems.api.test.ts` | [Passed] |
-| **UI-06** | UI | AC-10 | Network error display & form preservation | Zen Green error banner shown on API failure; form inputs preserved | `client/tests/lab-02/CreateTicket.test.tsx` | [Pending] |
+| **UI-06** | UI | AC-10 | Network error display & form preservation | Zen Green error banner shown on API failure; form inputs preserved | `client/tests/lab-02/CreateTicket.test.tsx` | [Passed] |
 | **UI-07** | UI | AC-03, FR-07 | Ticket detail view & metadata grid | Renders ticket header, status badge, metadata grid, and description | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | [Pending] |
 | **RESP-01** | Responsive | AC-09 | Mobile card view layout at <768px | Tickets render as cards; no horizontal scrollbar; touch targets >= 44px | `client/tests/lab-02/MyTickets.test.tsx` | [Pending] |
 
@@ -89,7 +89,7 @@ npx playwright test e2e/lab-02/
 ## 6. Final Results (Update as implementation proceeds)
 
 - **Total Planned Tests**: 25
-- **Passed**: 4 (API-10, API-11, API-12, UI-01)
+- **Passed**: 10 (UNIT-01, API-01, API-02, API-10, API-11, API-12, UI-01, UI-02, UI-03, UI-06)
 - **Failed**: 0
 - **Skipped**: 0
 - **Coverage Summary**: 25 tests planned tracing to 100% of Acceptance Criteria (AC-01 through AC-10) and all API endpoints.
