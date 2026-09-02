@@ -9,6 +9,8 @@ vi.mock("../../src/api.js", async (importOriginal) => {
   return {
     ...actual,
     fetchRequesters: vi.fn(),
+    fetchCategories: vi.fn(),
+    fetchTickets: vi.fn(),
   };
 });
 
@@ -21,6 +23,11 @@ describe("Dev Requester Selector Component & Route Guard (UI-01, AC-02)", () => 
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    vi.mocked(api.fetchCategories).mockResolvedValue([]);
+    vi.mocked(api.fetchTickets).mockResolvedValue({
+      data: [],
+      pagination: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 },
+    });
   });
 
   it("renders Dev Requester Selector screen when no requester context is set (AC-02)", async () => {
@@ -57,7 +64,7 @@ describe("Dev Requester Selector Component & Route Guard (UI-01, AC-02)", () => 
     await waitFor(() => {
       const userElements = screen.getAllByText(/Jennifer Anderson/i);
       expect(userElements.length).toBeGreaterThan(0);
-      expect(screen.getByText(/Requester Context Established/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
     });
   });
 
@@ -90,7 +97,7 @@ describe("Dev Requester Selector Component & Route Guard (UI-01, AC-02)", () => 
     fireEvent.click(continueBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Requester Context Established/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
     });
 
     // Click "Change Requester" button in header
