@@ -185,7 +185,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
     return <span className="ms-1">{sortOrder === "asc" ? "▲" : "▼"}</span>;
   };
 
-  const startItem = (pagination.page - 1) * pagination.pageSize + 1;
+  const startItem = pagination.totalItems === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
   const endItem = Math.min(pagination.page * pagination.pageSize, pagination.totalItems);
 
   return (

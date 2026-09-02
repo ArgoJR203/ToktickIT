@@ -127,15 +127,19 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
       if (!isNaN(parsedCatId)) {
         where.categoryId = parsedCatId;
       }
+    } else if (typeof categoryId === "number" && !isNaN(categoryId)) {
+      where.categoryId = categoryId;
     }
 
     // Priority filter
-    if (typeof requestedPriority === "string" && requestedPriority.trim() !== "") {
+    const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+    if (typeof requestedPriority === "string" && validPriorities.includes(requestedPriority.trim())) {
       where.requestedPriority = requestedPriority.trim();
     }
 
     // Status filter
-    if (typeof currentStatus === "string" && currentStatus.trim() !== "") {
+    const validStatuses = ["NEW", "IN_PROGRESS", "PENDING", "RESOLVED", "CLOSED"];
+    if (typeof currentStatus === "string" && validStatuses.includes(currentStatus.trim())) {
       where.currentStatus = currentStatus.trim();
     }
 
