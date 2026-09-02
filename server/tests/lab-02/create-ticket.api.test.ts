@@ -85,4 +85,34 @@ describe("POST /api/tickets API Integration Tests (API-01, API-02)", () => {
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("UNAUTHORIZED");
   });
+
+  it("handles simultaneous concurrent ticket creation requests safely without duplicate ticket numbers", async () => {
+    const payload = {
+      categoryId,
+      relatedSystemId,
+      summary: "Concurrent ticket submission test summary",
+      description: "Testing parallel POST requests to ensure transaction isolation and unique numbers.",
+      requestedPriority: "MEDIUM",
+    };
+
+    // Fire 5 requests in parallel via Promise.all
+    const requests = Array.from({ length: 5 }).map(() =>
+      request(app)
+        .post("/api/tickets")
+        .set("x-requester-id", activeRequesterId.toString())
+        .send(payload)
+    );
+
+    const responses = await Promise.all(requests);
+
+    const ticketNumbers = new Set<string>();
+    for (const res of responses) {
+      expect(res.status).toBe(201);
+      expect(res.body.ticketNumber).toMatch(/^TKT-\d{4}-\d{6}$/);
+      ticketNumbers.add(res.body.ticketNumber);
+    }
+
+    // Verify all 5 created tickets got distinct, unique ticket numbers
+    expect(ticketNumbers.size).toBe(5);
+  });
 });

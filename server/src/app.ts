@@ -180,20 +180,46 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
       });
     }
 
-    const ticketNumber = await generateTicketNumber(getPrisma());
+    let attempt = 0;
+    let ticket;
 
-    const ticket = await getPrisma().ticket.create({
-      data: {
-        ticketNumber,
-        requesterId,
-        categoryId: parsedCategoryId,
-        relatedSystemId: parsedSystemId,
-        summary: trimmedSummary,
-        description: trimmedDescription,
-        requestedPriority,
-        currentStatus: "NEW",
-      },
-    });
+    while (attempt < 5) {
+      try {
+        ticket = await getPrisma().$transaction(async (tx) => {
+          const ticketNumber = await generateTicketNumber(tx);
+          return await tx.ticket.create({
+            data: {
+              ticketNumber,
+              requesterId,
+              categoryId: parsedCategoryId,
+              relatedSystemId: parsedSystemId,
+              summary: trimmedSummary,
+              description: trimmedDescription,
+              requestedPriority,
+              currentStatus: "NEW",
+            },
+          });
+        });
+        break;
+      } catch (err: unknown) {
+        const prismaErr = err as { code?: string; meta?: { target?: string[] | string } };
+        const isUniqueConstraintErr =
+          prismaErr.code === "P2002" &&
+          (Array.isArray(prismaErr.meta?.target)
+            ? prismaErr.meta?.target.includes("ticketNumber")
+            : typeof prismaErr.meta?.target === "string" && prismaErr.meta?.target.includes("ticketNumber"));
+
+        if (isUniqueConstraintErr && attempt < 4) {
+          attempt++;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!ticket) {
+      throw new Error("Failed to generate unique ticket number after multiple attempts");
+    }
 
     return res.status(201).json(ticket);
   } catch (err) {

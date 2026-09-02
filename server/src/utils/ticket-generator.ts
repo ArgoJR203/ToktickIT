@@ -1,15 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { getPrisma } from "../prisma.js";
+
+type DBClient = PrismaClient | Prisma.TransactionClient;
 
 /**
  * Generates an official, sequential Ticket Number in the format TKT-YYYY-XXXXXX.
  * Example: TKT-2026-000001
  * 
- * @param prisma Optional PrismaClient instance (defaults to getPrisma())
+ * @param prisma Optional PrismaClient or TransactionClient instance (defaults to getPrisma())
  * @param year Optional 4-digit year override (defaults to current calendar year)
  */
 export async function generateTicketNumber(
-  prisma: PrismaClient = getPrisma(),
+  prisma: DBClient = getPrisma(),
   year?: string
 ): Promise<string> {
   const targetYear = year || new Date().getFullYear().toString();
