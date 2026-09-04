@@ -89,9 +89,10 @@ npx playwright test e2e/lab-02/
 ## 6. Final Results (Update as implementation proceeds)
 
 - **Total Planned Tests**: 25
-- **Passed**: 12 (UNIT-01, API-01, API-02, API-03, API-04, API-05, API-10, API-11, API-12, UI-01, UI-02, UI-03, UI-05, UI-06, UI-07, RESP-01)
+- **Passed**: 16 (UNIT-01, API-01, API-02, API-03, API-04, API-05, API-10, API-11, API-12, UI-01, UI-02, UI-03, UI-05, UI-06, UI-07, RESP-01)
 - **Failed**: 0
 - **Skipped**: 0
+- **Pending**: 9 (UNIT-02, API-06, API-07, API-08, API-09, UI-04, E2E-01, E2E-02, E2E-03)
 - **Coverage Summary**: 25 tests planned tracing to 100% of Acceptance Criteria (AC-01 through AC-10) and all API endpoints.
 
 ---
