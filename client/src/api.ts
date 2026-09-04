@@ -28,7 +28,15 @@ export interface SystemStatus {
  * Fetch active Development Requesters (Issue #2-3, #2-4)
  */
 export async function fetchRequesters(): Promise<RequesterUser[]> {
-  const res = await fetch(`${API_URL}/api/requesters`);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/requesters`);
+  } catch {
+    throw new Error(
+      `Unable to connect to the backend server (${API_URL}). The server may be offline or unreachable. Please ensure the backend server is running.`
+    );
+  }
+
   if (!res.ok) {
     throw new Error("Failed to load active development requesters.");
   }
@@ -180,5 +188,66 @@ export async function fetchTickets(
   }
 
   return res.json();
+}
+
+export interface AttachmentItem {
+  id: number;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  isRemoved: boolean;
+  removalReason?: string | null;
+  removedAt?: string | null;
+  createdAt: string;
+}
+
+export interface TicketDetail {
+  id: number;
+  ticketNumber: string;
+  requesterId: number;
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  currentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  category: { id: number; name: string };
+  relatedSystem: { id: number; name: string };
+  requester: { id: number; name: string; email: string };
+  attachments: AttachmentItem[];
+}
+
+/**
+ * Fetch owned ticket detail by ID (Issue #2-7)
+ */
+export async function fetchTicketDetail(
+  ticketId: number,
+  requesterId: number
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
+    headers: {
+      "x-requester-id": requesterId.toString(),
+    },
+  });
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (!res.ok) {
+    const errorMsg = data.message || data.error || `Failed to load ticket details (${res.status})`;
+    const err = new Error(errorMsg);
+    (err as Record<string, unknown>).status = res.status;
+    (err as Record<string, unknown>).error = data.error;
+    throw err;
+  }
+
+  return data as TicketDetail;
 }
 

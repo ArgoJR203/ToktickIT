@@ -193,6 +193,92 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
+// Lab 2 — Fetch Owned Ticket Detail (Issue #2-7)
+// ---------------------------------------------------------------------------
+app.get("/api/tickets/:id", async (req: Request, res: Response) => {
+  try {
+    const requesterHeader = req.header("x-requester-id");
+    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
+
+    if (isNaN(requesterId)) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid x-requester-id header",
+      });
+    }
+
+    const requester = await getPrisma().requesterUser.findUnique({
+      where: { id: requesterId },
+    });
+
+    if (!requester || !requester.isActive) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Development requester is invalid or inactive",
+      });
+    }
+
+    if (!/^\d+$/.test(req.params.id)) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Invalid ticket ID format",
+      });
+    }
+
+    const ticketId = parseInt(req.params.id, 10);
+    if (ticketId <= 0) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Invalid ticket ID format",
+      });
+    }
+
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        category: { select: { id: true, name: true } },
+        relatedSystem: { select: { id: true, name: true } },
+        requester: { select: { id: true, name: true, email: true } },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            originalName: true,
+            mimeType: true,
+            sizeBytes: true,
+            isRemoved: true,
+            removalReason: true,
+            removedAt: true,
+            createdAt: true,
+          },
+          orderBy: { id: "asc" },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Ticket not found",
+      });
+    }
+
+    // BR-18: Check ownership isolation
+    if (ticket.requesterId !== requesterId) {
+      return res.status(403).json({
+        error: "FORBIDDEN",
+        message: "Access denied: You do not own this ticket",
+      });
+    }
+
+    return res.status(200).json(ticket);
+  } catch (err) {
+    console.error("Error in GET /api/tickets/:id:", err);
+    return res.status(500).json({ error: "INTERNAL_ERROR", message: "Failed to fetch ticket detail" });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Lab 2 — Create Ticket (Issue #2-5)
 // ---------------------------------------------------------------------------
 app.post("/api/tickets", async (req: Request, res: Response) => {

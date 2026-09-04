@@ -380,7 +380,16 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
                   <tr
                     key={ticket.id}
                     className="cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ticket ${ticket.ticketNumber}`}
                     onClick={() => onSelectTicket && onSelectTicket(ticket.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelectTicket && onSelectTicket(ticket.id);
+                      }
+                    }}
                     style={{ transition: "background-color 0.15s ease" }}
                   >
                     <td className="fw-semibold font-monospace small" style={{ color: "var(--color-primary-green)" }}>
@@ -411,7 +420,16 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
               <div
                 key={ticket.id}
                 className="card mobile-ticket-card mb-3 shadow-sm border cursor-pointer"
+                role="button"
+                tabIndex={0}
+                aria-label={`View ticket ${ticket.ticketNumber}`}
                 onClick={() => onSelectTicket && onSelectTicket(ticket.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectTicket && onSelectTicket(ticket.id);
+                  }
+                }}
                 style={{ backgroundColor: "#FFFFFF", minHeight: "44px" }}
               >
                 <div className="card-body p-3">

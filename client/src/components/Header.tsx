@@ -1,13 +1,17 @@
 import React from "react";
 import { useRequester } from "../context/RequesterContext.js";
 
+export type NavTab = "my-tickets" | "create-ticket" | "ticket-detail";
+
 interface HeaderProps {
-  activeTab: "my-tickets" | "create-ticket";
-  onTabChange: (tab: "my-tickets" | "create-ticket") => void;
+  activeTab: NavTab;
+  onTabChange: (tab: NavTab) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const { currentRequester, changeRequester } = useRequester();
+
+  const isMyTicketsActive = activeTab === "my-tickets" || activeTab === "ticket-detail";
 
   return (
     <header
@@ -49,10 +53,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
           <nav className="d-flex">
             <button
               className={`btn btn-link text-white text-decoration-none me-2 px-3 py-1 rounded ${
-                activeTab === "my-tickets" ? "fw-semibold" : "opacity-75"
+                isMyTicketsActive ? "fw-semibold" : "opacity-75"
               }`}
               style={{
-                backgroundColor: activeTab === "my-tickets" ? "var(--color-secondary-green)" : "transparent",
+                backgroundColor: isMyTicketsActive ? "var(--color-secondary-green)" : "transparent",
               }}
               onClick={() => onTabChange("my-tickets")}
             >

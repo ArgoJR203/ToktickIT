@@ -14,6 +14,20 @@ export const RequesterSelector: React.FC = () => {
     }
   };
 
+  const formatErrorMessage = (msg: string) => {
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes("failed to fetch") ||
+      lower.includes("fetch failed") ||
+      lower.includes("networkerror") ||
+      lower.includes("load failed") ||
+      lower.includes("econnrefused")
+    ) {
+      return "Unable to connect to the backend server. The server may be offline or unreachable. Please verify that the backend is running.";
+    }
+    return msg;
+  };
+
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100 py-5">
       <div className="zen-card p-4 shadow-sm w-100" style={{ maxWidth: 480 }}>
@@ -58,10 +72,30 @@ export const RequesterSelector: React.FC = () => {
         {/* Error State */}
         {!loading && error && (
           <div className="alert zen-alert-danger p-3 mb-4 small" role="alert">
-            <p className="mb-2"><strong>Error:</strong> {error}</p>
-            <button className="btn btn-sm btn-outline-danger" onClick={refetchRequesters}>
-              Retry Connection
-            </button>
+            <div className="d-flex align-items-start mb-2">
+              <svg
+                className="me-2 flex-shrink-0 mt-1"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--color-error-text)"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <div>
+                <strong>Server Connection Error:</strong>
+                <p className="mb-0 mt-1">{formatErrorMessage(error)}</p>
+              </div>
+            </div>
+            <div className="mt-2 text-end">
+              <button className="btn btn-sm btn-outline-danger" onClick={refetchRequesters}>
+                Retry Connection
+              </button>
+            </div>
           </div>
         )}
 
