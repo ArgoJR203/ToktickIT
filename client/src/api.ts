@@ -122,3 +122,63 @@ export async function createTicket(payload: CreateTicketPayload, requesterId: nu
   return data;
 }
 
+export interface TicketItem extends Ticket {
+  category: { id: number; name: string };
+  relatedSystem: { id: number; name: string };
+  _count?: { attachments: number };
+}
+
+export interface FetchTicketsParams {
+  search?: string;
+  categoryId?: string | number;
+  requestedPriority?: string;
+  currentStatus?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedTicketsResponse {
+  data: TicketItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+/**
+ * Fetch paginated ticket list for current requester (Issue #2-6)
+ */
+export async function fetchTickets(
+  params: FetchTicketsParams,
+  requesterId: number
+): Promise<PaginatedTicketsResponse> {
+  const query = new URLSearchParams();
+
+  if (params.search && params.search.trim()) query.set("search", params.search.trim());
+  if (params.categoryId) query.set("categoryId", params.categoryId.toString());
+  if (params.requestedPriority) query.set("requestedPriority", params.requestedPriority);
+  if (params.currentStatus) query.set("currentStatus", params.currentStatus);
+  if (params.sortBy) query.set("sortBy", params.sortBy);
+  if (params.sortOrder) query.set("sortOrder", params.sortOrder);
+  if (params.page) query.set("page", params.page.toString());
+  if (params.pageSize) query.set("pageSize", params.pageSize.toString());
+
+  const url = `${API_URL}/api/tickets?${query.toString()}`;
+
+  const res = await fetch(url, {
+    headers: {
+      "x-requester-id": requesterId.toString(),
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch ticket list.");
+  }
+
+  return res.json();
+}
+

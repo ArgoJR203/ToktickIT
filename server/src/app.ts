@@ -81,6 +81,118 @@ app.get("/api/related-systems", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
+// Lab 2 — Fetch Owned Paginated Tickets (Issue #2-6)
+// ---------------------------------------------------------------------------
+app.get("/api/tickets", async (req: Request, res: Response) => {
+  try {
+    const requesterHeader = req.header("x-requester-id");
+    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
+
+    if (isNaN(requesterId)) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid x-requester-id header",
+      });
+    }
+
+    const requester = await getPrisma().requesterUser.findUnique({
+      where: { id: requesterId },
+    });
+
+    if (!requester || !requester.isActive) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Development requester is invalid or inactive",
+      });
+    }
+
+    const { search, categoryId, requestedPriority, currentStatus, sortBy, sortOrder, page, pageSize } = req.query;
+
+    const where: Record<string, unknown> = {
+      requesterId,
+    };
+
+    // Keyword search matching summary or ticketNumber (case-insensitive)
+    if (typeof search === "string" && search.trim() !== "") {
+      const term = search.trim();
+      where.OR = [
+        { ticketNumber: { contains: term, mode: "insensitive" } },
+        { summary: { contains: term, mode: "insensitive" } },
+      ];
+    }
+
+    // Category filter
+    if (typeof categoryId === "string" && categoryId.trim() !== "") {
+      const parsedCatId = parseInt(categoryId, 10);
+      if (!isNaN(parsedCatId)) {
+        where.categoryId = parsedCatId;
+      }
+    } else if (typeof categoryId === "number" && !isNaN(categoryId)) {
+      where.categoryId = categoryId;
+    }
+
+    // Priority filter
+    const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+    if (typeof requestedPriority === "string" && validPriorities.includes(requestedPriority.trim())) {
+      where.requestedPriority = requestedPriority.trim();
+    }
+
+    // Status filter
+    const validStatuses = ["NEW", "IN_PROGRESS", "PENDING", "RESOLVED", "CLOSED"];
+    if (typeof currentStatus === "string" && validStatuses.includes(currentStatus.trim())) {
+      where.currentStatus = currentStatus.trim();
+    }
+
+    // Sorting
+    const validSortFields = ["createdAt", "ticketNumber", "requestedPriority", "currentStatus"];
+    const sortField = typeof sortBy === "string" && validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const sortDir = typeof sortOrder === "string" && sortOrder.toLowerCase() === "asc" ? "asc" : "desc";
+
+    const orderBy: Array<Record<string, "asc" | "desc">> = [
+      { [sortField]: sortDir as "asc" | "desc" },
+    ];
+    if (sortField !== "id") {
+      orderBy.push({ id: "desc" });
+    }
+
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(pageSize as string, 10) || 10));
+    const skip = (pageNum - 1) * limit;
+
+    const [totalItems, tickets] = await Promise.all([
+      getPrisma().ticket.count({ where }),
+      getPrisma().ticket.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: {
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          _count: { select: { attachments: true } },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+
+    return res.status(200).json({
+      data: tickets,
+      pagination: {
+        page: pageNum,
+        pageSize: limit,
+        totalItems,
+        totalPages,
+      },
+    });
+  } catch (err) {
+    console.error("Error in GET /api/tickets:", err);
+    return res.status(500).json({ error: "INTERNAL_ERROR", message: "Failed to fetch tickets" });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Lab 2 — Create Ticket (Issue #2-5)
 // ---------------------------------------------------------------------------
 app.post("/api/tickets", async (req: Request, res: Response) => {
@@ -183,7 +295,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
     let attempt = 0;
     let ticket;
 
-    while (attempt < 5) {
+    while (attempt < 10) {
       try {
         ticket = await getPrisma().$transaction(async (tx) => {
           const ticketNumber = await generateTicketNumber(tx);
@@ -206,11 +318,15 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
         const isUniqueConstraintErr =
           prismaErr.code === "P2002" &&
           (Array.isArray(prismaErr.meta?.target)
-            ? prismaErr.meta?.target.includes("ticketNumber")
-            : typeof prismaErr.meta?.target === "string" && prismaErr.meta?.target.includes("ticketNumber"));
+            ? prismaErr.meta?.target.some((t) => t.toLowerCase().includes("ticketnumber"))
+            : typeof prismaErr.meta?.target === "string"
+            ? prismaErr.meta?.target.toLowerCase().includes("ticketnumber")
+            : true);
 
-        if (isUniqueConstraintErr && attempt < 4) {
+        if (isUniqueConstraintErr && attempt < 9) {
           attempt++;
+          // Add small jittered backoff to avoid concurrent lockstep collisions
+          await new Promise((resolve) => setTimeout(resolve, 15 * attempt + Math.random() * 35));
           continue;
         }
         throw err;

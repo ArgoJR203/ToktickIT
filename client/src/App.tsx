@@ -3,6 +3,7 @@ import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { RequesterSelector } from "./components/RequesterSelector.js";
 import { Header } from "./components/Header.js";
 import { CreateTicket } from "./components/CreateTicket.js";
+import { MyTickets } from "./components/MyTickets.js";
 import { Ticket } from "./api.js";
 
 type NavTab = "my-tickets" | "create-ticket";
@@ -50,38 +51,12 @@ function MainContent() {
         )}
 
         {activeTab === "my-tickets" && (
-          <div className="zen-card p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <div>
-                <h2 className="h4 fw-bold mb-1" style={{ color: "var(--color-text-main)" }}>
-                  My Tickets
-                </h2>
-                <p className="text-muted small mb-0">
-                  Showing IT support tickets submitted by <strong>{currentRequester.name}</strong> ({currentRequester.email})
-                </p>
-              </div>
-              <button
-                className="btn btn-zen-primary"
-                onClick={() => {
-                  setCreatedTicketNotice(null);
-                  setActiveTab("create-ticket");
-                }}
-              >
-                + Create Ticket
-              </button>
-            </div>
-
-            {/* Dashboard placeholder until Issue #2-6 */}
-            <div className="alert zen-alert-success p-4 text-center">
-              <h3 className="h5 fw-semibold mb-2">Requester Context Established!</h3>
-              <p className="mb-0 small text-muted">
-                Active Requester: <strong>{currentRequester.name}</strong> (ID: {currentRequester.id})
-              </p>
-              <p className="mt-2 mb-0 small">
-                The My Tickets dashboard table will be loaded in Issue #2-6. Click <strong>+ Create Ticket</strong> above to test ticket submission.
-              </p>
-            </div>
-          </div>
+          <MyTickets
+            onCreateClick={() => {
+              setCreatedTicketNotice(null);
+              setActiveTab("create-ticket");
+            }}
+          />
         )}
 
         {activeTab === "create-ticket" && (
