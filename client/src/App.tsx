@@ -1,17 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { RequesterSelector } from "./components/RequesterSelector.js";
-import { Header } from "./components/Header.js";
+import { Header, NavTab } from "./components/Header.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
+import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 import { Ticket } from "./api.js";
-
-type NavTab = "my-tickets" | "create-ticket";
 
 function MainContent() {
   const { currentRequester } = useRequester();
   const [activeTab, setActiveTab] = useState<NavTab>("my-tickets");
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [createdTicketNotice, setCreatedTicketNotice] = useState<string | null>(null);
+
+  // Reset detail view and notices whenever active requester changes (BR-19)
+  useEffect(() => {
+    setActiveTab("my-tickets");
+    setSelectedTicketId(null);
+    setCreatedTicketNotice(null);
+  }, [currentRequester?.id]);
 
   // Route Guard: If no requester context is selected, force Dev Requester Selector
   if (!currentRequester) {
@@ -21,11 +28,19 @@ function MainContent() {
   const handleTicketCreated = (ticket: Ticket) => {
     setCreatedTicketNotice(`Ticket ${ticket.ticketNumber} created successfully.`);
     setActiveTab("my-tickets");
+    setSelectedTicketId(null);
+  };
+
+  const handleTabChange = (tab: NavTab) => {
+    setActiveTab(tab);
+    if (tab !== "ticket-detail") {
+      setSelectedTicketId(null);
+    }
   };
 
   return (
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: "var(--color-bg-quiet)" }}>
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+      <Header activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="container py-4 flex-grow-1">
         {/* Success Banner when Ticket is Created */}
@@ -56,6 +71,11 @@ function MainContent() {
               setCreatedTicketNotice(null);
               setActiveTab("create-ticket");
             }}
+            onSelectTicket={(ticketId) => {
+              setCreatedTicketNotice(null);
+              setSelectedTicketId(ticketId);
+              setActiveTab("ticket-detail");
+            }}
           />
         )}
 
@@ -63,6 +83,16 @@ function MainContent() {
           <CreateTicket
             onSuccess={handleTicketCreated}
             onCancel={() => setActiveTab("my-tickets")}
+          />
+        )}
+
+        {activeTab === "ticket-detail" && selectedTicketId !== null && (
+          <RequesterTicketDetail
+            ticketId={selectedTicketId}
+            onBack={() => {
+              setSelectedTicketId(null);
+              setActiveTab("my-tickets");
+            }}
           />
         )}
       </main>

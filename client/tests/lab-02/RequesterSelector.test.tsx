@@ -111,4 +111,54 @@ describe("Dev Requester Selector Component & Route Guard (UI-01, AC-02)", () => 
     });
     expect(localStorage.getItem("toktickit_requester")).toBeNull();
   });
+
+  it("resets active tab to My Tickets and clears selected ticket state when switching requester from detail view (BR-19)", async () => {
+    vi.mocked(api.fetchRequesters).mockResolvedValue(mockRequesters);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: /Jennifer Anderson/i })).toBeInTheDocument();
+    });
+
+    // Select Jennifer Anderson and Continue
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: /Continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
+    });
+
+    // Switch requester
+    fireEvent.click(screen.getByRole("button", { name: /Change Requester/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Development Requester Selector")).toBeInTheDocument();
+    });
+
+    // Select Sarah Johnson (ID 2) and Continue
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: /Continue/i }));
+
+    // Verify it lands cleanly on My Tickets dashboard for Sarah Johnson, not a stale detail view
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
+    });
+    expect(screen.getAllByText(/Sarah Johnson/i).length).toBeGreaterThan(0);
+  });
+
+  it("displays helpful server-down message when fetch fails with generic Failed to fetch error", async () => {
+    vi.mocked(api.fetchRequesters).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Server Connection Error:/i)).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText(/Unable to connect to the backend server\. The server may be offline or unreachable/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Retry Connection/i })).toBeInTheDocument();
+  });
 });
