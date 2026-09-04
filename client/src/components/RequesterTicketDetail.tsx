@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRequester } from "../context/RequesterContext.js";
-import { fetchTicketDetail, TicketDetail, AttachmentItem } from "../api.js";
+import { fetchTicketDetail, TicketDetail } from "../api.js";
+import { AttachmentSection } from "./AttachmentSection.js";
 
 interface RequesterTicketDetailProps {
   ticketId: number;
@@ -41,6 +42,17 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
     return () => {
       isMounted = false;
     };
+  }, [ticketId, currentRequester]);
+
+  const reloadTicket = useCallback(() => {
+    if (!currentRequester) return;
+    fetchTicketDetail(ticketId, currentRequester.id)
+      .then((data) => {
+        setTicket(data);
+      })
+      .catch((err) => {
+        console.error("Failed to refresh ticket details:", err);
+      });
   }, [ticketId, currentRequester]);
 
   const renderPriorityBadge = (priority: string) => {
@@ -106,14 +118,6 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
       minute: "2-digit",
     });
   };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const activeAttachments = ticket?.attachments.filter((a) => !a.isRemoved) || [];
 
   return (
     <div className="container px-0" style={{ maxWidth: 900 }}>
@@ -263,64 +267,12 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
             </div>
           </div>
 
-          {/* Attachments Section (Read-only metadata display for Issue #2-7) */}
-          <div className="border rounded p-3 bg-white">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h3 className="h6 fw-bold text-dark mb-0">
-                Attachments ({activeAttachments.length}/5 active)
-              </h3>
-            </div>
-
-            {ticket.attachments.length === 0 ? (
-              <p className="text-muted small mb-0 py-2">
-                No attachments uploaded for this ticket.
-              </p>
-            ) : (
-              <ul className="list-group list-group-flush">
-                {ticket.attachments.map((att: AttachmentItem) => (
-                  <li
-                    key={att.id}
-                    className={`list-group-item px-0 py-2 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 ${
-                      att.isRemoved ? "opacity-50 text-muted" : ""
-                    }`}
-                  >
-                    <div className="d-flex align-items-center gap-2 text-truncate">
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className="flex-shrink-0 text-muted"
-                      >
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                      </svg>
-                      <span
-                        className={`fw-medium small text-truncate ${
-                          att.isRemoved ? "text-decoration-line-through" : "text-dark"
-                        }`}
-                      >
-                        {att.originalName}
-                      </span>
-                      <span className="text-muted extra-small">
-                        ({formatFileSize(att.sizeBytes)})
-                      </span>
-                      {att.isRemoved && (
-                        <span className="badge bg-secondary">Removed</span>
-                      )}
-                    </div>
-                    {att.isRemoved && att.removalReason && (
-                      <span className="extra-small text-muted fst-italic">
-                        Reason: {att.removalReason}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {/* Attachment Lifecycle Section (Issue #2-8) */}
+          <AttachmentSection
+            ticketId={ticket.id}
+            attachments={ticket.attachments}
+            onAttachmentsUpdated={reloadTicket}
+          />
         </div>
       ) : null}
     </div>
