@@ -251,3 +251,142 @@ export async function fetchTicketDetail(
   return data as TicketDetail;
 }
 
+/**
+ * Upload an attachment to a ticket (Issue #2-8)
+ */
+export async function uploadAttachment(
+  ticketId: number,
+  file: File,
+  requesterId: number
+): Promise<AttachmentItem> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
+      method: "POST",
+      headers: {
+        "x-requester-id": requesterId.toString(),
+      },
+      body: formData,
+    });
+  } catch {
+    throw new Error(
+      "Unable to connect to the backend server. The server may be offline or unreachable."
+    );
+  }
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (!res.ok) {
+    const errorMsg = data.message || data.error || `Failed to upload attachment (${res.status})`;
+    const err = new Error(errorMsg);
+    (err as Record<string, unknown>).status = res.status;
+    (err as Record<string, unknown>).code = data.error;
+    throw err;
+  }
+
+  return data as AttachmentItem;
+}
+
+/**
+ * Soft-remove an attachment (Issue #2-8)
+ */
+export async function softRemoveAttachment(
+  attachmentId: number,
+  removalReason: string,
+  requesterId: number
+): Promise<AttachmentItem> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/attachments/${attachmentId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-requester-id": requesterId.toString(),
+      },
+      body: JSON.stringify({ removalReason }),
+    });
+  } catch {
+    throw new Error(
+      "Unable to connect to the backend server. The server may be offline or unreachable."
+    );
+  }
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (!res.ok) {
+    const errorMsg = data.message || data.error || `Failed to remove attachment (${res.status})`;
+    const err = new Error(errorMsg);
+    (err as Record<string, unknown>).status = res.status;
+    (err as Record<string, unknown>).code = data.error;
+    throw err;
+  }
+
+  return data as AttachmentItem;
+}
+
+/**
+ * Download an active attachment file (Issue #2-8)
+ */
+export async function downloadAttachment(
+  attachmentId: number,
+  originalName: string,
+  requesterId: number
+): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/attachments/${attachmentId}/download`, {
+      headers: {
+        "x-requester-id": requesterId.toString(),
+      },
+    });
+  } catch {
+    throw new Error(
+      "Unable to connect to the backend server. The server may be offline or unreachable."
+    );
+  }
+
+  if (res.status === 410) {
+    let data: Record<string, any> = {};
+    try {
+      data = await res.json();
+    } catch {
+      // Non-JSON
+    }
+    throw new Error(data.message || "This attachment was removed and cannot be downloaded.");
+  }
+
+  if (!res.ok) {
+    let data: Record<string, any> = {};
+    try {
+      data = await res.json();
+    } catch {
+      // Non-JSON
+    }
+    throw new Error(data.message || data.error || `Failed to download file (${res.status})`);
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.style.display = "none";
+  a.href = url;
+  a.download = originalName;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+

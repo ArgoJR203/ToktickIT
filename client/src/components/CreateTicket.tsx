@@ -1,13 +1,25 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRequester } from "../context/RequesterContext.js";
 import {
   fetchCategories,
   fetchRelatedSystems,
   createTicket,
+  uploadAttachment,
   Category,
   RelatedSystem,
   Ticket,
 } from "../api.js";
+
+const MAX_ATTACHMENTS = 5;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
+const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".pdf"];
 
 interface CreateTicketProps {
   onSuccess?: (ticket: Ticket) => void;
@@ -33,7 +45,14 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
   // Form submission and error state
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
+  const [warningBanner, setWarningBanner] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Attachments state (UI Spec §4.3 / BR-17)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load Categories on mount
   useEffect(() => {
@@ -119,12 +138,59 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleFilesAdded = (files: FileList | null) => {
+    if (!files) return;
+    setAttachmentError(null);
+
+    const newFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      // Check max files limit
+      if (selectedFiles.length + newFiles.length >= MAX_ATTACHMENTS) {
+        setAttachmentError(`You can upload a maximum of ${MAX_ATTACHMENTS} attachments per ticket.`);
+        break;
+      }
+
+      // Check file size (BR-13)
+      if (file.size > MAX_FILE_SIZE) {
+        setAttachmentError(`File "${file.name}" exceeds maximum allowed size of 5 MB.`);
+        continue;
+      }
+
+      // Check MIME type & extension (BR-12)
+      const ext = "." + file.name.split(".").pop()?.toLowerCase();
+      const isExtAllowed = ALLOWED_EXTENSIONS.includes(ext);
+      const isMimeAllowed = file.type ? ALLOWED_MIME_TYPES.includes(file.type.toLowerCase()) : isExtAllowed;
+      if (!isExtAllowed || !isMimeAllowed) {
+        setAttachmentError(`Unsupported file type for "${file.name}". Only JPG, PNG, WEBP, and PDF files are allowed.`);
+        continue;
+      }
+
+      // Check duplicate
+      if (selectedFiles.some((f) => f.name === file.name && f.size === file.size)) {
+        continue;
+      }
+
+      newFiles.push(file);
+    }
+
+    if (newFiles.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => {
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError(null);
+    setWarningBanner(null);
 
     if (!currentRequester) {
-      setServerError("No active development requester selected.");
+      setServerError("No active requester context. Please select a requester.");
       return;
     }
 
@@ -144,10 +210,34 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
       };
 
       const newTicket = await createTicket(payload, currentRequester.id);
+
+      // Upload any selected initial attachments (FR-02 / BR-17)
+      let failedCount = 0;
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          try {
+            await uploadAttachment(newTicket.id, file, currentRequester.id);
+          } catch (uploadErr) {
+            console.error("Failed to upload attachment during ticket creation:", uploadErr);
+            failedCount++;
+          }
+        }
+      }
+
       setIsSubmitting(false);
 
-      if (onSuccess) {
-        onSuccess(newTicket);
+      if (failedCount > 0) {
+        // BR-17: Warning banner for partial failure
+        setWarningBanner(
+          `Ticket ${newTicket.ticketNumber} created successfully, but ${failedCount} attachment(s) failed to upload.`
+        );
+        if (onSuccess) {
+          setTimeout(() => onSuccess(newTicket), 3000);
+        }
+      } else {
+        if (onSuccess) {
+          onSuccess(newTicket);
+        }
       }
     } catch (err: unknown) {
       setIsSubmitting(false);
@@ -208,8 +298,44 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
           <button
             type="button"
             className="btn-close ms-auto"
+            aria-label="Close"
             onClick={() => setServerError(null)}
-            aria-label="Dismiss banner"
+          ></button>
+        </div>
+      )}
+
+      {/* Top Warning Banner for Partial Failure (BR-17 / UI Spec §4.6) */}
+      {warningBanner && (
+        <div
+          className="alert mb-4 d-flex justify-content-between align-items-center"
+          role="alert"
+          style={{
+            backgroundColor: "#FFF3E0",
+            borderLeft: "4px solid #F57C00",
+            color: "var(--color-text-main)",
+          }}
+        >
+          <div className="d-flex align-items-center me-2">
+            <svg
+              className="me-2 flex-shrink-0"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#F57C00"
+              strokeWidth="2"
+            >
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span className="small font-weight-medium">{warningBanner}</span>
+          </div>
+          <button
+            type="button"
+            className="btn-close ms-auto"
+            aria-label="Close"
+            onClick={() => setWarningBanner(null)}
           ></button>
         </div>
       )}
@@ -391,6 +517,122 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
             disabled={isSubmitting}
           />
           {errors.description && <div className="invalid-feedback">{errors.description}</div>}
+        </div>
+
+        {/* Attachments Dropzone (UI Spec §4.3 / BR-12, BR-13, BR-14) */}
+        <div className="mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-1">
+            <label className="form-label fw-medium small mb-0">
+              Attachments ({selectedFiles.length}/{MAX_ATTACHMENTS})
+            </label>
+            <span className="text-muted extra-small">Max 5MB per file (JPG, PNG, WEBP, PDF)</span>
+          </div>
+
+          <div
+            className="p-4 rounded text-center"
+            style={{
+              border: "2px dashed var(--color-secondary-green)",
+              backgroundColor: isDragging ? "#d7ede0" : "var(--color-pale-green)",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+              transition: "background-color 0.2s ease",
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!isSubmitting) setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              if (!isSubmitting) handleFilesAdded(e.dataTransfer.files);
+            }}
+            onClick={() => {
+              if (!isSubmitting && fileInputRef.current) {
+                fileInputRef.current.click();
+              }
+            }}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              multiple
+              accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+              onChange={(e) => {
+                handleFilesAdded(e.target.files);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              disabled={isSubmitting}
+            />
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-primary-green)"
+              strokeWidth="2"
+              className="mb-2"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p className="small text-dark mb-0 fw-medium">
+              Drag &amp; drop files here or <span className="text-decoration-underline" style={{ color: "var(--color-primary-green)" }}>click to browse</span>
+            </p>
+            <p className="extra-small text-muted mb-0 mt-1">
+              JPG, PNG, WEBP, PDF up to 5MB, max 5 active attachments
+            </p>
+          </div>
+
+          {attachmentError && (
+            <div className="text-danger small mt-1">{attachmentError}</div>
+          )}
+
+          {/* Selected Files Preview List */}
+          {selectedFiles.length > 0 && (
+            <div className="mt-2 d-flex flex-column gap-1">
+              {selectedFiles.map((file, idx) => (
+                <div
+                  key={`${file.name}-${idx}`}
+                  className="d-flex justify-content-between align-items-center p-2 rounded border bg-light small"
+                >
+                  <div className="d-flex align-items-center gap-2 text-truncate">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-muted flex-shrink-0"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span className="text-truncate fw-medium">{file.name}</span>
+                    <span className="text-muted extra-small">
+                      ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-link text-danger p-0 ms-2 text-decoration-none extra-small"
+                    style={{ minHeight: "30px" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveFile(idx);
+                    }}
+                    disabled={isSubmitting}
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Actions Bar */}

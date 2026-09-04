@@ -1,7 +1,9 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import fs from "fs";
 import { getPrisma } from "./prisma.js";
 import { generateTicketNumber } from "./utils/ticket-generator.js";
+import { uploadMiddleware } from "./middleware/upload.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -427,6 +429,354 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Error in POST /api/tickets:", err);
     return res.status(500).json({ error: "INTERNAL_ERROR", message: "Failed to create ticket" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Lab 2 — Attachment Lifecycle (Issue #2-8)
+// ---------------------------------------------------------------------------
+
+// POST /api/tickets/:id/attachments (Upload attachment, API-06, API-08)
+app.post("/api/tickets/:id/attachments", async (req: Request, res: Response) => {
+  try {
+    const requesterHeader = req.header("x-requester-id");
+    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
+
+    if (isNaN(requesterId)) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid x-requester-id header",
+      });
+    }
+
+    const requester = await getPrisma().requesterUser.findUnique({
+      where: { id: requesterId },
+    });
+
+    if (!requester || !requester.isActive) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Development requester is invalid or inactive",
+      });
+    }
+
+    const ticketId = parseInt(req.params.id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Invalid ticket ID",
+      });
+    }
+
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Ticket not found",
+      });
+    }
+
+    // Ownership check (BR-05, BR-18, API Spec §3.7)
+    if (ticket.requesterId !== requesterId) {
+      return res.status(403).json({
+        error: "FORBIDDEN",
+        message: "Access denied: You do not own this ticket",
+      });
+    }
+
+    // Check active attachments count (BR-14)
+    const activeCount = await getPrisma().attachment.count({
+      where: { ticketId, isRemoved: false },
+    });
+
+    if (activeCount >= 5) {
+      return res.status(400).json({
+        error: "MAX_ATTACHMENTS_EXCEEDED",
+        message: "A ticket can have a maximum of 5 active attachments.",
+      });
+    }
+
+    // Process file upload with multer
+    uploadMiddleware.single("file")(req, res, async (err: any) => {
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({
+            error: "FILE_TOO_LARGE",
+            message: "File exceeds maximum permitted size of 5 MB (5,242,880 bytes).",
+          });
+        }
+        if (err.code === "INVALID_FILE_TYPE") {
+          return res.status(400).json({
+            error: "INVALID_FILE_TYPE",
+            message: err.message,
+          });
+        }
+        return res.status(400).json({
+          error: "UPLOAD_ERROR",
+          message: err.message || "Failed to process file upload.",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          error: "INVALID_INPUT",
+          message: "No file uploaded. Please provide a file.",
+        });
+      }
+
+      // Re-check active attachments count immediately before DB insert to prevent concurrent race conditions (BR-14)
+      const currentActiveCount = await getPrisma().attachment.count({
+        where: { ticketId, isRemoved: false },
+      });
+
+      if (currentActiveCount >= 5) {
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch {}
+        }
+        return res.status(400).json({
+          error: "MAX_ATTACHMENTS_EXCEEDED",
+          message: "A ticket can have a maximum of 5 active attachments.",
+        });
+      }
+
+      try {
+        const attachment = await getPrisma().attachment.create({
+          data: {
+            ticketId,
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            mimeType: req.file.mimetype,
+            sizeBytes: req.file.size,
+            storagePath: req.file.path,
+            isRemoved: false,
+          },
+          select: {
+            id: true,
+            ticketId: true,
+            originalName: true,
+            mimeType: true,
+            sizeBytes: true,
+            isRemoved: true,
+            createdAt: true,
+          },
+        });
+
+        return res.status(201).json(attachment);
+      } catch (dbErr) {
+        console.error("Error saving attachment to database:", dbErr);
+        // Clean up orphan file on disk if database insertion fails
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch {}
+        }
+        return res.status(500).json({
+          error: "INTERNAL_ERROR",
+          message: "Failed to save attachment metadata",
+        });
+      }
+    });
+  } catch (err) {
+    console.error("Error in POST /api/tickets/:id/attachments:", err);
+    return res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Failed to upload attachment",
+    });
+  }
+});
+
+// GET /api/attachments/:id/download (Download active attachment binary stream, API-07, API-09)
+app.get("/api/attachments/:id/download", async (req: Request, res: Response) => {
+  try {
+    const requesterHeader = req.header("x-requester-id");
+    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
+
+    if (isNaN(requesterId)) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid x-requester-id header",
+      });
+    }
+
+    const requester = await getPrisma().requesterUser.findUnique({
+      where: { id: requesterId },
+    });
+
+    if (!requester || !requester.isActive) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Development requester is invalid or inactive",
+      });
+    }
+
+    const attachmentId = parseInt(req.params.id, 10);
+    if (isNaN(attachmentId)) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Invalid attachment ID",
+      });
+    }
+
+    const attachment = await getPrisma().attachment.findUnique({
+      where: { id: attachmentId },
+      include: { ticket: { select: { requesterId: true } } },
+    });
+
+    if (!attachment) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Attachment not found",
+      });
+    }
+
+    // Ownership check (BR-05, BR-18, API Spec §3.8)
+    if (attachment.ticket.requesterId !== requesterId) {
+      return res.status(403).json({
+        error: "FORBIDDEN",
+        message: "Access denied: You do not own the associated ticket",
+      });
+    }
+
+    // Soft-removed check (BR-16, API Spec §3.8: 410 Gone)
+    if (attachment.isRemoved) {
+      return res.status(410).json({
+        error: "GONE",
+        message: "This attachment was removed and cannot be downloaded.",
+      });
+    }
+
+    if (!fs.existsSync(attachment.storagePath)) {
+      return res.status(404).json({
+        error: "FILE_NOT_FOUND",
+        message: "File binary not found on server storage.",
+      });
+    }
+
+    return res.download(attachment.storagePath, attachment.originalName, (downloadErr) => {
+      if (downloadErr && !res.headersSent) {
+        console.error("Error streaming attachment download:", downloadErr);
+        res.status(500).json({
+          error: "INTERNAL_ERROR",
+          message: "Failed to download attachment file",
+        });
+      }
+    });
+  } catch (err) {
+    console.error("Error in GET /api/attachments/:id/download:", err);
+    return res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Failed to download attachment",
+    });
+  }
+});
+
+// DELETE /api/attachments/:id (Soft-remove attachment, API-07)
+app.delete("/api/attachments/:id", async (req: Request, res: Response) => {
+  try {
+    const requesterHeader = req.header("x-requester-id");
+    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
+
+    if (isNaN(requesterId)) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid x-requester-id header",
+      });
+    }
+
+    const requester = await getPrisma().requesterUser.findUnique({
+      where: { id: requesterId },
+    });
+
+    if (!requester || !requester.isActive) {
+      return res.status(401).json({
+        error: "UNAUTHORIZED",
+        message: "Development requester is invalid or inactive",
+      });
+    }
+
+    const attachmentId = parseInt(req.params.id, 10);
+    if (isNaN(attachmentId)) {
+      return res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Invalid attachment ID",
+      });
+    }
+
+    const { removalReason } = req.body || {};
+    const trimmedReason = typeof removalReason === "string" ? removalReason.trim() : "";
+
+    // BR-15: Removal reason required min 3 characters, max 500 characters
+    if (trimmedReason.length < 3) {
+      return res.status(400).json({
+        error: "INVALID_REMOVAL_REASON",
+        message: "Removal reason is required and must be at least 3 characters.",
+      });
+    }
+
+    if (trimmedReason.length > 500) {
+      return res.status(400).json({
+        error: "INVALID_REMOVAL_REASON",
+        message: "Removal reason cannot exceed 500 characters.",
+      });
+    }
+
+    const attachment = await getPrisma().attachment.findUnique({
+      where: { id: attachmentId },
+      include: { ticket: { select: { requesterId: true } } },
+    });
+
+    if (!attachment) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Attachment not found",
+      });
+    }
+
+    // Ownership check (BR-05, BR-18, API Spec §3.9)
+    if (attachment.ticket.requesterId !== requesterId) {
+      return res.status(403).json({
+        error: "FORBIDDEN",
+        message: "Access denied: You do not own the associated ticket",
+      });
+    }
+
+    // Block re-removal (API Spec §3.9)
+    if (attachment.isRemoved) {
+      return res.status(400).json({
+        error: "ALREADY_REMOVED",
+        message: "Attachment has already been removed.",
+      });
+    }
+
+    const updated = await getPrisma().attachment.update({
+      where: { id: attachmentId },
+      data: {
+        isRemoved: true,
+        removalReason: trimmedReason,
+        removedAt: new Date(),
+      },
+      select: {
+        id: true,
+        ticketId: true,
+        originalName: true,
+        isRemoved: true,
+        removalReason: true,
+        removedAt: true,
+      },
+    });
+
+    return res.status(200).json(updated);
+  } catch (err) {
+    console.error("Error in DELETE /api/attachments/:id:", err);
+    return res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Failed to remove attachment",
+    });
   }
 });
 
