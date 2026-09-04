@@ -120,3 +120,16 @@ body {
   border-left: 4px solid var(--color-success-badge);
   color: var(--color-text-main);
 }
+
+/* Touch Target Accessibility & Responsive Utilities (RESP-01: touch targets >= 44px) */
+.touch-target,
+.mobile-ticket-card,
+.btn-touch-target {
+  min-height: 44px;
+}
+
+.mobile-card-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}

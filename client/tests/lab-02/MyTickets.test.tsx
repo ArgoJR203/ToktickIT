@@ -134,15 +134,67 @@ describe("My Tickets Dashboard & Responsive View Tests (UI-05, RESP-01)", () => 
     });
   });
 
-  it("renders mobile card layout elements for mobile viewports (RESP-01, AC-09)", async () => {
+  it("simulates mobile device viewport (<768px), renders tickets as cards with >=44px touch targets, and prevents horizontal overflow (RESP-01, AC-09)", async () => {
+    // Simulate mobile device screen (<768px, e.g. iPhone SE 375x667)
+    window.innerWidth = 375;
+    window.innerHeight = 667;
+    window.dispatchEvent(new Event("resize"));
+
     await setupMyTicketsScreen();
 
-    // Verify both ticket cards render with Ticket Numbers & Summaries
-    const ticket1Elements = screen.getAllByText("TKT-2026-000001");
-    const ticket2Elements = screen.getAllByText("TKT-2026-000002");
+    // Verify desktop table view is configured with d-none d-md-block (hidden on mobile)
+    const desktopTableView = screen.getByTestId("desktop-table-view");
+    expect(desktopTableView).toHaveClass("d-none", "d-md-block");
 
-    expect(ticket1Elements.length).toBeGreaterThan(0);
-    expect(ticket2Elements.length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Cannot access campus email").length).toBeGreaterThan(0);
+    // Verify mobile card list is rendered with d-md-none (visible on mobile) and overflow prevention
+    const mobileCardList = screen.getByTestId("mobile-card-list");
+    expect(mobileCardList).toHaveClass("d-md-none", "mobile-card-container");
+
+    // Verify all tickets render as stacked cards inside the mobile card container
+    const mobileCards = mobileCardList.querySelectorAll(".mobile-ticket-card");
+    expect(mobileCards.length).toBe(mockTicketsResponse.data.length);
+
+    // Verify each ticket card satisfies touch target height (>= 44px) and contains required fields
+    mobileCards.forEach((card, idx) => {
+      const ticket = mockTicketsResponse.data[idx];
+      const cardEl = card as HTMLElement;
+
+      // Touch target verification: card minHeight is explicitly >= 44px
+      expect(cardEl.style.minHeight).toBe("44px");
+
+      // Card content verification: ticketNumber, status, summary, category, and priority
+      expect(cardEl).toHaveTextContent(ticket.ticketNumber);
+      expect(cardEl).toHaveTextContent(ticket.summary);
+      expect(cardEl).toHaveTextContent(ticket.category.name);
+      expect(cardEl).toHaveTextContent(ticket.requestedPriority);
+      expect(cardEl).toHaveTextContent(ticket.currentStatus.replace("_", " "));
+    });
+  });
+
+  it("renders Zen Green error banner when ticket fetch fails and allows user dismissal (UI-06, AC-10)", async () => {
+    // Simulate API network failure
+    vi.mocked(api.fetchTickets).mockRejectedValueOnce(new Error("Failed to connect to IT service desk server"));
+
+    render(<App />);
+
+    // Select active requester
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: /Jennifer Anderson/i })).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: /Continue/i }));
+
+    // Verify error alert banner is rendered with the error message
+    const alertBanner = await screen.findByRole("alert");
+    expect(alertBanner).toBeInTheDocument();
+    expect(alertBanner).toHaveClass("zen-alert-danger");
+    expect(alertBanner).toHaveTextContent("Failed to connect to IT service desk server");
+
+    // Verify dismiss button closes the alert banner
+    const closeButton = alertBanner.querySelector(".btn-close");
+    expect(closeButton).toBeInTheDocument();
+    fireEvent.click(closeButton!);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

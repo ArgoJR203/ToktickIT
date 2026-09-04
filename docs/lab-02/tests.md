@@ -19,8 +19,8 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 | **UNIT-02** | Unit | BR-12, BR-13 | Attachment validator | Accepts JPG/PNG/WEBP/PDF <= 5MB; rejects others | `server/tests/lab-02/attachment-validator.test.ts` | [Pending] |
 | **API-01** | API | AC-01, FR-02 | Create valid ticket via API | Returns `201 Created` with official `ticketNumber` & status `NEW` | `server/tests/lab-02/create-ticket.api.test.ts` | [Passed] |
 | **API-02** | API | AC-05, BR-08 | Create ticket invalid input | Returns `400 Bad Request` with field validation errors | `server/tests/lab-02/create-ticket.api.test.ts` | [Passed] |
-| **API-03** | API | AC-03, BR-05 | My Tickets ownership isolation | Returns `200 OK` with tickets belonging ONLY to `x-requester-id` | `server/tests/lab-02/my-tickets.api.test.ts` | [Passed] |
-| **API-04** | API | AC-04, FR-05 | My Tickets search & filtering | Filters by search keyword, category, priority, and status | `server/tests/lab-02/my-tickets.api.test.ts` | [Passed] |
+| **API-03** | API | AC-03, BR-05 | My Tickets ownership isolation | Returns `200 OK` with non-empty tickets belonging ONLY to `x-requester-id` (§13.1 traceable) | `server/tests/lab-02/my-tickets.api.test.ts` | [Passed] |
+| **API-04** | API | AC-04, FR-05, BR-07 | My Tickets search, filtering & secondary sorting | Filters by keyword/category/priority/status; deterministic secondary sort tie-breaker; non-empty assertions (§13.1 traceable) | `server/tests/lab-02/my-tickets.api.test.ts` | [Passed] |
 | **API-05** | API | AC-03, BR-18 | Unauthorized ticket detail access | Returns `403 Forbidden` / `404 Not Found` when accessing other requester's ticket | `server/tests/lab-02/ticket-detail.api.test.ts` | [Pending] |
 | **API-06** | API | AC-06, BR-14 | Attachment upload to ticket | Saves file to server storage & creates database record | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
 | **API-07** | API | AC-08, BR-15 | Soft removal of attachment | Sets `isRemoved = true`, records reason/timestamp, blocks binary stream (`410`) | `server/tests/lab-02/attachments.api.test.ts` | [Pending] |
@@ -37,9 +37,9 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 | **API-10** | API | FR-01, BR-04 | Fetch active requesters only | Returns only `isActive: true` requesters; excludes inactive | `server/tests/lab-02/requesters.api.test.ts` | [Passed] |
 | **API-11** | API | FR-02 | Fetch ticket categories | Returns all 4 seed categories | `server/tests/lab-02/categories.api.test.ts` | [Passed] |
 | **API-12** | API | FR-02 | Fetch related systems with optional category filter | Returns active systems; filters by `?categoryId` when provided | `server/tests/lab-02/related-systems.api.test.ts` | [Passed] |
-| **UI-06** | UI | AC-10 | Network error display & form preservation | Zen Green error banner shown on API failure; form inputs preserved | `client/tests/lab-02/CreateTicket.test.tsx` | [Passed] |
+| **UI-06** | UI | AC-10 | Network error display & form preservation | Zen Green error banner shown on API failure; dismiss button; form inputs preserved | `client/tests/lab-02/CreateTicket.test.tsx`, `client/tests/lab-02/MyTickets.test.tsx` | [Passed] |
 | **UI-07** | UI | AC-03, FR-07 | Ticket detail view & metadata grid | Renders ticket header, status badge, metadata grid, and description | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | [Pending] |
-| **RESP-01** | Responsive | AC-09 | Mobile card view layout at <768px | Tickets render as cards; no horizontal scrollbar; touch targets >= 44px | `client/tests/lab-02/MyTickets.test.tsx` | [Passed] |
+| **RESP-01** | Responsive | AC-09 | Mobile card view layout at <768px | Simulates mobile viewport; tickets render as cards in d-md-none container; no horizontal scrollbar; touch targets >= 44px | `client/tests/lab-02/MyTickets.test.tsx` | [Passed] |
 
 ---
 

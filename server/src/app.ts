@@ -148,6 +148,13 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
     const sortField = typeof sortBy === "string" && validSortFields.includes(sortBy) ? sortBy : "createdAt";
     const sortDir = typeof sortOrder === "string" && sortOrder.toLowerCase() === "asc" ? "asc" : "desc";
 
+    const orderBy: Array<Record<string, "asc" | "desc">> = [
+      { [sortField]: sortDir as "asc" | "desc" },
+    ];
+    if (sortField !== "id") {
+      orderBy.push({ id: "desc" });
+    }
+
     // Pagination
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(pageSize as string, 10) || 10));
@@ -157,7 +164,7 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
       getPrisma().ticket.count({ where }),
       getPrisma().ticket.findMany({
         where,
-        orderBy: { [sortField]: sortDir },
+        orderBy,
         skip,
         take: limit,
         include: {
@@ -288,7 +295,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
     let attempt = 0;
     let ticket;
 
-    while (attempt < 5) {
+    while (attempt < 10) {
       try {
         ticket = await getPrisma().$transaction(async (tx) => {
           const ticketNumber = await generateTicketNumber(tx);
@@ -316,8 +323,10 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
             ? prismaErr.meta?.target.toLowerCase().includes("ticketnumber")
             : true);
 
-        if (isUniqueConstraintErr && attempt < 4) {
+        if (isUniqueConstraintErr && attempt < 9) {
           attempt++;
+          // Add small jittered backoff to avoid concurrent lockstep collisions
+          await new Promise((resolve) => setTimeout(resolve, 15 * attempt + Math.random() * 35));
           continue;
         }
         throw err;

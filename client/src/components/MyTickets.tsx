@@ -335,7 +335,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
       ) : (
         <>
           {/* Desktop Table View (>=768px) */}
-          <div className="table-responsive d-none d-md-block mb-4">
+          <div className="table-responsive d-none d-md-block mb-4" data-testid="desktop-table-view">
             <table className="table table-hover align-middle mb-0 border">
               <thead style={{ backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                 <tr>
@@ -406,13 +406,13 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           </div>
 
           {/* Mobile Card List View (<768px, AC-09) */}
-          <div className="d-md-none mb-4">
+          <div className="mobile-card-container d-md-none mb-4" data-testid="mobile-card-list">
             {tickets.map((ticket) => (
               <div
                 key={ticket.id}
-                className="card mb-3 shadow-sm border cursor-pointer"
+                className="card mobile-ticket-card mb-3 shadow-sm border cursor-pointer"
                 onClick={() => onSelectTicket && onSelectTicket(ticket.id)}
-                style={{ backgroundColor: "#FFFFFF" }}
+                style={{ backgroundColor: "#FFFFFF", minHeight: "44px" }}
               >
                 <div className="card-body p-3">
                   <div className="d-flex justify-content-between align-items-center mb-2">
