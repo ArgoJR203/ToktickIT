@@ -1,24 +1,19 @@
 # Lab 2 — Peer Review Record (fill this in)
 
-**Author:** 
-**Peer reviewer:** 
+**Author: จีราวัฒน์ รัชตะประเมศฐ์ | 67070501057 | GitHub: @ArgoJR203**
 
-## Pull Requests I Authored (Reviewed by My Partner)
+**Peer reviewer: หฤษฎ์ ไชยานุกิจ | 67070501047 | GitHub: @Gluesaber**
 
-| PR Link | Feature Branch | Reviewer Verdict |
-| :--- | :--- | :--- |
+## Pull Requests I authored (reviewed by my partner)
 
----
-
-## Pull Requests I Reviewed (Authored by My Partner)
-
-| PR Link | Feature Branch | My Verdict | Key Comments |
-| :--- | :--- | :--- | :--- |
-
----
-
-## Final Approval Checklist
-
-- [ ] All feature PRs reviewed and merged into `lab2-staging`.
-- [ ] Integration testing completed on `lab2-staging`.
-- [ ] Release PR opened from `lab2-staging` to `main` and approved by peer reviewer.
+| PR                                             | Branch                         | Reviewer verdict |
+| ---------------------------------------------- | ------------------------------ | ---------------- |
+| https://github.com/ArgoJR203/ToktickIT/pull/10 | Feature/2-1-requiremen         | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/20 | Feature/2-2-schema-seed        | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/21 | Feature/2-3-reference-apis     | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/22 | Feature/2-4-requester-selector | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/23 | Feature/2-5-create-ticket      | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/24 | Feature/2-6-my-tickets         | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/25 | Feature/2-7-ticket-detail      | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/26 | Feature/2-8-attachment         | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/27 | Feature/2-9-responsive-polish  | Approved         |
