@@ -256,7 +256,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
   });
 
   return (
-    <div className="zen-card p-4" style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div className="zen-card p-3 p-md-4" style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Page Header */}
       <div className="mb-4 pb-2 border-bottom">
         <h2 className="h4 fw-bold mb-1" style={{ color: "var(--color-text-main)" }}>
@@ -351,10 +351,10 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
         {/* System-Generated Header Info Box */}
         <div
           className="p-3 mb-4 rounded border"
-          style={{ backgroundColor: "#F0F4F1", borderColor: "var(--color-border)" }}
+          style={{ backgroundColor: "#F0F4F1", borderColor: "var(--color-surface-border)" }}
         >
-          <div className="row g-3">
-            <div className="col-12 col-md-4">
+          <div className="row g-3 align-items-end">
+            <div className="col-12 col-sm-6 col-lg-4">
               <label className="form-label text-muted small mb-1">Ticket Number</label>
               <input
                 type="text"
@@ -364,7 +364,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
                 readOnly
               />
             </div>
-            <div className="col-12 col-md-4">
+            <div className="col-12 col-sm-6 col-lg-4">
               <label className="form-label text-muted small mb-1">Ticket Date</label>
               <input
                 type="text"
@@ -374,7 +374,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
                 readOnly
               />
             </div>
-            <div className="col-12 col-md-4">
+            <div className="col-12 col-sm-12 col-lg-4">
               <label className="form-label text-muted small mb-1 d-block">Status</label>
               <span
                 className="badge px-3 py-2"
@@ -393,7 +393,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
         {/* Classification Section */}
         <div className="row g-3 mb-4">
           {/* Category Dropdown */}
-          <div className="col-12 col-md-4">
+          <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="categoryId" className="form-label fw-medium small mb-1">
               Category <span className="text-danger">*</span>
             </label>
@@ -420,7 +420,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
           </div>
 
           {/* Related System Dropdown */}
-          <div className="col-12 col-md-4">
+          <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="relatedSystemId" className="form-label fw-medium small mb-1">
               Related System <span className="text-danger">*</span>
             </label>
@@ -447,7 +447,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
           </div>
 
           {/* Requested Priority Selector */}
-          <div className="col-12 col-md-4">
+          <div className="col-12 col-sm-12 col-lg-4">
             <label htmlFor="requestedPriority" className="form-label fw-medium small mb-1">
               Requested Priority <span className="text-danger">*</span>
             </label>
@@ -521,7 +521,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
 
         {/* Attachments Dropzone (UI Spec §4.3 / BR-12, BR-13, BR-14) */}
         <div className="mb-4">
-          <div className="d-flex justify-content-between align-items-center mb-1">
+          <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-1 gap-1">
             <label className="form-label fw-medium small mb-0">
               Attachments ({selectedFiles.length}/{MAX_ATTACHMENTS})
             </label>
@@ -636,11 +636,11 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
         </div>
 
         {/* Actions Bar */}
-        <div className="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+        <div className="d-flex flex-column-reverse flex-sm-row justify-content-end align-items-stretch align-items-sm-center gap-2 pt-3 border-top">
           {onCancel && (
             <button
               type="button"
-              className="btn btn-outline-secondary px-4"
+              className="btn btn-outline-secondary px-4 py-2"
               onClick={onCancel}
               disabled={isSubmitting}
             >
@@ -649,7 +649,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
           )}
           <button
             type="submit"
-            className="btn btn-zen-primary px-4 d-flex align-items-center"
+            className="btn btn-zen-primary px-4 py-2 d-flex align-items-center justify-content-center"
             disabled={isSubmitting || isLoadingRefData}
           >
             {isSubmitting ? (
