@@ -185,13 +185,66 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
     return <span className="ms-1">{sortOrder === "asc" ? "▲" : "▼"}</span>;
   };
 
+  const renderPaginationButtons = () => {
+    const total = pagination.totalPages;
+    const current = pagination.page;
+    const pages: (number | string)[] = [];
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) {
+        pages.push("ellipsis-start");
+      }
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (current < total - 2) {
+        pages.push("ellipsis-end");
+      }
+      pages.push(total);
+    }
+
+    return pages.map((p) => {
+      if (typeof p === "string") {
+        return (
+          <li key={p} className="page-item disabled">
+            <span className="page-link border-0 bg-transparent text-muted px-2">...</span>
+          </li>
+        );
+      }
+      return (
+        <li
+          key={p}
+          className={`page-item ${pagination.page === p ? "active" : ""}`}
+        >
+          <button
+            className="page-link"
+            style={{
+              backgroundColor:
+                pagination.page === p ? "var(--color-primary-green)" : undefined,
+              borderColor:
+                pagination.page === p ? "var(--color-primary-green)" : undefined,
+            }}
+            onClick={() => setPage(p)}
+          >
+            {p}
+          </button>
+        </li>
+      );
+    });
+  };
+
   const startItem = pagination.totalItems === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
   const endItem = Math.min(pagination.page * pagination.pageSize, pagination.totalItems);
 
   return (
-    <div className="zen-card p-4">
+    <div className="zen-card p-3 p-md-4">
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 pb-2 border-bottom gap-3">
         <div>
           <h2 className="h4 fw-bold mb-1" style={{ color: "var(--color-text-main)" }}>
             My Tickets
@@ -201,9 +254,11 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
             {currentRequester?.email})
           </p>
         </div>
-        <button className="btn btn-zen-primary" onClick={onCreateClick}>
-          + Create Ticket
-        </button>
+        <div>
+          <button className="btn btn-zen-primary w-100 w-sm-auto text-nowrap" onClick={onCreateClick}>
+            + Create Ticket
+          </button>
+        </div>
       </div>
 
       {/* Error Alert */}
@@ -218,7 +273,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
       <div className="p-3 mb-4 rounded border bg-light">
         <div className="row g-2 align-items-center">
           {/* Search Input */}
-          <div className="col-12 col-md-4">
+          <div className="col-12 col-lg-4">
             <div className="input-group input-group-sm">
               <span className="input-group-text bg-white">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -237,7 +292,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           </div>
 
           {/* Category Filter */}
-          <div className="col-6 col-md-2">
+          <div className="col-6 col-sm-4 col-lg-2">
             <select
               className="form-select form-select-sm"
               value={selectedCategory}
@@ -253,7 +308,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           </div>
 
           {/* Priority Filter */}
-          <div className="col-6 col-md-2">
+          <div className="col-6 col-sm-4 col-lg-2">
             <select
               className="form-select form-select-sm"
               value={selectedPriority}
@@ -268,7 +323,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           </div>
 
           {/* Status Filter */}
-          <div className="col-6 col-md-2">
+          <div className="col-6 col-sm-4 col-lg-2">
             <select
               className="form-select form-select-sm"
               value={selectedStatus}
@@ -284,7 +339,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           </div>
 
           {/* Clear Filters */}
-          <div className="col-6 col-md-2 text-end">
+          <div className="col-6 col-sm-12 col-lg-2 text-start text-lg-end">
             {hasActiveFilters && (
               <button
                 type="button"
@@ -336,40 +391,40 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
         <>
           {/* Desktop Table View (>=768px) */}
           <div className="table-responsive d-none d-md-block mb-4" data-testid="desktop-table-view">
-            <table className="table table-hover align-middle mb-0 border">
-              <thead style={{ backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
-                <tr>
+            <table className="table table-hover align-middle mb-0 border" style={{ tableLayout: "fixed", width: "100%" }}>
+              <thead>
+                <tr style={{ backgroundColor: "var(--color-primary-green)" }}>
                   <th
-                    className="user-select-none cursor-pointer text-white"
+                    className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("ticketNumber")}
-                    style={{ width: "16%" }}
+                    style={{ width: "22%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Ticket No. {renderSortIndicator("ticketNumber")}
                   </th>
                   <th
-                    className="user-select-none cursor-pointer text-white"
+                    className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("createdAt")}
-                    style={{ width: "16%" }}
+                    style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Created Date {renderSortIndicator("createdAt")}
                   </th>
-                  <th className="text-white" style={{ width: "32%" }}>
+                  <th className="text-white" style={{ width: "26%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Summary
                   </th>
-                  <th className="text-white" style={{ width: "16%" }}>
+                  <th className="text-white" style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Category
                   </th>
                   <th
-                    className="user-select-none cursor-pointer text-white"
+                    className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("requestedPriority")}
-                    style={{ width: "10%" }}
+                    style={{ width: "10%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Priority {renderSortIndicator("requestedPriority")}
                   </th>
                   <th
-                    className="user-select-none cursor-pointer text-white text-center"
+                    className="user-select-none cursor-pointer text-white text-center text-nowrap"
                     onClick={() => handleSort("currentStatus")}
-                    style={{ width: "10%" }}
+                    style={{ width: "10%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Status {renderSortIndicator("currentStatus")}
                   </th>
@@ -392,22 +447,22 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
                     }}
                     style={{ transition: "background-color 0.15s ease" }}
                   >
-                    <td className="fw-semibold font-monospace small" style={{ color: "var(--color-primary-green)" }}>
+                    <td className="fw-semibold font-monospace small text-nowrap" style={{ color: "var(--color-primary-green)" }}>
                       {ticket.ticketNumber}
                     </td>
-                    <td className="small text-muted">
+                    <td className="small text-muted text-nowrap">
                       {new Date(ticket.createdAt).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "short",
                         day: "numeric",
                       })}
                     </td>
-                    <td className="fw-medium text-dark text-truncate" style={{ maxWidth: 300 }}>
+                    <td className="fw-medium text-dark text-truncate" style={{ maxWidth: 0 }}>
                       {ticket.summary}
                     </td>
-                    <td className="small text-muted">{ticket.category?.name || "Uncategorized"}</td>
-                    <td>{renderPriorityBadge(ticket.requestedPriority)}</td>
-                    <td className="text-center">{renderStatusBadge(ticket.currentStatus)}</td>
+                    <td className="small text-muted text-truncate">{ticket.category?.name || "Uncategorized"}</td>
+                    <td className="text-nowrap">{renderPriorityBadge(ticket.requestedPriority)}</td>
+                    <td className="text-center text-nowrap">{renderStatusBadge(ticket.currentStatus)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -434,17 +489,18 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
               >
                 <div className="card-body p-3">
                   <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span className="fw-bold font-monospace small" style={{ color: "var(--color-primary-green)" }}>
+                    <span className="fw-bold font-monospace small text-nowrap" style={{ color: "var(--color-primary-green)" }}>
                       {ticket.ticketNumber}
                     </span>
                     {renderStatusBadge(ticket.currentStatus)}
                   </div>
-                  <h3 className="h6 fw-bold text-dark mb-2">{ticket.summary}</h3>
+                  <h3 className="h6 fw-bold text-dark mb-2" style={{ lineHeight: 1.4 }}>{ticket.summary}</h3>
                   <div className="d-flex justify-content-between align-items-center text-muted extra-small pt-2 border-top">
-                    <span>
-                      {ticket.category?.name} • {renderPriorityBadge(ticket.requestedPriority)}
+                    <span className="d-flex align-items-center gap-2 flex-wrap">
+                      <span className="badge bg-light text-dark border">{ticket.category?.name || "Uncategorized"}</span>
+                      {renderPriorityBadge(ticket.requestedPriority)}
                     </span>
-                    <span>
+                    <span className="text-nowrap ms-2">
                       {new Date(ticket.createdAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -457,14 +513,14 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           </div>
 
           {/* Pagination Controls */}
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-center pt-2">
-            <div className="text-muted small mb-2 mb-md-0">
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+            <div className="text-muted small mb-1 mb-md-0">
               Showing <strong>{startItem}</strong>–<strong>{endItem}</strong> of{" "}
               <strong>{pagination.totalItems}</strong> tickets
             </div>
             {pagination.totalPages > 1 && (
               <nav aria-label="Ticket list pagination">
-                <ul className="pagination pagination-sm mb-0">
+                <ul className="pagination pagination-sm mb-0 flex-wrap justify-content-center">
                   <li className={`page-item ${pagination.page === 1 ? "disabled" : ""}`}>
                     <button
                       className="page-link"
@@ -474,28 +530,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
                       Previous
                     </button>
                   </li>
-                  {Array.from({ length: pagination.totalPages }).map((_, idx) => {
-                    const pageNum = idx + 1;
-                    return (
-                      <li
-                        key={pageNum}
-                        className={`page-item ${pagination.page === pageNum ? "active" : ""}`}
-                      >
-                        <button
-                          className="page-link"
-                          style={{
-                            backgroundColor:
-                              pagination.page === pageNum ? "var(--color-primary-green)" : undefined,
-                            borderColor:
-                              pagination.page === pageNum ? "var(--color-primary-green)" : undefined,
-                          }}
-                          onClick={() => setPage(pageNum)}
-                        >
-                          {pageNum}
-                        </button>
-                      </li>
-                    );
-                  })}
+                  {renderPaginationButtons()}
                   <li
                     className={`page-item ${
                       pagination.page === pagination.totalPages ? "disabled" : ""

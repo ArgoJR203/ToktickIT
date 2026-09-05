@@ -165,7 +165,7 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
         </div>
       ) : ticket ? (
         /* Ticket Detail Content */
-        <div className="zen-card p-4">
+        <div className="zen-card p-3 p-md-4">
           {/* Header */}
           <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pb-3 mb-4 border-bottom gap-2">
             <div>
@@ -200,7 +200,7 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
           <div className="p-3 mb-4 rounded border" style={{ backgroundColor: "#F9FAF9" }}>
             <div className="row g-3">
               {/* Requester */}
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-sm-6 col-lg-4">
                 <span className="text-muted small d-block">Requester</span>
                 <span className="fw-semibold text-dark small">
                   {ticket.requester?.name || "Unknown"}
@@ -211,7 +211,7 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
               </div>
 
               {/* Created Date */}
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-sm-6 col-lg-4">
                 <span className="text-muted small d-block">Date Submitted</span>
                 <span className="fw-semibold text-dark small">
                   {formatFullDate(ticket.createdAt)}
@@ -222,7 +222,7 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
               </div>
 
               {/* Category */}
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-sm-6 col-lg-4">
                 <span className="text-muted small d-block">Category</span>
                 <span className="fw-semibold text-dark small">
                   {ticket.category?.name || "Uncategorized"}
@@ -230,7 +230,7 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
               </div>
 
               {/* Related System */}
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-sm-6 col-lg-4">
                 <span className="text-muted small d-block">Related System</span>
                 <span className="fw-semibold text-dark small">
                   {ticket.relatedSystem?.name || "N/A"}
@@ -238,13 +238,13 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
               </div>
 
               {/* Requested Priority */}
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-sm-6 col-lg-4">
                 <span className="text-muted small d-block mb-1">Requested Priority</span>
                 {renderPriorityBadge(ticket.requestedPriority)}
               </div>
 
               {/* Current Status */}
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-sm-6 col-lg-4">
                 <span className="text-muted small d-block mb-1">Current Status</span>
                 {renderStatusBadge(ticket.currentStatus)}
               </div>

@@ -21,13 +21,22 @@
 }
 
 /* Global Base Styles */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--color-bg-quiet);
   color: var(--color-text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+.font-monospace {
+  font-family: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
 }
 
 /* Zen Green Buttons */
@@ -35,15 +44,17 @@ body {
   background-color: var(--color-primary-green);
   color: #ffffff;
   border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
+  border-radius: 8px;
+  padding: 8px 18px;
   font-weight: 500;
-  transition: background-color 0.2s ease-in-out;
+  transition: all 0.15s ease-in-out;
 }
 
 .btn-zen-primary:hover:not(:disabled) {
   background-color: var(--color-secondary-green);
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 107, 60, 0.25);
 }
 
 .btn-zen-primary:focus {
@@ -56,10 +67,10 @@ body {
   background-color: transparent;
   color: var(--color-secondary-green);
   border: 1px solid var(--color-secondary-green);
-  border-radius: 6px;
-  padding: 8px 16px;
+  border-radius: 8px;
+  padding: 8px 18px;
   font-weight: 500;
-  transition: background-color 0.2s ease-in-out;
+  transition: all 0.15s ease-in-out;
 }
 
 .btn-zen-secondary:hover:not(:disabled) {
@@ -71,10 +82,10 @@ body {
   background-color: transparent;
   color: var(--color-error-text);
   border: 1px solid var(--color-error-text);
-  border-radius: 6px;
-  padding: 8px 16px;
+  border-radius: 8px;
+  padding: 8px 18px;
   font-weight: 500;
-  transition: background-color 0.2s ease-in-out;
+  transition: all 0.15s ease-in-out;
 }
 
 .btn-zen-destructive:hover:not(:disabled) {
@@ -111,8 +122,38 @@ body {
 .zen-card {
   background-color: var(--color-surface-card);
   border: 1px solid var(--color-surface-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+/* Table Styles & Header Color Fix */
+.table thead th {
+  background-color: var(--color-primary-green) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  padding: 12px 14px !important;
+  border-bottom: none !important;
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #F2F8F4 !important;
+}
+
+.table tbody td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-surface-border);
+}
+
+.nowrap-cell {
+  white-space: nowrap !important;
 }
 
 /* Notification Banner Animations (UI Spec §4.6) */
@@ -164,6 +205,48 @@ body {
   animation: zenFadeOut 150ms ease-in forwards;
 }
 
+/* Pagination Styling */
+.pagination .page-link {
+  color: var(--color-primary-green);
+  border-color: var(--color-surface-border);
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin: 0 2px;
+  transition: all 0.15s ease;
+}
+
+.pagination .page-link:hover:not(:disabled) {
+  background-color: var(--color-pale-green);
+  color: var(--color-secondary-green);
+  border-color: var(--color-secondary-green);
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--color-primary-green) !important;
+  border-color: var(--color-primary-green) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* Header Responsive Navigation */
+.header-nav {
+  width: 100%;
+}
+
+.header-user-badge {
+  max-width: 150px;
+}
+
+@media (min-width: 992px) {
+  .header-nav {
+    width: auto !important;
+  }
+  .header-user-badge {
+    max-width: 300px !important;
+  }
+}
+
 /* Touch Target Accessibility & Responsive Utilities (RESP-01 / AC-09: touch targets >= 44px) */
 .touch-target,
 .mobile-ticket-card,
@@ -177,12 +260,18 @@ body {
   overflow-x: hidden;
 }
 
+.mobile-ticket-card {
+  border-radius: 10px;
+  border: 1px solid var(--color-surface-border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mobile-ticket-card:active {
+  transform: scale(0.99);
+}
+
 /* Mobile responsive constraints (<768px) */
 @media (max-width: 767.98px) {
-  body {
-    overflow-x: hidden;
-  }
-
   .btn-zen-primary,
   .btn-zen-secondary,
   .btn-zen-destructive,
@@ -196,5 +285,9 @@ body {
   .form-control,
   .form-select {
     min-height: 44px;
+  }
+
+  .zen-card {
+    border-radius: 10px;
   }
 }
