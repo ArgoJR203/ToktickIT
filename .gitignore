@@ -12,3 +12,12 @@ server/prisma/*.db
 # logs & OS
 *.log
 .DS_Store
+# AI agent context
+.agents/
+# file uploads
+uploads/
+server/uploads/
+# test artifacts
+test-results/
+playwright-report/
+

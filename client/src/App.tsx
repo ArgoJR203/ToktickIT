@@ -1,68 +1,110 @@
-import { useState } from "react";
-import { checkSystem, Category } from "./api.js";
+import React, { useState, useEffect } from "react";
+import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
+import { RequesterSelector } from "./components/RequesterSelector.js";
+import { Header, NavTab } from "./components/Header.js";
+import { CreateTicket } from "./components/CreateTicket.js";
+import { MyTickets } from "./components/MyTickets.js";
+import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
+import { Ticket } from "./api.js";
 
-// UI states you must handle for Issue 4: idle, loading, success, error.
-type UiState = "idle" | "loading" | "success" | "error";
+function MainContent() {
+  const { currentRequester } = useRequester();
+  const [activeTab, setActiveTab] = useState<NavTab>("my-tickets");
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [createdTicketNotice, setCreatedTicketNotice] = useState<string | null>(null);
 
-export default function App() {
-  const [state, setState] = useState<UiState>("idle");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [errorMsg, setErrorMsg] = useState("");
+  // Reset detail view and notices whenever active requester changes (BR-19)
+  useEffect(() => {
+    setActiveTab("my-tickets");
+    setSelectedTicketId(null);
+    setCreatedTicketNotice(null);
+  }, [currentRequester?.id]);
 
-  async function handleCheck() {
-    // TODO(Issue 4): set loading, call checkSystem(), then either
-    //   - success: store categories and show Online + the list, or
-    //   - error: show Offline + a useful message.
-    setState("loading");
-    setErrorMsg("");
-    try {
-      const result = await checkSystem();
-      setCategories(result.categories);
-      setState("success");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Unknown error");
-      setState("error");
-    }
+  // Route Guard: If no requester context is selected, force Dev Requester Selector
+  if (!currentRequester) {
+    return <RequesterSelector />;
   }
 
+  const handleTicketCreated = (ticket: Ticket) => {
+    setCreatedTicketNotice(`Ticket ${ticket.ticketNumber} created successfully.`);
+    setActiveTab("my-tickets");
+    setSelectedTicketId(null);
+  };
+
+  const handleTabChange = (tab: NavTab) => {
+    setActiveTab(tab);
+    if (tab !== "ticket-detail") {
+      setSelectedTicketId(null);
+    }
+  };
+
   return (
-    <div className="container py-5" style={{ maxWidth: 640 }}>
-      <h1 className="h3 mb-4">
-        TokTickIT <span className="text-success">IT Service Desk</span>
-      </h1>
+    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: "var(--color-bg-quiet)" }}>
+      <Header activeTab={activeTab} onTabChange={handleTabChange} />
 
-      <button className="btn btn-success" onClick={handleCheck} disabled={state === "loading"}>
-        {state === "loading" ? "Loading…" : "Check System"}
-      </button>
-
-      {state === "loading" && (
-        <div className="mt-3">
-          <div className="spinner-border text-success" role="status">
-            <span className="visually-hidden">Loading…</span>
+      <main className="container py-4 flex-grow-1">
+        {/* Success Banner when Ticket is Created */}
+        {createdTicketNotice && activeTab === "my-tickets" && (
+          <div
+            className="alert zen-alert-success mb-4 d-flex justify-content-between align-items-center"
+            role="alert"
+          >
+            <div className="d-flex align-items-center me-2">
+              <svg className="me-2 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span>{createdTicketNotice}</span>
+            </div>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setCreatedTicketNotice(null)}
+              aria-label="Close"
+            ></button>
           </div>
-        </div>
-      )}
+        )}
 
-      {state === "success" && (
-        <div className="alert alert-success mt-3" role="alert">
-          <strong>Online</strong> — Backend is healthy.
-          <p className="mb-1">Supported Request Categories:</p>
-          {categories.length > 0 && (
-            <ul className="mb-0 mt-2">
-              {categories.map((c) => (
-                <li key={c.id}>{c.name}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+        {activeTab === "my-tickets" && (
+          <MyTickets
+            onCreateClick={() => {
+              setCreatedTicketNotice(null);
+              setActiveTab("create-ticket");
+            }}
+            onSelectTicket={(ticketId) => {
+              setCreatedTicketNotice(null);
+              setSelectedTicketId(ticketId);
+              setActiveTab("ticket-detail");
+            }}
+          />
+        )}
 
-      {state === "error" && (
-        <div className="alert alert-danger mt-3" role="alert">
-          <strong>Offline</strong> — {errorMsg}
-        </div>
-      )}
+        {activeTab === "create-ticket" && (
+          <CreateTicket
+            onSuccess={handleTicketCreated}
+            onCancel={() => setActiveTab("my-tickets")}
+          />
+        )}
+
+        {activeTab === "ticket-detail" && selectedTicketId !== null && (
+          <RequesterTicketDetail
+            ticketId={selectedTicketId}
+            onBack={() => {
+              setSelectedTicketId(null);
+              setActiveTab("my-tickets");
+            }}
+          />
+        )}
+      </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <RequesterProvider>
+      <MainContent />
+    </RequesterProvider>
   );
 }
 
