@@ -17,3 +17,7 @@ server/prisma/*.db
 # file uploads
 uploads/
 server/uploads/
+# test artifacts
+test-results/
+playwright-report/
+

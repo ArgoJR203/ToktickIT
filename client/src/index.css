@@ -88,10 +88,23 @@ body {
   margin-left: 2px;
 }
 
-/* Form Control Overrides */
+/* Form Control Overrides & Focus Rings (UI Spec §6) */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
 .form-control:focus, .form-select:focus {
   border-color: var(--color-secondary-green);
-  box-shadow: 0 0 0 0.25rem rgba(11, 122, 70, 0.25);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 0.2rem rgba(11, 122, 70, 0.2);
+}
+
+.btn-zen-secondary:focus, .btn-zen-destructive:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* Card Surface Styling */
@@ -102,26 +115,56 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
-/* Alert Callouts */
+/* Notification Banner Animations (UI Spec §4.6) */
+@keyframes zenSlideIn {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes zenFadeOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+
+/* Alert Callouts with Slide-In Transition */
 .zen-alert-warning {
   background-color: var(--color-warning-bg);
   border-left: 4px solid var(--color-warning-badge);
   color: var(--color-text-main);
+  animation: zenSlideIn 200ms ease-out;
 }
 
 .zen-alert-danger {
   background-color: var(--color-error-bg);
   border-left: 4px solid var(--color-error-text);
   color: var(--color-text-main);
+  animation: zenSlideIn 200ms ease-out;
 }
 
 .zen-alert-success {
   background-color: var(--color-pale-green);
   border-left: 4px solid var(--color-success-badge);
   color: var(--color-text-main);
+  animation: zenSlideIn 200ms ease-out;
 }
 
-/* Touch Target Accessibility & Responsive Utilities (RESP-01: touch targets >= 44px) */
+.zen-alert-dismissing {
+  animation: zenFadeOut 150ms ease-in forwards;
+}
+
+/* Touch Target Accessibility & Responsive Utilities (RESP-01 / AC-09: touch targets >= 44px) */
 .touch-target,
 .mobile-ticket-card,
 .btn-touch-target {
@@ -132,4 +175,26 @@ body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+}
+
+/* Mobile responsive constraints (<768px) */
+@media (max-width: 767.98px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .btn-zen-primary,
+  .btn-zen-secondary,
+  .btn-zen-destructive,
+  .btn-touch-target {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-control,
+  .form-select {
+    min-height: 44px;
+  }
 }

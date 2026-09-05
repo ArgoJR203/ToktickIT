@@ -29,9 +29,9 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 | **UI-03** | UI | FR-12 | Submit busy & loading state | Submit button disabled and shows spinner during request processing | `client/tests/lab-02/CreateTicket.test.tsx` | [Passed] |
 | **UI-04** | UI | AC-08 | Soft removal modal confirmation | Modal prompts for removal reason, disables confirm until valid reason entered | `client/tests/lab-02/AttachmentSection.test.tsx` | [Passed] |
 | **UI-05** | UI Style | Zen Green UI | CSS classes and color tokens | Verified `#006B3C` primary header, `#EAF6EF` section emphasis, red asterisks | `client/tests/lab-02/MyTickets.test.tsx` | [Passed] |
-| **E2E-01** | E2E | AC-01, AC-04 | Complete ticket submission & retrieval flow | Requester creates ticket, redirects to My Tickets, ticket appears in list | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Pending] |
-| **E2E-02** | E2E | AC-03 | Cross-requester context switching | Switch Requester A -> B; verified Requester A tickets disappear from view | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Pending] |
-| **E2E-03** | E2E | AC-08 | Attachment upload and soft removal flow | Upload PDF -> view active -> soft remove with reason -> verify "Removed" badge | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Pending] |
+| **E2E-01** | E2E | AC-01, AC-04 | Complete ticket submission & retrieval flow | Requester creates ticket, redirects to My Tickets, ticket appears in list | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Passed] |
+| **E2E-02** | E2E | AC-03 | Cross-requester context switching | Switch Requester A -> B; verified Requester A tickets disappear from view | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Passed] |
+| **E2E-03** | E2E | AC-08 | Attachment upload and soft removal flow | Upload PDF -> view active -> soft remove with reason -> verify "Removed" badge | `e2e/lab-02/requester-ticket-flow.spec.ts` | [Passed] |
 | **API-08** | API | AC-07, BR-12, BR-13 | Attachment upload rejection (invalid type/oversize) | Returns `400 Bad Request` with `FILE_TOO_LARGE` or `INVALID_FILE_TYPE` error code | `server/tests/lab-02/attachments.api.test.ts` | [Passed] |
 | **API-09** | API | AC-08, BR-16 | Download soft-removed attachment returns 410 | GET download endpoint after soft removal returns `410 Gone` | `server/tests/lab-02/attachments.api.test.ts` | [Passed] |
 | **API-10** | API | FR-01, BR-04 | Fetch active requesters only | Returns only `isActive: true` requesters; excludes inactive | `server/tests/lab-02/requesters.api.test.ts` | [Passed] |
@@ -62,12 +62,12 @@ The testing strategy for Lab 2 follows Spec-Driven Development (Spec DD) and Tes
 
 ## 4. Responsive and Visual Checklist (Planned Verification)
 
-- [ ] **Desktop (>=992px)**: Header displays logo, nav items, and active requester dropdown; Create Ticket displays 2-column form grid; My Tickets renders full data table with interactive column headers.
-- [ ] **Tablet (768-991px)**: Form fields re-align cleanly; summary and description span full width; data table remains readable without clipping.
-- [ ] **Mobile (<768px)**: Stacked single-column controls; buttons maintain min-height 44px for touch friendliness; My Tickets transforms to a mobile card list view; 0 horizontal page scrollbar.
-- [ ] **Zen Green Design System**: Primary header `#006B3C`, secondary accents `#0B7A46`, pale section fills `#EAF6EF`, soft gray read-only inputs `#F0F4F1`.
-- [ ] **Validation & Error Placement**: Required asterisks (`*`) in red; inline field validation messages directly below corresponding controls.
-- [ ] **Screenshot Evidence**: To be saved under `artifacts/lab-02/screenshots/` (`create-ticket/`, `my-tickets/`, `ticket-detail/`).
+- [x] **Desktop (>=992px)**: Header displays logo, nav items, and active requester dropdown; Create Ticket displays 2-column form grid; My Tickets renders full data table with interactive column headers.
+- [x] **Tablet (768-991px)**: Form fields re-align cleanly; summary and description span full width; data table remains readable without clipping.
+- [x] **Mobile (<768px)**: Stacked single-column controls; buttons maintain min-height 44px for touch friendliness; My Tickets transforms to a mobile card list view; 0 horizontal page scrollbar.
+- [x] **Zen Green Design System**: Primary header `#006B3C`, secondary accents `#0B7A46`, pale section fills `#EAF6EF`, soft gray read-only inputs `#F0F4F1`.
+- [x] **Validation & Error Placement**: Required asterisks (`*`) in red; inline field validation messages directly below corresponding controls.
+- [x] **Screenshot Evidence**: Verified screenshots saved under `artifacts/lab-02/screenshots/` (`create-ticket/`, `my-tickets/`, `ticket-detail/`).
 
 ---
 
@@ -89,11 +89,11 @@ npx playwright test e2e/lab-02/
 ## 6. Final Results (Update as implementation proceeds)
 
 - **Total Planned Tests**: 25
-- **Passed**: 22 (UNIT-01, UNIT-02, API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08, API-09, API-10, API-11, API-12, UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, RESP-01)
+- **Passed**: 25 (UNIT-01, UNIT-02, API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08, API-09, API-10, API-11, API-12, UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, RESP-01, E2E-01, E2E-02, E2E-03)
 - **Failed**: 0
 - **Skipped**: 0
-- **Pending**: 3 (E2E-01, E2E-02, E2E-03)
-- **Coverage Summary**: 25 tests planned tracing to 100% of Acceptance Criteria (AC-01 through AC-10) and all API endpoints.
+- **Pending**: 0
+- **Coverage Summary**: 25 tests planned and passed tracing to 100% of Acceptance Criteria (AC-01 through AC-10) and all API endpoints.
 
 ---
 
