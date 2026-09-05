@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
         style={{ minHeight: "60px" }}
       >
         {/* Left: Brand */}
-        <div className="d-flex align-items-center py-1 order-1">
+        <div className="d-flex align-items-center py-1 order-1 me-lg-3">
           <a
             href="#"
             className="navbar-brand text-white fw-bold d-flex align-items-center me-3 text-decoration-none"
@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
         {/* Right side: User Identity Badge + Change Requester (Single DOM instance, order-2 on tablet/mobile, order-lg-3 on desktop) */}
         {currentRequester && (
-          <div className="d-flex align-items-center order-2 order-lg-3 py-1 ms-auto ms-lg-0">
+          <div className="d-flex align-items-center order-2 order-lg-3 py-1 ms-auto">
             <div
               className="d-flex align-items-center me-2 me-md-3 px-2 px-md-3 py-1 rounded bg-black bg-opacity-25 text-white small text-truncate header-user-badge"
             >
@@ -83,8 +83,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
           </div>
         )}
 
-        {/* Center: Navigation Links (Full width on tablet/mobile via header-nav order-3; inline on desktop via header-nav order-lg-2) */}
-        <nav className="d-flex gap-2 order-3 order-lg-2 header-nav py-1 mt-1 mt-lg-0">
+        {/* Navigation Links: Left-aligned next to brand on desktop via me-lg-auto; full width on mobile/tablet via order-3 */}
+        <nav className="d-flex gap-2 order-3 order-lg-2 header-nav py-1 mt-1 mt-lg-0 me-lg-auto">
           <button
             className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
               isMyTicketsActive ? "fw-semibold" : "opacity-75"
