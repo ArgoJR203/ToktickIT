@@ -284,6 +284,47 @@ describe("Attachment Lifecycle REST API Integration Tests (Issue #2-8 / API-06, 
   });
 
   // -------------------------------------------------------------------------
+  // BR-05, BR-18: Cross-Requester Ownership Isolation (403 Forbidden)
+  // -------------------------------------------------------------------------
+  it("rejects direct access to attachments belonging to another requester with 403 FORBIDDEN (BR-05, BR-18)", async () => {
+    // 1. Requester A uploads an attachment to Ticket A
+    const uploadRes = await request(app)
+      .post(`/api/tickets/${ticketAId}/attachments`)
+      .set("x-requester-id", requesterAId.toString())
+      .attach("file", Buffer.from("confidential data"), {
+        filename: "confidential.pdf",
+        contentType: "application/pdf",
+      });
+    expect(uploadRes.status).toBe(201);
+    const attachmentId = uploadRes.body.id;
+    // 2. Requester B attempts direct download of Requester A's attachment -> 403 FORBIDDEN
+    const downloadForbidden = await request(app)
+      .get(`/api/attachments/${attachmentId}/download`)
+      .set("x-requester-id", requesterBId.toString());
+    expect(downloadForbidden.status).toBe(403);
+    expect(downloadForbidden.body.error).toBe("FORBIDDEN");
+    expect(downloadForbidden.body.message).toMatch(/do not own the associated ticket/i);
+    // 3. Requester B attempts soft-removal of Requester A's attachment -> 403 FORBIDDEN
+    const removeForbidden = await request(app)
+      .delete(`/api/attachments/${attachmentId}`)
+      .set("x-requester-id", requesterBId.toString())
+      .send({ removalReason: "Malicious removal attempt" });
+    expect(removeForbidden.status).toBe(403);
+    expect(removeForbidden.body.error).toBe("FORBIDDEN");
+    expect(removeForbidden.body.message).toMatch(/do not own the associated ticket/i);
+    // 4. Requester B attempts to upload an attachment to Requester A's ticket -> 403 FORBIDDEN
+    const uploadForbidden = await request(app)
+      .post(`/api/tickets/${ticketAId}/attachments`)
+      .set("x-requester-id", requesterBId.toString())
+      .attach("file", Buffer.from("unauthorized upload"), {
+        filename: "unauthorized.pdf",
+        contentType: "application/pdf",
+      });
+    expect(uploadForbidden.status).toBe(403);
+    expect(uploadForbidden.body.error).toBe("FORBIDDEN");
+    expect(uploadForbidden.body.message).toMatch(/do not own this ticket/i);
+  });
+  // -------------------------------------------------------------------------
   // Edge Cases: Authentication & Non-Existent Resources
   // -------------------------------------------------------------------------
   it("rejects requests missing x-requester-id header with 401 UNAUTHORIZED", async () => {
