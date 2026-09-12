@@ -2,32 +2,38 @@
 
 ## 1. Test Strategy
 
-The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Spec DD)** and **Test-Driven Development (TDD)** principles. Comprehensive automated test coverage is established across seven distinct layers before feature implementation begins:
+The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Spec DD)** and **Test-Driven Development (TDD)** principles. Comprehensive automated test coverage is established across eight distinct layers before feature implementation begins:
 
-1. **Authentication & Session Tests** (`auth.api.test.ts`):
+1. **Unit Tests** (`server/tests/lab-03/`):
+   - Pure domain utility testing executed in isolation without database latency:
+     - `UNIT-01`: Password Complexity Validator (`password-validator.test.ts`)
+     - `UNIT-02`: Status Transition Matrix Validator (`status-transition-validator.test.ts`)
+     - `UNIT-03`: Server-Side Token Revocation Store (`token-revocation.test.ts`)
+     - `UNIT-04`: Administrator Safety Constraints Validator (`admin-safety-validator.test.ts`)
+2. **Authentication & Session Tests** (`auth.api.test.ts`):
    - Valid credentials login, JWT token issuance, user profile & role returned.
    - Safe error handling for incorrect credentials and deactivated accounts (`isActive = false`) without leaking account status.
    - Password complexity boundary validations (min 8 chars, uppercase, lowercase, number/symbol).
    - First-login mandatory password change (`mustChangePassword = true`).
-   - Logout token invalidation.
-2. **Server-Side Authorization & Regression Tests** (`authorization.api.test.ts`):
+   - Logout token invalidation via server-side Token Revocation Store (subsequent calls return `401 Unauthorized`).
+3. **Server-Side Authorization & Regression Tests** (`authorization.api.test.ts`):
    - Role boundaries: Requester blocked from staff queue and admin routes (`403 Forbidden`).
    - IT Staff blocked from user administration routes (`403 Forbidden`).
    - Ticket and attachment ownership isolation: Requester cannot query or modify tickets owned by another user (`403`/`404`).
    - Requester regression: Lab 2 ticket creation, retrieval, and attachment operations succeed using authenticated session context.
-3. **Comments & Notes Confidentiality Tests** (`comments-notes.api.test.ts`):
+4. **Comments & Notes Confidentiality Tests** (`comments-notes.api.test.ts`):
    - Public Comments readable by Requester, IT Staff, and Admin; append-only enforcement.
-   - **API-08**: Requester requesting Internal Notes returns `403 Forbidden` without exposing note data.
+   - **API-08**: Requester requesting Internal Notes returns `403 Forbidden` without exposing note data *(Handout §10 exact)*.
    - IT Staff and Admin can author and inspect private Internal Notes.
    - Whitespace-only comment/note validation.
-4. **IT Staff Queue & Operational Workflow Tests** (`staff-queue.api.test.ts`, `staff-ticket-detail.api.test.ts`):
+5. **IT Staff Queue & Operational Workflow Tests** (`staff-queue.api.test.ts`, `staff-ticket-detail.api.test.ts`):
    - Queue query testing: keyword search, category, priority, status, ownership filters, sorting, and pagination.
    - IT Priority initialization (copies Requested Priority upon creation) and subsequent updates by staff.
    - Ticket ownership claiming and reassignment.
    - Permitted status transition matrix enforcement (valid progressions allowed; invalid progressions rejected with `400 Bad Request`).
    - Resolution summary capture upon ticket resolution.
    - Requester "Problem Appears Resolved" indication handling.
-5. **Administrator Safety & User Management Tests** (`users-admin.api.test.ts`):
+6. **Administrator Safety & User Management Tests** (`users-admin.api.test.ts`):
    - User listing with search and role filter.
    - User creation with 1 role and initial password (`mustChangePassword = true`).
    - Rejection of duplicate email addresses (`409 Conflict`).
@@ -36,13 +42,13 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
    - **Non-Admin Forbidden Access**: Non-administrators attempting admin endpoints return `403 Forbidden`.
    - **Self-Deactivation Protection**: Administrator attempting to deactivate own account returns `400 Bad Request`.
    - **Last Active Admin Protection**: Attempting to deactivate or demote the sole active Administrator returns `400 Bad Request`.
-6. **UI Component & Style Tests** (`client/tests/lab-03/`):
+7. **UI Component & Style Tests** (`client/tests/lab-03/`):
    - `Login.test.tsx`: Form rendering, input validation, busy state, safe error banners.
    - `ChangePassword.test.tsx`: Mandatory password change checklist, matching confirmations, progress states.
    - `StaffTicketQueue.test.tsx`: Queue data table, search input, filter controls, pagination, priority/status badges.
    - `StaffTicketDetail.test.tsx`: Operational controls grid, ownership claim, status dropdown, resolution summary, visual warning on Internal Notes.
    - `UserManagement.test.tsx`: User table, create/edit modal, active toggle, safety warnings.
-7. **End-to-End (E2E) Playwright Tests** (`e2e/lab-03/`):
+8. **End-to-End (E2E) Playwright Tests** (`e2e/lab-03/`):
    - `authentication.spec.ts`: Login, first-login mandatory password change, role navigation, logout.
    - `staff-ticket-flow.spec.ts`: Staff queue navigation, filter by priority, claim ticket, update IT priority, advance status, post internal note.
    - `user-administration.spec.ts`: Admin user creation with initial password, edit user, attempt self-deactivation (verify error alert), reset password.
@@ -51,16 +57,20 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 
 ## 2. Planned Tests Traceability Matrix
 
-*(Test IDs aligned directly with Handout §10 and expanded to cover all requirements and boundaries)*
+*(Test IDs aligned directly with Handout §10 and expanded to cover all requirements, unit domains, and edge boundaries)*
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **API-01** | API | AC-01, FR-01 | Valid user login | Authenticated response with JWT, safe user data, and role (`200 OK`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
+| **UNIT-01** | Unit | BR-07 | Password complexity domain rules | Validates min 8 chars, uppercase, lowercase, number/symbol; rejects invalid strings | `server/tests/lab-03/password-validator.test.ts` | [Planned] |
+| **UNIT-02** | Unit | BR-14, BR-17 | Status transition matrix logic | Validates allowed progressions (e.g. `NEW -> OPEN`); blocks disallowed skips (e.g. `NEW -> RESOLVED`) | `server/tests/lab-03/status-transition-validator.test.ts` | [Planned] |
+| **UNIT-03** | Unit | BR-09, AC-06 | Token revocation store domain | Adds token to revocation set, confirms `isRevoked(token) === true`, verifies TTL expiration | `server/tests/lab-03/token-revocation.test.ts` | [Planned] |
+| **UNIT-04** | Unit | BR-21, BR-22 | Admin safety constraints validator | Validates self-deactivation rejection and last active admin preservation rules | `server/tests/lab-03/admin-safety-validator.test.ts` | [Planned] |
+| **API-01** | API | AC-01, FR-01 | Valid user login *(Handout §10 exact)* | Authenticated response with JWT, safe user data, and role (`200 OK`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
 | **API-02** | API | AC-05, BR-01 | Inactive account login rejection | Denied access with safe error without leaking account existence (`401 Unauthorized`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
 | **API-03** | API | BR-07 | Password boundary: length < 8 chars | Rejects password shorter than 8 characters (`400 Bad Request`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
 | **API-04** | API | BR-07 | Password boundary: missing uppercase/number | Rejects password missing uppercase or numeric/special character (`400 Bad Request`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
 | **API-05** | API | AC-02, BR-02 | Mandatory password change at first login | Saves valid new password and clears `mustChangePassword` (`200 OK`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
-| **API-06** | API | AC-06, FR-04 | User logout session invalidation | Session terminated; subsequent calls with token return `401 Unauthorized` | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
+| **API-06** | API | AC-06, BR-09 | User logout & token revocation | Adds token to revocation store; subsequent requests using revoked token return `401 Unauthorized` (`TOKEN_REVOKED`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
 | **API-07** | API | AC-02, BR-02 | Functional endpoints blocked when password change required | Gated endpoint returns `403 Forbidden` (`PASSWORD_CHANGE_REQUIRED`) | `server/tests/lab-03/authorization.api.test.ts` | [Planned] |
 | **API-08** | API | AC-04, BR-04 | **Requester requests Internal Notes** | Forbidden; no note data returned (`403 Forbidden`) *(Handout §10 exact)* | `server/tests/lab-03/comments-notes.api.test.ts` | [Planned] |
 | **API-09** | API | AC-03, BR-03 | Requester ownership isolation | Backend applies authenticated identity; ignores client-supplied ID; rejects cross-user access (`403`/`404`) | `server/tests/lab-03/authorization.api.test.ts` | [Planned] |
@@ -97,22 +107,22 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 
 | Acceptance Criterion | Covered By Test IDs | Layer & Verification Focus |
 | :--- | :--- | :--- |
-| **AC-01** (Valid login & user role) | API-01, UI-01, E2E-01 | JWT issuance, response payload, UI dashboard entry |
-| **AC-02** (Mandatory first password change) | API-05, API-07, UI-02, E2E-02 | Route guard blocks normal views until valid password is saved |
+| **AC-01** (Valid login & user role) | UNIT-01, API-01, UI-01, E2E-01 | Password check, JWT issuance, response payload, UI dashboard entry |
+| **AC-02** (Mandatory first password change) | UNIT-01, API-05, API-07, UI-02, E2E-02 | Password validation, route guard blocks normal views until valid password saved |
 | **AC-03** (Requester ownership isolation) | API-09 | Backend ignores client-supplied IDs and prevents cross-requester leaks |
 | **AC-04** (Internal Notes hidden from Requester) | API-08, UI-05 | `403 Forbidden` returned to Requesters; notes tab hidden in Requester UI |
 | **AC-05** (Inactive account login rejection) | API-02, UI-01 | Safe error response without leaking password correctness |
-| **AC-06** (Logout token invalidation) | API-06, E2E-01 | Subsequent protected API calls return `401 Unauthorized` |
+| **AC-06** (Logout token invalidation) | UNIT-03, API-06, E2E-01 | Token registered in revocation store; subsequent calls return `401 Unauthorized` |
 | **AC-07** (IT Staff Ticket Queue) | API-13, API-14, UI-03, E2E-03 | Shared queue retrieval with search, filters, pagination |
 | **AC-08** (Claim & reassign ticket ownership) | API-16, UI-04, E2E-03 | Quick "Assign to Me" and reassignment dropdown |
 | **AC-09** (IT Priority adjustment) | API-15, UI-04, E2E-03 | Initial copy from requested priority, independent update of IT Priority |
-| **AC-10** (Status progression & transition rules) | API-17, API-18, UI-04, E2E-03 | State machine validator allows valid, rejects invalid; resolution summary |
+| **AC-10** (Status progression & transition rules) | UNIT-02, API-17, API-18, UI-04, E2E-03 | State machine validator allows valid, rejects invalid; resolution summary |
 | **AC-11** (Public Comments feed) | API-11, UI-05 | Append-only public communication between Requester & Staff |
 | **AC-12** (Problem Appears Resolved signal) | API-19 | Requester resolution indication without premature closure |
 | **AC-13** (Admin user creation with initial password)| API-20, UI-06, E2E-04 | User created with role, initial password, mustChangePassword=true |
-| **AC-14** (Admin self-deactivation protection) | API-22, UI-06, E2E-04 | `400 Bad Request` and UI disable/warning on self-deactivate |
-| **AC-15** (Last active Admin protection) | API-23, UI-06, E2E-04 | `400 Bad Request` when attempting to deactivate last admin |
-| **AC-16** (Admin sets new initial password) | API-24, UI-06, E2E-04 | Temporary password sets `mustChangePassword = true` |
+| **AC-14** (Admin self-deactivation protection) | UNIT-04, API-22, UI-06, E2E-04 | `400 Bad Request` and UI disable/warning on self-deactivate |
+| **AC-15** (Last active Admin protection) | UNIT-04, API-23, UI-06, E2E-04 | `400 Bad Request` when attempting to deactivate last admin |
+| **AC-16** (Admin sets new initial password) | UNIT-01, API-24, UI-06, E2E-04 | Temporary password sets `mustChangePassword = true` |
 
 ---
 
@@ -132,6 +142,9 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 ## 5. Test Execution Commands
 
 ```bash
+# Run server Lab 3 unit tests
+npm --prefix server test -- tests/lab-03/password-validator.test.ts tests/lab-03/status-transition-validator.test.ts tests/lab-03/token-revocation.test.ts tests/lab-03/admin-safety-validator.test.ts
+
 # Run server Lab 3 API & integration tests
 npm --prefix server test -- tests/lab-03/
 
@@ -146,9 +159,9 @@ npx playwright test e2e/lab-03/
 
 ## 6. Test Tracking and Final Results
 
-- **Total Planned Tests**: 35 (25 API + 6 UI + 4 E2E)
+- **Total Planned Tests**: 39 (4 Unit + 25 API + 6 UI + 4 E2E)
 - **Passed**: 0 (Implementation pending)
 - **Failed**: 0
 - **Skipped**: 0
-- **Pending**: 35
-- **Target Coverage**: 100% of Acceptance Criteria (AC-01 through AC-16) and all REST endpoints.
+- **Pending**: 39
+- **Target Coverage**: 100% of Acceptance Criteria (AC-01 through AC-16), domain utilities, and REST endpoints.

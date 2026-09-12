@@ -156,7 +156,7 @@ Every protected operation is strictly enforced by backend middleware. UI control
 - **BR-06**: **Password Storage & Security**: Passwords must never be stored in plaintext. All passwords must be hashed using bcrypt with a salt cost factor >= 10 before persisting in PostgreSQL.
 - **BR-07**: **Password Complexity**: Passwords must meet minimum complexity: at least 8 characters, containing at least one uppercase letter, at least one lowercase letter, and at least one number or special character.
 - **BR-08**: **Initial Password Flagging**: When an Administrator creates a new user or sets a new initial password, `mustChangePassword` must automatically be set to `true`.
-- **BR-09**: **Session Termination**: Logging out immediately invalidates the authenticated session/token on both client and backend; subsequent API requests require re-authentication (`401 Unauthorized`).
+- **BR-09**: **Session Termination & Token Invalidation**: Logging out (`POST /api/auth/logout`) immediately revokes the authenticated JWT on the backend by recording it in the server-side Token Revocation Store and clearing client storage. Any subsequent request presenting a revoked token must be rejected with `401 Unauthorized` (`code: "TOKEN_REVOKED"`).
 - **BR-10**: **Single Role Assignment**: Every user is assigned exactly one permitted role: `REQUESTER`, `IT_STAFF`, or `ADMINISTRATOR`. Multi-role assignments are prohibited.
 - **BR-11**: **Ticket Ownership**: Each Ticket may have one primary Ticket Owner who is an active IT Staff or Administrator user (`ownerId`). A Ticket may initially be unassigned (`ownerId = null`). Requesters cannot own tickets as staff.
 - **BR-12**: **IT Priority Initialization & Modification**: Requested Priority remains the value submitted by the Requester (`LOW`, `MEDIUM`, `HIGH`, `URGENT`). IT Priority initially copies Requested Priority upon ticket creation and may later be changed only by IT Staff or Administrator.
@@ -334,7 +334,7 @@ Refer to [api-spec.md](file:///d:/AllStudyProject/CPE334/TokTickIT/docs/lab-03/a
 ---
 
 ## 12. Assumptions and Decisions
-1. **Authentication Token Strategy**: JSON Web Tokens (JWT) containing `{ id, email, role, mustChangePassword }` signed by `JWT_SECRET`, transmitted via HTTP `Authorization: Bearer <token>` or HTTP-only cookies, providing stateless verification and secure token expiration.
+1. **Authentication & Token Invalidation Strategy**: JSON Web Tokens (JWT) containing `{ id, email, role, mustChangePassword }` signed by `JWT_SECRET`, transmitted via HTTP `Authorization: Bearer <token>`. To satisfy Handout §6.1 regarding logout invalidation while using JWTs, the backend maintains a lightweight **Token Revocation Store (Blocklist)**. When a user logs out (`POST /api/auth/logout`), the token is registered in the revocation store (with automatic TTL cleanup upon token expiry). The `authenticate` middleware verifies both signature/expiration and checks against the revocation store, guaranteeing that revoked tokens return `401 Unauthorized` (`TOKEN_REVOKED`).
 2. **Password Security**: Passwords hashed using bcrypt with salt rounds = 10. Passwords are never returned in user API responses.
 3. **IT Priority Initialization**: During ticket creation (`POST /api/tickets`), backend initializes `itPriority` to the exact value of `requestedPriority`.
 4. **Resolution Summary**: When transitioning a ticket to `RESOLVED` or `CLOSED`, IT Staff can optionally provide a `resolutionSummary` string which is stored on the ticket and made visible to the Requester.

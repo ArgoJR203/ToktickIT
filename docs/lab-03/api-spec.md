@@ -18,9 +18,12 @@ The TokTickIT Lab 3 REST API provides secure, authenticated services with server
     "exp": 1773289200
   }
   ```
-- **Session Expiration & Invalidation**:
-  - Tokens expire after 8 hours of inactivity.
-  - Calling `POST /api/auth/logout` invalidates the client token and server session state.
+- **Session Expiration & Server-Side Token Invalidation**:
+  - Tokens expire after 8 hours of inactivity (`exp: Math.floor(Date.now() / 1000) + 8 * 3600`).
+  - To satisfy Handout §6.1, BR-09, and AC-06 regarding logout token invalidation while preserving stateless JWT verification, the backend maintains a **Server-Side Token Revocation Store (Blocklist)**.
+  - Calling `POST /api/auth/logout` extracts the current token from the `Authorization` header and records it in the revocation store with a TTL matching the token's remaining validity.
+  - The `authenticate` middleware checks the token against the revocation store on every protected request. If the token is revoked, access is denied immediately with `401 Unauthorized` (`TOKEN_REVOKED`).
+  - Client-side, `localStorage.removeItem("toktickit_token")` is called and application state is reset to unauthenticated.
 
 ### 1.2 Server-Side Authorization & Middleware Enforcement
 Every protected route is gated by dedicated Express middleware:
@@ -111,13 +114,26 @@ Every protected route is gated by dedicated Express middleware:
 }
 ```
 
-### 3.2 User Logout
+### 3.2 User Logout & Token Invalidation
 - **Endpoint**: `POST /api/auth/logout`
 - **Access**: Authenticated
+- **Behavior**:
+  - Extracts the bearer token from the `Authorization` header.
+  - Adds the token identifier to the backend Token Revocation Store with automatic TTL cleanup.
+  - Any subsequent request presenting this revoked token will fail with `401 Unauthorized` (`TOKEN_REVOKED`).
 - **Success Response (200 OK)**:
 ```json
 {
-  "message": "Successfully logged out."
+  "message": "Successfully logged out. Token has been revoked."
+}
+```
+- **Subsequent Request with Revoked Token (401 Unauthorized)**:
+```json
+{
+  "error": {
+    "code": "TOKEN_REVOKED",
+    "message": "Token has been revoked. Please log in again."
+  }
 }
 ```
 
