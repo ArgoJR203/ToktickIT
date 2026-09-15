@@ -4,6 +4,8 @@ import fs from "fs";
 import { getPrisma } from "./prisma.js";
 import { generateTicketNumber } from "./utils/ticket-generator.js";
 import { uploadMiddleware } from "./middleware/upload.js";
+import { authRouter } from "./routes/auth.js";
+import { authenticate, enforcePasswordChange, requireRole } from "./middleware/auth.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -11,6 +13,30 @@ export const app = express();
 
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
+
+// ---------------------------------------------------------------------------
+// Lab 3 — Auth Routes (Issue #3-3)
+// ---------------------------------------------------------------------------
+app.use("/api/auth", authRouter);
+
+// Protected endpoints for RBAC and password change gating verification
+app.get("/api/test/gated-endpoint", authenticate, enforcePasswordChange, (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok", message: "Accessed gated functional endpoint." });
+});
+
+app.get("/api/test/staff-only", authenticate, enforcePasswordChange, requireRole("IT_STAFF"), (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok", message: "Accessed staff-only endpoint." });
+});
+
+app.get("/api/test/admin-only", authenticate, enforcePasswordChange, requireRole("ADMINISTRATOR"), (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok", message: "Accessed admin-only endpoint." });
+});
+
+app.get("/api/test/requester-only", authenticate, enforcePasswordChange, requireRole("REQUESTER"), (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok", message: "Accessed requester-only endpoint." });
+});
+
+
 
 // ---------------------------------------------------------------------------
 // Issue 2 — API health check
