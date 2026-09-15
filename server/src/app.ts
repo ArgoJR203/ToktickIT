@@ -24,8 +24,8 @@ app.get("/api/health", (_req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 app.get("/api/requesters", async (_req: Request, res: Response) => {
   try {
-    const requesters = await getPrisma().requesterUser.findMany({
-      where: { isActive: true },
+    const requesters = await getPrisma().user.findMany({
+      where: { role: "REQUESTER", isActive: true },
       orderBy: { id: "asc" },
       select: { id: true, name: true, email: true, isActive: true },
     });
@@ -97,11 +97,11 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
       });
     }
 
-    const requester = await getPrisma().requesterUser.findUnique({
+    const requester = await getPrisma().user.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester || !requester.isActive) {
+    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
       return res.status(401).json({
         error: "UNAUTHORIZED",
         message: "Development requester is invalid or inactive",
@@ -140,9 +140,20 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
     }
 
     // Status filter
-    const validStatuses = ["NEW", "IN_PROGRESS", "PENDING", "RESOLVED", "CLOSED"];
+    const validStatuses = [
+      "NEW",
+      "OPEN",
+      "IN_PROGRESS",
+      "WAITING_FOR_REQUESTER",
+      "RESOLVED",
+      "CLOSED",
+      "REOPENED",
+      "CANCELLED",
+      "PENDING",
+    ];
     if (typeof currentStatus === "string" && validStatuses.includes(currentStatus.trim())) {
-      where.currentStatus = currentStatus.trim();
+      const trimmed = currentStatus.trim();
+      where.currentStatus = trimmed === "PENDING" ? "WAITING_FOR_REQUESTER" : trimmed;
     }
 
     // Sorting
@@ -209,11 +220,11 @@ app.get("/api/tickets/:id", async (req: Request, res: Response) => {
       });
     }
 
-    const requester = await getPrisma().requesterUser.findUnique({
+    const requester = await getPrisma().user.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester || !requester.isActive) {
+    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
       return res.status(401).json({
         error: "UNAUTHORIZED",
         message: "Development requester is invalid or inactive",
@@ -295,11 +306,11 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
       });
     }
 
-    const requester = await getPrisma().requesterUser.findUnique({
+    const requester = await getPrisma().user.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester || !requester.isActive) {
+    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
       return res.status(401).json({
         error: "UNAUTHORIZED",
         message: "Development requester is invalid or inactive",
@@ -396,6 +407,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
               summary: trimmedSummary,
               description: trimmedDescription,
               requestedPriority,
+              itPriority: requestedPriority,
               currentStatus: "NEW",
             },
           });
@@ -449,11 +461,11 @@ app.post("/api/tickets/:id/attachments", async (req: Request, res: Response) => 
       });
     }
 
-    const requester = await getPrisma().requesterUser.findUnique({
+    const requester = await getPrisma().user.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester || !requester.isActive) {
+    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
       return res.status(401).json({
         error: "UNAUTHORIZED",
         message: "Development requester is invalid or inactive",
@@ -603,11 +615,11 @@ app.get("/api/attachments/:id/download", async (req: Request, res: Response) => 
       });
     }
 
-    const requester = await getPrisma().requesterUser.findUnique({
+    const requester = await getPrisma().user.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester || !requester.isActive) {
+    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
       return res.status(401).json({
         error: "UNAUTHORIZED",
         message: "Development requester is invalid or inactive",
@@ -688,11 +700,11 @@ app.delete("/api/attachments/:id", async (req: Request, res: Response) => {
       });
     }
 
-    const requester = await getPrisma().requesterUser.findUnique({
+    const requester = await getPrisma().user.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester || !requester.isActive) {
+    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
       return res.status(401).json({
         error: "UNAUTHORIZED",
         message: "Development requester is invalid or inactive",
