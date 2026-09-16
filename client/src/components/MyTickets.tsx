@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRequester } from "../context/RequesterContext.js";
+import { useOptionalAuth } from "../context/AuthContext.js";
 import {
   fetchCategories,
   fetchTickets,
@@ -14,7 +15,9 @@ interface MyTicketsProps {
 }
 
 export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTicket }) => {
+  const auth = useOptionalAuth();
   const { currentRequester } = useRequester();
+  const activeUser = auth?.currentUser || currentRequester;
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [tickets, setTickets] = useState<TicketItem[]>([]);
@@ -89,7 +92,10 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
 
   // Fetch ticket list
   useEffect(() => {
-    if (!currentRequester) return;
+    if (!activeUser) {
+      setIsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     setIsLoading(true);
@@ -106,7 +112,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
         page,
         pageSize: 10,
       },
-      currentRequester.id
+      activeUser.id
     )
       .then((res: PaginatedTicketsResponse) => {
         if (isMounted) {
@@ -127,7 +133,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
       isMounted = false;
     };
   }, [
-    currentRequester,
+    activeUser?.id,
     search,
     selectedCategory,
     selectedPriority,
@@ -250,8 +256,8 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
             My Tickets
           </h2>
           <p className="text-muted small mb-0">
-            Showing IT support tickets submitted by <strong>{currentRequester?.name}</strong> (
-            {currentRequester?.email})
+            Showing IT support tickets submitted by <strong>{activeUser?.name}</strong> (
+            {activeUser?.email})
           </p>
         </div>
         <div>
