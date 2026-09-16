@@ -106,6 +106,22 @@ export interface Ticket {
   updatedAt: string;
 }
 
+function getAuthHeaders(requesterId?: number): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (requesterId !== undefined) {
+    headers["x-requester-id"] = requesterId.toString();
+  }
+  try {
+    const token = localStorage.getItem("toktickit_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  } catch {
+    // Ignore storage errors in test environments
+  }
+  return headers;
+}
+
 /**
  * Submit a new ticket (Issue #2-5)
  */
@@ -114,7 +130,7 @@ export async function createTicket(payload: CreateTicketPayload, requesterId: nu
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-requester-id": requesterId.toString(),
+      ...getAuthHeaders(requesterId),
     },
     body: JSON.stringify(payload),
   });
@@ -178,9 +194,7 @@ export async function fetchTickets(
   const url = `${API_URL}/api/tickets?${query.toString()}`;
 
   const res = await fetch(url, {
-    headers: {
-      "x-requester-id": requesterId.toString(),
-    },
+    headers: getAuthHeaders(requesterId),
   });
 
   if (!res.ok) {
@@ -228,9 +242,7 @@ export async function fetchTicketDetail(
   requesterId: number
 ): Promise<TicketDetail> {
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
-    headers: {
-      "x-requester-id": requesterId.toString(),
-    },
+    headers: getAuthHeaders(requesterId),
   });
 
   let data: Record<string, any> = {};
@@ -266,9 +278,7 @@ export async function uploadAttachment(
   try {
     res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
       method: "POST",
-      headers: {
-        "x-requester-id": requesterId.toString(),
-      },
+      headers: getAuthHeaders(requesterId),
       body: formData,
     });
   } catch {
@@ -309,7 +319,7 @@ export async function softRemoveAttachment(
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "x-requester-id": requesterId.toString(),
+        ...getAuthHeaders(requesterId),
       },
       body: JSON.stringify({ removalReason }),
     });
@@ -348,9 +358,7 @@ export async function downloadAttachment(
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/attachments/${attachmentId}/download`, {
-      headers: {
-        "x-requester-id": requesterId.toString(),
-      },
+      headers: getAuthHeaders(requesterId),
     });
   } catch {
     throw new Error(
@@ -388,5 +396,143 @@ export async function downloadAttachment(
   a.click();
   window.URL.revokeObjectURL(url);
   document.body.removeChild(a);
+}
+
+export type UserRole = "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+  isActive: boolean;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthUser;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+  user: AuthUser;
+}
+
+/**
+ * Log in with email and password (Issue #3-3, #3-4, API-01, API-02)
+ */
+export async function login(credentials: { email: string; password: string }): Promise<LoginResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+  } catch {
+    throw new Error("Unable to connect to the backend server. The server may be offline or unreachable.");
+  }
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON
+  }
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message || data.message || "Invalid email or password. Please try again.";
+    const err = new Error(errorMsg);
+    (err as Record<string, unknown>).code = data.error?.code;
+    (err as Record<string, unknown>).status = res.status;
+    throw err;
+  }
+
+  return data as LoginResponse;
+}
+
+/**
+ * Log out and revoke active token (Issue #3-3, #3-4, API-06)
+ */
+export async function logout(token: string): Promise<void> {
+  try {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    // Ignore network failure on logout
+  }
+}
+
+/**
+ * Get current authenticated user profile (Issue #3-3, #3-4, FR-05)
+ */
+export async function getMe(token: string): Promise<{ user: AuthUser }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    throw new Error("Unable to connect to the backend server.");
+  }
+
+  if (!res.ok) {
+    throw new Error(`Authentication check failed (${res.status})`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Change user password (Issue #3-3, #3-4, API-03..05)
+ */
+export async function changePassword(
+  payload: ChangePasswordPayload,
+  token: string
+): Promise<ChangePasswordResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/auth/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("Unable to connect to the backend server. The server may be offline or unreachable.");
+  }
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON
+  }
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message || data.message || "Failed to change password.";
+    const err = new Error(errorMsg);
+    (err as Record<string, unknown>).code = data.error?.code;
+    (err as Record<string, unknown>).details = data.error?.details;
+    (err as Record<string, unknown>).status = res.status;
+    throw err;
+  }
+
+  return data as ChangePasswordResponse;
 }
 

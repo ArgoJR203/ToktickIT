@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRequester } from "../context/RequesterContext.js";
+import { useOptionalAuth } from "../context/AuthContext.js";
 import { fetchTicketDetail, TicketDetail } from "../api.js";
 import { AttachmentSection } from "./AttachmentSection.js";
 
@@ -12,19 +13,24 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
   ticketId,
   onBack,
 }) => {
+  const auth = useOptionalAuth();
   const { currentRequester } = useRequester();
+  const activeUser = auth?.currentUser || currentRequester;
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!currentRequester) return;
+    if (!activeUser) {
+      setIsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     setIsLoading(true);
     setError(null);
 
-    fetchTicketDetail(ticketId, currentRequester.id)
+    fetchTicketDetail(ticketId, activeUser.id)
       .then((data) => {
         if (isMounted) {
           setTicket(data);
@@ -42,18 +48,18 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [ticketId, currentRequester]);
+  }, [ticketId, activeUser?.id]);
 
   const reloadTicket = useCallback(() => {
-    if (!currentRequester) return;
-    fetchTicketDetail(ticketId, currentRequester.id)
+    if (!activeUser) return;
+    fetchTicketDetail(ticketId, activeUser.id)
       .then((data) => {
         setTicket(data);
       })
       .catch((err) => {
         console.error("Failed to refresh ticket details:", err);
       });
-  }, [ticketId, currentRequester]);
+  }, [ticketId, activeUser?.id]);
 
   const renderPriorityBadge = (priority: string) => {
     switch (priority) {

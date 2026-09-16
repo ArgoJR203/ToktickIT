@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRequester } from "../context/RequesterContext.js";
+import { useOptionalAuth } from "../context/AuthContext.js";
 import {
   fetchCategories,
   fetchRelatedSystems,
@@ -27,7 +28,9 @@ interface CreateTicketProps {
 }
 
 export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel }) => {
+  const auth = useOptionalAuth();
   const { currentRequester } = useRequester();
+  const activeUser = auth?.currentUser || currentRequester;
 
   // Reference data state
   const [categories, setCategories] = useState<Category[]>([]);
@@ -189,7 +192,7 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
     setServerError(null);
     setWarningBanner(null);
 
-    if (!currentRequester) {
+    if (!activeUser) {
       setServerError("No active requester context. Please select a requester.");
       return;
     }
@@ -209,14 +212,14 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({ onSuccess, onCancel 
         requestedPriority,
       };
 
-      const newTicket = await createTicket(payload, currentRequester.id);
+      const newTicket = await createTicket(payload, activeUser.id);
 
       // Upload any selected initial attachments (FR-02 / BR-17)
       let failedCount = 0;
       if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
           try {
-            await uploadAttachment(newTicket.id, file, currentRequester.id);
+            await uploadAttachment(newTicket.id, file, activeUser.id);
           } catch (uploadErr) {
             console.error("Failed to upload attachment during ticket creation:", uploadErr);
             failedCount++;

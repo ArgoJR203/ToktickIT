@@ -6,6 +6,7 @@ import {
   downloadAttachment,
 } from "../api.js";
 import { useRequester } from "../context/RequesterContext.js";
+import { useOptionalAuth } from "../context/AuthContext.js";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_MIME_TYPES = [
@@ -28,7 +29,9 @@ export const AttachmentSection: React.FC<AttachmentSectionProps> = ({
   attachments,
   onAttachmentsUpdated,
 }) => {
+  const auth = useOptionalAuth();
   const { currentRequester } = useRequester();
+  const activeUser = auth?.currentUser || currentRequester;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Component state
@@ -97,7 +100,7 @@ export const AttachmentSection: React.FC<AttachmentSectionProps> = ({
   // Handle file selection and upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !currentRequester) return;
+    if (!file || !activeUser) return;
 
     // Validate active count
     if (activeAttachments.length >= 5) {
@@ -135,7 +138,7 @@ export const AttachmentSection: React.FC<AttachmentSectionProps> = ({
     setSuccessBanner(null);
 
     try {
-      await uploadAttachment(ticketId, file, currentRequester.id);
+      await uploadAttachment(ticketId, file, activeUser.id);
       setSuccessBanner(`Attachment "${file.name}" uploaded successfully.`);
       onAttachmentsUpdated();
     } catch (err: any) {
@@ -150,12 +153,12 @@ export const AttachmentSection: React.FC<AttachmentSectionProps> = ({
 
   // Download attachment
   const handleDownload = async (attachment: AttachmentItem) => {
-    if (!currentRequester) return;
+    if (!activeUser) return;
     setErrorBanner(null);
     setDownloadingId(attachment.id);
 
     try {
-      await downloadAttachment(attachment.id, attachment.originalName, currentRequester.id);
+      await downloadAttachment(attachment.id, attachment.originalName, activeUser.id);
     } catch (err: any) {
       setErrorBanner(err.message || "Failed to download file.");
     } finally {
@@ -181,13 +184,13 @@ export const AttachmentSection: React.FC<AttachmentSectionProps> = ({
   // Confirm soft removal
   const handleConfirmRemoval = async () => {
     const trimmed = removalReason.trim();
-    if (trimmed.length < 3 || !modalTarget || !currentRequester) return;
+    if (trimmed.length < 3 || !modalTarget || !activeUser) return;
 
     setIsRemoving(true);
     setErrorBanner(null);
 
     try {
-      await softRemoveAttachment(modalTarget.id, trimmed, currentRequester.id);
+      await softRemoveAttachment(modalTarget.id, trimmed, activeUser.id);
       setSuccessBanner(`Attachment "${modalTarget.originalName}" has been removed.`);
       closeRemovalModal();
       onAttachmentsUpdated();
