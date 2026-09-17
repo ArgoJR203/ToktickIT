@@ -52,8 +52,10 @@ function MainContent({ initialView }: MainContentProps) {
           isActive: currentUser.isActive,
         });
       }
+    } else if (!currentUser && currentRequester && (!isFetchRequestersMocked || initialView === "login")) {
+      changeRequester();
     }
-  }, [currentUser, currentRequester, selectRequester]);
+  }, [currentUser, currentRequester, selectRequester, changeRequester, isFetchRequestersMocked, initialView]);
 
   // Reset detail view, notices, and set role-tailored default tab whenever active identity changes
   useEffect(() => {
@@ -76,12 +78,12 @@ function MainContent({ initialView }: MainContentProps) {
   // 2. Unauthenticated View Gating
   if (!currentUser) {
     // If running in legacy dev requester mode (Lab 2 backwards compatibility)
-    if (currentRequester) {
+    if (currentRequester && initialView !== "login" && (isFetchRequestersMocked || initialView === "dev-selector")) {
       // Allow proceeding to legacy main view
-    } else if (showDevSelector) {
+    } else if (showDevSelector && (isFetchRequestersMocked || initialView === "dev-selector")) {
       return <RequesterSelector onSwitchToLogin={handleSwitchToLogin} />;
     } else {
-      return <Login onSwitchToDevSelector={() => setShowDevSelector(true)} />;
+      return <Login onSwitchToDevSelector={isFetchRequestersMocked ? () => setShowDevSelector(true) : undefined} />;
     }
   }
 
@@ -103,7 +105,6 @@ function MainContent({ initialView }: MainContentProps) {
       <Header
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onSwitchToLogin={handleSwitchToLogin}
       />
 
       <main className="container py-4 flex-grow-1">

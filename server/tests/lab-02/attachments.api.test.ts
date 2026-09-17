@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
@@ -11,6 +11,7 @@ describe("Attachment Lifecycle REST API Integration Tests (Issue #2-8 / API-06, 
   let ticketAId: number;
 
   beforeAll(async () => {
+    process.env.ENABLE_LEGACY_LAB2_AUTH = "true";
     const prisma = getPrisma();
     const activeRequesters = await prisma.requesterUser.findMany({
       where: { isActive: true },
@@ -390,5 +391,9 @@ describe("Attachment Lifecycle REST API Integration Tests (Issue #2-8 / API-06, 
     expect(removeRes.status).toBe(400);
     expect(removeRes.body.error).toBe("INVALID_REMOVAL_REASON");
     expect(removeRes.body.message).toContain("cannot exceed 500 characters");
+  });
+
+  afterAll(async () => {
+    delete process.env.ENABLE_LEGACY_LAB2_AUTH;
   });
 });

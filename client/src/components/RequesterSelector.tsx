@@ -143,7 +143,7 @@ export const RequesterSelector: React.FC<RequesterSelectorProps> = ({ onSwitchTo
           </form>
         )}
 
-        {/* Switch back to Lab 3 Login */}
+        {/* Switch back to Login */}
         {onSwitchToLogin && (
           <div className="text-center mt-3 pt-3 border-top">
             <button
@@ -151,7 +151,7 @@ export const RequesterSelector: React.FC<RequesterSelectorProps> = ({ onSwitchTo
               className="btn btn-link btn-sm text-decoration-none text-muted"
               onClick={onSwitchToLogin}
             >
-              ← Back to Sign In (Lab 3)
+              ← Back to Sign In
             </button>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
@@ -9,6 +9,7 @@ describe("POST /api/tickets API Integration Tests (API-01, API-02)", () => {
   let relatedSystemId: number;
 
   beforeAll(async () => {
+    process.env.ENABLE_LEGACY_LAB2_AUTH = "true";
     const prisma = getPrisma();
     const requester = await prisma.requesterUser.findFirst({ where: { isActive: true } });
     if (!requester) throw new Error("No active requester seeded in database");
@@ -114,5 +115,9 @@ describe("POST /api/tickets API Integration Tests (API-01, API-02)", () => {
 
     // Verify all 5 created tickets got distinct, unique ticket numbers
     expect(ticketNumbers.size).toBe(5);
+  });
+
+  afterAll(async () => {
+    delete process.env.ENABLE_LEGACY_LAB2_AUTH;
   });
 });

@@ -388,7 +388,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
               <h3 className="h6 fw-semibold text-dark mb-1">No tickets submitted yet</h3>
               <p className="text-muted small mb-3">You haven't submitted any IT support tickets yet. Click below to get started.</p>
               <button className="btn btn-zen-primary btn-sm" onClick={onCreateClick}>
-                + Create Ticket
+                Create First Ticket
               </button>
             </div>
           )}

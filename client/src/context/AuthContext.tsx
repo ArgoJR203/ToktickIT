@@ -119,13 +119,7 @@ export const AuthProvider: React.FC<{
   }, []);
 
   const logout = useCallback(async () => {
-    if (token) {
-      try {
-        await apiLogout(token);
-      } catch {
-        // Ignore network failure on logout
-      }
-    }
+    const activeToken = token;
     setToken(null);
     setCurrentUser(null);
     setError(null);
@@ -135,6 +129,13 @@ export const AuthProvider: React.FC<{
       localStorage.removeItem("toktickit_requester");
     } catch {
       // Ignore storage errors
+    }
+    if (activeToken) {
+      try {
+        await apiLogout(activeToken);
+      } catch {
+        // Ignore network failure on logout
+      }
     }
   }, [token]);
 

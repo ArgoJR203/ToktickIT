@@ -173,4 +173,203 @@ describe("Lab 3 Authorization & RBAC Integration Tests (API-07)", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
   });
+
+  // -------------------------------------------------------------------------
+  // API-09: Requester ownership isolation (AC-03, BR-03)
+  // -------------------------------------------------------------------------
+  it("API-09: enforces requester ownership isolation and ignores client-supplied x-requester-id when authenticated", async () => {
+    const defaultHash = await bcrypt.hash("Password123!", 10);
+    const userA = await getPrisma().user.upsert({
+      where: { email: "iso.userA@example.com" },
+      update: { passwordHash: defaultHash, isActive: true, mustChangePassword: false },
+      create: {
+        name: "Isolation User A",
+        email: "iso.userA@example.com",
+        passwordHash: defaultHash,
+        role: "REQUESTER",
+        isActive: true,
+        mustChangePassword: false,
+      },
+    });
+
+    const userB = await getPrisma().user.upsert({
+      where: { email: "iso.userB@example.com" },
+      update: { passwordHash: defaultHash, isActive: true, mustChangePassword: false },
+      create: {
+        name: "Isolation User B",
+        email: "iso.userB@example.com",
+        passwordHash: defaultHash,
+        role: "REQUESTER",
+        isActive: true,
+        mustChangePassword: false,
+      },
+    });
+
+    const loginA = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "iso.userA@example.com", password: "Password123!" });
+    const tokenA = loginA.body.token;
+
+    const loginB = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "iso.userB@example.com", password: "Password123!" });
+    const tokenB = loginB.body.token;
+
+    const category = await getPrisma().category.findFirst();
+    const system = await getPrisma().relatedSystem.findFirst({ where: { isActive: true } });
+
+    // User B creates a ticket
+    const ticketBRes = await request(app)
+      .post("/api/tickets")
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({
+        categoryId: category!.id,
+        relatedSystemId: system!.id,
+        summary: "User B Private Ticket",
+        description: "Confidential requester ticket content for user B.",
+        requestedPriority: "MEDIUM",
+      });
+    expect(ticketBRes.status).toBe(201);
+    const ticketBId = ticketBRes.body.id;
+
+    // User A creates a ticket
+    const ticketARes = await request(app)
+      .post("/api/tickets")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        categoryId: category!.id,
+        relatedSystemId: system!.id,
+        summary: "User A Ticket",
+        description: "Ticket owned by User A.",
+        requestedPriority: "LOW",
+      });
+    expect(ticketARes.status).toBe(201);
+    const ticketAId = ticketARes.body.id;
+
+    // 1. User A tries to view User B's ticket with token A -> 403 Forbidden
+    const crossAccess = await request(app)
+      .get(`/api/tickets/${ticketBId}`)
+      .set("Authorization", `Bearer ${tokenA}`);
+    expect(crossAccess.status).toBe(403);
+    expect(crossAccess.body.error).toBe("FORBIDDEN");
+
+    // 2. User A passes x-requester-id of User B along with Token A -> Backend strictly applies token identity and rejects (BR-03)
+    const spoofAttempt = await request(app)
+      .get(`/api/tickets/${ticketBId}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .set("x-requester-id", userB.id.toString());
+    expect(spoofAttempt.status).toBe(403);
+    expect(spoofAttempt.body.error).toBe("FORBIDDEN");
+
+    // 3. User A lists tickets with x-requester-id of User B -> only User A's ticket returned
+    const listRes = await request(app)
+      .get("/api/tickets")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .set("x-requester-id", userB.id.toString());
+    expect(listRes.status).toBe(200);
+    const ticketIds = listRes.body.data.map((t: any) => t.id);
+    expect(ticketIds).toContain(ticketAId);
+    expect(ticketIds).not.toContain(ticketBId);
+
+    // 4. Attacker attempts unauthenticated ticket listing with only x-requester-id -> rejected 401 UNAUTHENTICATED
+    const unauthenticatedBypass = await request(app)
+      .get("/api/tickets")
+      .set("x-requester-id", userA.id.toString());
+    expect(unauthenticatedBypass.status).toBe(401);
+    expect(unauthenticatedBypass.body.error.code).toBe("UNAUTHENTICATED");
+    expect(unauthenticatedBypass.body.error.message).toBe("Authentication token is required.");
+
+    // 5. Attacker attempts unauthenticated ticket creation with only x-requester-id -> rejected 401 UNAUTHENTICATED
+    const unauthenticatedPost = await request(app)
+      .post("/api/tickets")
+      .set("x-requester-id", userA.id.toString())
+      .send({
+        categoryId: category!.id,
+        relatedSystemId: system!.id,
+        summary: "Bypass Attempt",
+        description: "Trying to create ticket without token.",
+        requestedPriority: "LOW",
+      });
+    expect(unauthenticatedPost.status).toBe(401);
+    expect(unauthenticatedPost.body.error.code).toBe("UNAUTHENTICATED");
+  });
+
+  // -------------------------------------------------------------------------
+  // API-10: Lab 2 Requester regression under auth (FR-08, BR-24)
+  // -------------------------------------------------------------------------
+  it("API-10: allows authenticated requester to create tickets, view owned tickets, and manage attachments under JWT auth", async () => {
+    const defaultHash = await bcrypt.hash("Password123!", 10);
+    const user = await getPrisma().user.upsert({
+      where: { email: "regression.requester@example.com" },
+      update: { passwordHash: defaultHash, isActive: true, mustChangePassword: false },
+      create: {
+        name: "Regression Requester",
+        email: "regression.requester@example.com",
+        passwordHash: defaultHash,
+        role: "REQUESTER",
+        isActive: true,
+        mustChangePassword: false,
+      },
+    });
+
+    const loginRes = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "regression.requester@example.com", password: "Password123!" });
+    const token = loginRes.body.token;
+
+    const category = await getPrisma().category.findFirst();
+    const system = await getPrisma().relatedSystem.findFirst({ where: { isActive: true } });
+
+    // 1. Create Ticket under auth
+    const createRes = await request(app)
+      .post("/api/tickets")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        categoryId: category!.id,
+        relatedSystemId: system!.id,
+        summary: "Regression Ticket under JWT Auth",
+        description: "Testing end to end requester ticket creation under auth token.",
+        requestedPriority: "URGENT",
+      });
+
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.requesterId).toBe(user.id);
+    expect(createRes.body.requestedPriority).toBe("URGENT");
+    expect(createRes.body.itPriority).toBe("URGENT"); // Handout §4.5: initial copy
+    expect(createRes.body.currentStatus).toBe("NEW");
+    const newTicketId = createRes.body.id;
+
+    // 2. Fetch owned tickets under auth
+    const myTicketsRes = await request(app)
+      .get("/api/tickets")
+      .set("Authorization", `Bearer ${token}`);
+    expect(myTicketsRes.status).toBe(200);
+    const myIds = myTicketsRes.body.data.map((t: any) => t.id);
+    expect(myIds).toContain(newTicketId);
+
+    // 3. Upload attachment under auth (PDF is an allowed type)
+    const uploadRes = await request(app)
+      .post(`/api/tickets/${newTicketId}/attachments`)
+      .set("Authorization", `Bearer ${token}`)
+      .attach("file", Buffer.from("%PDF-1.4 sample auth attachment file content"), "auth_test.pdf");
+    expect(uploadRes.status).toBe(201);
+    const attachmentId = uploadRes.body.id;
+    expect(uploadRes.body.originalName).toBe("auth_test.pdf");
+
+    // 4. Download attachment under auth
+    const downloadRes = await request(app)
+      .get(`/api/attachments/${attachmentId}/download`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(downloadRes.status).toBe(200);
+    expect(downloadRes.headers["content-disposition"]).toContain("auth_test.pdf");
+
+    // 5. Soft-remove attachment under auth
+    const removeRes = await request(app)
+      .delete(`/api/attachments/${attachmentId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ removalReason: "Uploaded wrong file version" });
+    expect(removeRes.status).toBe(200);
+    expect(removeRes.body.isRemoved).toBe(true);
+  });
 });
+
