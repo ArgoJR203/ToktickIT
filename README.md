@@ -109,18 +109,43 @@ npm run dev
 ### 6. Run tests
 
 ```bash
-# Server tests (39 tests: Vitest + Supertest)
+# Server tests (84 tests: Vitest + Supertest)
 cd server
 npm test
 
-# Client tests (29 tests: Vitest + React Testing Library)
+# Client tests (42 tests: Vitest + React Testing Library)
 cd client
 npm test
-
-# End-to-End tests (3 tests: Playwright) - from root directory
-cd ..
-npm run test:e2e
 ```
+
+---
+
+## Test Accounts by Role (Lab 3)
+
+All seeded user accounts share the same default initial password: **`Password123!`**
+
+### 1. Requesters (End Users)
+| Name | Email | Status | Initial Password | Test Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| **Jennifer Anderson** | `jennifer.anderson@example.com` | Active | `Password123!` | Standard active requester (default persona) |
+| **Sarah Johnson** | `sarah.johnson@example.com` | Active | `Password123!` | Standard active requester |
+| **Michael Brown** | `michael.brown@example.com` | Active | `Password123!` | Standard active requester |
+| **Amanda Clark** | `amanda.clark@example.com` | Active | `Password123!` | Standard active requester |
+| **David Lee** | `david.lee@example.com` | Active | `Password123!` | **Mandatory first-login password change tester** (`mustChangePassword: true`) |
+| **Robert Taylor** | `robert.taylor@example.com` | **Inactive** | `Password123!` | **Deactivated requester login rejection tester** (`isActive: false`) |
+
+### 2. IT Staff
+| Name | Email | Status | Initial Password | Test Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| **Alex Thompson** | `alex.thompson@toktickit.com` | Active | `Password123!` | IT Staff (Ticket Queue & lifecycle operations) |
+| **Lisa Martinez** | `lisa.martinez@toktickit.com` | Active | `Password123!` | IT Staff (Ticket Queue & lifecycle operations) |
+| **Kevin Patel** | `kevin.patel@toktickit.com` | Active | `Password123!` | IT Staff (Ticket Queue & lifecycle operations) |
+| **Robert Wilson** | `robert.wilson@toktickit.com` | **Inactive** | `Password123!` | **Deactivated staff login rejection tester** (`isActive: false`) |
+
+### 3. Administrator
+| Name | Email | Status | Initial Password | Test Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| **John Smith** | `john.smith@toktickit.com` | Active | `Password123!` | System Administrator (User Management & safety rules) |
 
 ---
 

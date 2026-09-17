@@ -5,7 +5,7 @@ import { getPrisma } from "./prisma.js";
 import { generateTicketNumber } from "./utils/ticket-generator.js";
 import { uploadMiddleware } from "./middleware/upload.js";
 import { authRouter } from "./routes/auth.js";
-import { authenticate, enforcePasswordChange, requireRole } from "./middleware/auth.js";
+import { authenticate, enforcePasswordChange, requireRole, authenticateWithLegacyFallback } from "./middleware/auth.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -109,30 +109,11 @@ app.get("/api/related-systems", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// Lab 2 — Fetch Owned Paginated Tickets (Issue #2-6)
+// Lab 2 & Lab 3 — Fetch Owned Paginated Tickets (Issue #2-6, #3-5, API-09, API-10)
 // ---------------------------------------------------------------------------
-app.get("/api/tickets", async (req: Request, res: Response) => {
+app.get("/api/tickets", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
   try {
-    const requesterHeader = req.header("x-requester-id");
-    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
-
-    if (isNaN(requesterId)) {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Missing or invalid x-requester-id header",
-      });
-    }
-
-    const requester = await getPrisma().user.findUnique({
-      where: { id: requesterId },
-    });
-
-    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Development requester is invalid or inactive",
-      });
-    }
+    const requesterId = req.user!.id;
 
     const { search, categoryId, requestedPriority, currentStatus, sortBy, sortOrder, page, pageSize } = req.query;
 
@@ -232,30 +213,11 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// Lab 2 — Fetch Owned Ticket Detail (Issue #2-7)
+// Lab 2 & Lab 3 — Fetch Owned Ticket Detail (Issue #2-7, #3-5, API-09)
 // ---------------------------------------------------------------------------
-app.get("/api/tickets/:id", async (req: Request, res: Response) => {
+app.get("/api/tickets/:id", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
   try {
-    const requesterHeader = req.header("x-requester-id");
-    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
-
-    if (isNaN(requesterId)) {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Missing or invalid x-requester-id header",
-      });
-    }
-
-    const requester = await getPrisma().user.findUnique({
-      where: { id: requesterId },
-    });
-
-    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Development requester is invalid or inactive",
-      });
-    }
+    const requesterId = req.user!.id;
 
     if (!/^\d+$/.test(req.params.id)) {
       return res.status(400).json({
@@ -302,8 +264,8 @@ app.get("/api/tickets/:id", async (req: Request, res: Response) => {
       });
     }
 
-    // BR-18: Check ownership isolation
-    if (ticket.requesterId !== requesterId) {
+    // BR-18 / BR-03: Check ownership isolation (Requesters may only view their own tickets)
+    if (req.user!.role === "REQUESTER" && ticket.requesterId !== requesterId) {
       return res.status(403).json({
         error: "FORBIDDEN",
         message: "Access denied: You do not own this ticket",
@@ -318,30 +280,11 @@ app.get("/api/tickets/:id", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// Lab 2 — Create Ticket (Issue #2-5)
+// Lab 2 & Lab 3 — Create Ticket (Issue #2-5, #3-5, API-09, API-10)
 // ---------------------------------------------------------------------------
-app.post("/api/tickets", async (req: Request, res: Response) => {
+app.post("/api/tickets", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
   try {
-    const requesterHeader = req.header("x-requester-id");
-    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
-
-    if (isNaN(requesterId)) {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Missing or invalid x-requester-id header",
-      });
-    }
-
-    const requester = await getPrisma().user.findUnique({
-      where: { id: requesterId },
-    });
-
-    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Development requester is invalid or inactive",
-      });
-    }
+    const requesterId = req.user!.id;
 
     const { categoryId, relatedSystemId, summary, description, requestedPriority } = req.body;
     const errors: Record<string, string> = {};
@@ -474,29 +417,10 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
 // Lab 2 — Attachment Lifecycle (Issue #2-8)
 // ---------------------------------------------------------------------------
 
-// POST /api/tickets/:id/attachments (Upload attachment, API-06, API-08)
-app.post("/api/tickets/:id/attachments", async (req: Request, res: Response) => {
+// POST /api/tickets/:id/attachments (Upload attachment, API-06, API-08, API-10)
+app.post("/api/tickets/:id/attachments", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
   try {
-    const requesterHeader = req.header("x-requester-id");
-    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
-
-    if (isNaN(requesterId)) {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Missing or invalid x-requester-id header",
-      });
-    }
-
-    const requester = await getPrisma().user.findUnique({
-      where: { id: requesterId },
-    });
-
-    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Development requester is invalid or inactive",
-      });
-    }
+    const requesterId = req.user!.id;
 
     const ticketId = parseInt(req.params.id, 10);
     if (isNaN(ticketId)) {
@@ -628,29 +552,10 @@ app.post("/api/tickets/:id/attachments", async (req: Request, res: Response) => 
   }
 });
 
-// GET /api/attachments/:id/download (Download active attachment binary stream, API-07, API-09)
-app.get("/api/attachments/:id/download", async (req: Request, res: Response) => {
+// GET /api/attachments/:id/download (Download active attachment binary stream, API-07, API-09, API-10)
+app.get("/api/attachments/:id/download", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
   try {
-    const requesterHeader = req.header("x-requester-id");
-    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
-
-    if (isNaN(requesterId)) {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Missing or invalid x-requester-id header",
-      });
-    }
-
-    const requester = await getPrisma().user.findUnique({
-      where: { id: requesterId },
-    });
-
-    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Development requester is invalid or inactive",
-      });
-    }
+    const requesterId = req.user!.id;
 
     const attachmentId = parseInt(req.params.id, 10);
     if (isNaN(attachmentId)) {
@@ -713,29 +618,10 @@ app.get("/api/attachments/:id/download", async (req: Request, res: Response) => 
   }
 });
 
-// DELETE /api/attachments/:id (Soft-remove attachment, API-07)
-app.delete("/api/attachments/:id", async (req: Request, res: Response) => {
+// DELETE /api/attachments/:id (Soft-remove attachment, API-07, API-10)
+app.delete("/api/attachments/:id", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
   try {
-    const requesterHeader = req.header("x-requester-id");
-    const requesterId = requesterHeader ? parseInt(requesterHeader, 10) : NaN;
-
-    if (isNaN(requesterId)) {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Missing or invalid x-requester-id header",
-      });
-    }
-
-    const requester = await getPrisma().user.findUnique({
-      where: { id: requesterId },
-    });
-
-    if (!requester || !requester.isActive || requester.role !== "REQUESTER") {
-      return res.status(401).json({
-        error: "UNAUTHORIZED",
-        message: "Development requester is invalid or inactive",
-      });
-    }
+    const requesterId = req.user!.id;
 
     const attachmentId = parseInt(req.params.id, 10);
     if (isNaN(attachmentId)) {
@@ -818,6 +704,328 @@ app.delete("/api/attachments/:id", async (req: Request, res: Response) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Lab 3 — Comments & Internal Notes (Issue #3-5, API-08, API-11, API-12)
+// ---------------------------------------------------------------------------
+
+// GET /api/tickets/:id/comments (Retrieve public comments feed, API-11)
+app.get("/api/tickets/:id/comments", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+  try {
+    const ticketId = parseInt(req.params.id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({
+        error: { code: "INVALID_INPUT", message: "Invalid ticket ID" },
+      });
+    }
+
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, requesterId: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Ticket not found" },
+      });
+    }
+
+    if (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id) {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Access denied. You do not have permission to view comments for this ticket.",
+        },
+      });
+    }
+
+    const comments = await getPrisma().publicComment.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    return res.status(200).json(comments);
+  } catch (err) {
+    console.error("Error in GET /api/tickets/:id/comments:", err);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to fetch comments" },
+    });
+  }
+});
+
+// POST /api/tickets/:id/comments (Post public comment, API-11, API-12)
+app.post("/api/tickets/:id/comments", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+  try {
+    const ticketId = parseInt(req.params.id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({
+        error: { code: "INVALID_INPUT", message: "Invalid ticket ID" },
+      });
+    }
+
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, requesterId: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Ticket not found" },
+      });
+    }
+
+    if (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id) {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Access denied. You do not have permission to comment on this ticket.",
+        },
+      });
+    }
+
+    const { content } = req.body || {};
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_INPUT",
+          message: "Comment content cannot be empty or whitespace-only.",
+        },
+      });
+    }
+
+    const trimmed = content.trim();
+    if (trimmed.length > 2000) {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_INPUT",
+          message: "Comment content cannot exceed 2000 characters.",
+        },
+      });
+    }
+
+    const comment = await getPrisma().publicComment.create({
+      data: {
+        ticketId,
+        authorId: req.user!.id,
+        content: trimmed,
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    return res.status(201).json(comment);
+  } catch (err) {
+    console.error("Error in POST /api/tickets/:id/comments:", err);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to post comment" },
+    });
+  }
+});
+
+// GET /api/tickets/:id/notes (Retrieve internal notes — restricted to Staff & Admin, API-08, BR-04, BR-19)
+app.get("/api/tickets/:id/notes", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+  try {
+    if (req.user!.role === "REQUESTER") {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Access denied. Internal notes are restricted to IT Staff and Administrators.",
+        },
+      });
+    }
+
+    const ticketId = parseInt(req.params.id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({
+        error: { code: "INVALID_INPUT", message: "Invalid ticket ID" },
+      });
+    }
+
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Ticket not found" },
+      });
+    }
+
+    const notes = await getPrisma().internalNote.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    return res.status(200).json(notes);
+  } catch (err) {
+    console.error("Error in GET /api/tickets/:id/notes:", err);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to fetch internal notes" },
+    });
+  }
+});
+
+// POST /api/tickets/:id/notes (Post internal note — restricted to Staff & Admin, API-08, BR-18, BR-19)
+app.post("/api/tickets/:id/notes", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+  try {
+    if (req.user!.role === "REQUESTER") {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Access denied. Internal notes are restricted to IT Staff and Administrators.",
+        },
+      });
+    }
+
+    const ticketId = parseInt(req.params.id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({
+        error: { code: "INVALID_INPUT", message: "Invalid ticket ID" },
+      });
+    }
+
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Ticket not found" },
+      });
+    }
+
+    const { content } = req.body || {};
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_INPUT",
+          message: "Internal note content cannot be empty or whitespace-only.",
+        },
+      });
+    }
+
+    const trimmed = content.trim();
+    if (trimmed.length > 2000) {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_INPUT",
+          message: "Internal note content cannot exceed 2000 characters.",
+        },
+      });
+    }
+
+    const note = await getPrisma().internalNote.create({
+      data: {
+        ticketId,
+        authorId: req.user!.id,
+        content: trimmed,
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true },
+        },
+      },
+    });
+
+    return res.status(201).json(note);
+  } catch (err) {
+    console.error("Error in POST /api/tickets/:id/notes:", err);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to post internal note" },
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Lab 3 — Requester "Problem Appears Resolved" (Issue #3-5, API-19, BR-05, BR-16)
+// ---------------------------------------------------------------------------
+app.post("/api/tickets/:id/resolve-indication", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+  try {
+    const ticketId = parseInt(req.params.id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({
+        error: { code: "INVALID_INPUT", message: "Invalid ticket ID" },
+      });
+    }
+
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, requesterId: true, currentStatus: true, resolutionIndicated: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Ticket not found" },
+      });
+    }
+
+    if (req.user!.role !== "REQUESTER" || ticket.requesterId !== req.user!.id) {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Access denied. Only the ticket requester can indicate resolution.",
+        },
+      });
+    }
+
+    if (ticket.currentStatus !== "IN_PROGRESS" && ticket.currentStatus !== "WAITING_FOR_REQUESTER") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_TRANSITION",
+          message: "Resolution indication can only be submitted when ticket is in progress or waiting for requester.",
+        },
+      });
+    }
+
+    const updated = await getPrisma().$transaction(async (tx) => {
+      const t = await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          resolutionIndicated: true,
+          resolutionIndicatedAt: new Date(),
+        },
+      });
+
+      await tx.publicComment.create({
+        data: {
+          ticketId,
+          authorId: req.user!.id,
+          content: "Requester indicated that the problem appears resolved.",
+        },
+      });
+
+      return t;
+    });
+
+    return res.status(200).json({
+      message: "Problem resolution indicated. IT Staff have been notified to review and finalize.",
+      ticketId: updated.id,
+      resolutionIndicated: updated.resolutionIndicated,
+      resolutionIndicatedAt: updated.resolutionIndicatedAt,
+    });
+  } catch (err) {
+    console.error("Error in POST /api/tickets/:id/resolve-indication:", err);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to indicate problem resolution" },
+    });
+  }
+});
+
 export default app;
+
 
 

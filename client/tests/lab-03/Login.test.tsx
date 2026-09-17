@@ -215,5 +215,52 @@ describe("Login Component — UI-01 (AC-01, FR-01, FR-02)", () => {
       expect(screen.getAllByText(/Cannot access campus email/i).length).toBeGreaterThan(0);
     });
   });
+
+  it("cleans up requester context on logout and returns directly to Login view without change requester or sign in (lab3) buttons", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(api.login).mockResolvedValueOnce({
+      token: "mock_jwt_token_456",
+      user: {
+        id: 1,
+        name: "Jennifer Anderson",
+        email: "jennifer.anderson@example.com",
+        role: "REQUESTER",
+        mustChangePassword: false,
+        isActive: true,
+      },
+    });
+
+    vi.mocked(api.fetchTickets).mockResolvedValueOnce({
+      data: [],
+      pagination: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 },
+    });
+
+    render(<App initialView="login" />);
+
+    await user.type(screen.getByLabelText(/Email address/i), "jennifer.anderson@example.com");
+    await user.type(screen.getByLabelText(/^Password/i), "Password123!");
+    await user.click(screen.getByRole("button", { name: "Sign In" }));
+
+    // Wait until logged in
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
+    });
+
+    // Find and click Logout in Header
+    const logoutBtn = screen.getByRole("button", { name: /Logout/i });
+    expect(logoutBtn).toBeInTheDocument();
+    await user.click(logoutBtn);
+
+    // Verify immediately back on Sign in screen
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Sign in to your account", level: 2 })).toBeInTheDocument();
+    });
+
+    // Verify neither "Change Requester" nor "Sign In (Lab 3)" is present
+    expect(screen.queryByRole("button", { name: /Change Requester/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sign In \(Lab 3\)/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Jennifer Anderson/i)).not.toBeInTheDocument();
+  });
 });
 

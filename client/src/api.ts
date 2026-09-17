@@ -225,7 +225,11 @@ export interface TicketDetail {
   summary: string;
   description: string;
   requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  itPriority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   currentStatus: string;
+  resolutionIndicated?: boolean;
+  resolutionIndicatedAt?: string | null;
+  resolutionSummary?: string | null;
   createdAt: string;
   updatedAt: string;
   category: { id: number; name: string };
@@ -239,7 +243,7 @@ export interface TicketDetail {
  */
 export async function fetchTicketDetail(
   ticketId: number,
-  requesterId: number
+  requesterId?: number
 ): Promise<TicketDetail> {
   const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
     headers: getAuthHeaders(requesterId),
@@ -261,6 +265,107 @@ export async function fetchTicketDetail(
   }
 
   return data as TicketDetail;
+}
+
+export interface PublicComment {
+  id: number;
+  ticketId: number;
+  content: string;
+  author: {
+    id: number;
+    name: string;
+    role: UserRole;
+  };
+  createdAt: string;
+}
+
+/**
+ * Fetch public comments feed for a ticket (Issue #3-5, API-11)
+ */
+export async function fetchPublicComments(
+  ticketId: number,
+  requesterId?: number
+): Promise<PublicComment[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    headers: getAuthHeaders(requesterId),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load public comments.";
+    throw new Error(errorMsg);
+  }
+
+  return data as PublicComment[];
+}
+
+/**
+ * Post a public comment on a ticket (Issue #3-5, API-11, API-12)
+ */
+export async function postPublicComment(
+  ticketId: number,
+  content: string,
+  requesterId?: number
+): Promise<PublicComment> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(requesterId),
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to post comment.";
+    throw new Error(errorMsg);
+  }
+
+  return data as PublicComment;
+}
+
+export interface ResolveIndicationResponse {
+  message: string;
+  ticketId: number;
+  resolutionIndicated: boolean;
+  resolutionIndicatedAt: string;
+}
+
+/**
+ * Requester signal that problem appears resolved (Issue #3-5, API-19, BR-05, BR-16)
+ */
+export async function indicateProblemResolved(
+  ticketId: number,
+  requesterId?: number
+): Promise<ResolveIndicationResponse> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/resolve-indication`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(requesterId),
+    },
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to indicate problem resolution.";
+    throw new Error(errorMsg);
+  }
+
+  return data as ResolveIndicationResponse;
 }
 
 /**

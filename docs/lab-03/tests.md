@@ -61,37 +61,37 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **UNIT-01** | Unit | BR-07 | Password complexity domain rules | Validates min 8 chars, uppercase, lowercase, number/symbol; rejects invalid strings | `server/tests/lab-03/password-validator.test.ts` | [Planned] |
-| **UNIT-02** | Unit | BR-14, BR-17 | Status transition matrix logic | Validates allowed progressions (e.g. `NEW -> OPEN`); blocks disallowed skips (e.g. `NEW -> RESOLVED`) | `server/tests/lab-03/status-transition-validator.test.ts` | [Planned] |
-| **UNIT-03** | Unit | BR-09, AC-06 | Token revocation store domain | Adds token to revocation set, confirms `isRevoked(token) === true`, verifies TTL expiration | `server/tests/lab-03/token-revocation.test.ts` | [Planned] |
-| **UNIT-04** | Unit | BR-21, BR-22 | Admin safety constraints validator | Validates self-deactivation rejection and last active admin preservation rules | `server/tests/lab-03/admin-safety-validator.test.ts` | [Planned] |
-| **API-01** | API | AC-01, FR-01 | Valid user login *(Handout §10 exact)* | Authenticated response with JWT, safe user data, and role (`200 OK`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
-| **API-02** | API | AC-05, BR-01 | Inactive account login rejection | Denied access with safe error without leaking account existence (`401 Unauthorized`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
-| **API-03** | API | BR-07 | Password boundary: length < 8 chars | Rejects password shorter than 8 characters (`400 Bad Request`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
-| **API-04** | API | BR-07 | Password boundary: missing uppercase/number | Rejects password missing uppercase or numeric/special character (`400 Bad Request`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
-| **API-05** | API | AC-02, BR-02 | Mandatory password change at first login | Saves valid new password and clears `mustChangePassword` (`200 OK`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
-| **API-06** | API | AC-06, BR-09 | User logout & token revocation | Adds token to revocation store; subsequent requests using revoked token return `401 Unauthorized` (`TOKEN_REVOKED`) | `server/tests/lab-03/auth.api.test.ts` | [Planned] |
-| **API-07** | API | AC-02, BR-02 | Functional endpoints blocked when password change required | Gated endpoint returns `403 Forbidden` (`PASSWORD_CHANGE_REQUIRED`) | `server/tests/lab-03/authorization.api.test.ts` | [Planned] |
-| **API-08** | API | AC-04, BR-04 | **Requester requests Internal Notes** | Forbidden; no note data returned (`403 Forbidden`) *(Handout §10 exact)* | `server/tests/lab-03/comments-notes.api.test.ts` | [Planned] |
-| **API-09** | API | AC-03, BR-03 | Requester ownership isolation | Backend applies authenticated identity; ignores client-supplied ID; rejects cross-user access (`403`/`404`) | `server/tests/lab-03/authorization.api.test.ts` | [Planned] |
-| **API-10** | API | FR-08, BR-24 | Lab 2 Requester regression under auth | Authenticated requester can create ticket, retrieve owned tickets, and upload attachments | `server/tests/lab-03/authorization.api.test.ts` | [Planned] |
-| **API-11** | API | AC-11, FR-09 | Public Comments creation and retrieval | Permitted for Requester (owner) and Staff; append-only feed (`201 Created`) | `server/tests/lab-03/comments-notes.api.test.ts` | [Planned] |
-| **API-12** | API | BR-18 | Whitespace-only comment/note rejection | Rejects empty or whitespace-only content with `400 Bad Request` | `server/tests/lab-03/comments-notes.api.test.ts` | [Planned] |
+| **UNIT-01** | Unit | BR-07 | Password complexity domain rules | Validates min 8 chars, uppercase, lowercase, number/symbol; rejects invalid strings | `server/tests/lab-03/password-validator.test.ts` | ✅ Passed |
+| **UNIT-02** | Unit | BR-14, BR-17 | Status transition matrix logic | Validates allowed progressions (e.g. `NEW -> OPEN`); blocks disallowed skips (e.g. `NEW -> RESOLVED`) | `server/tests/lab-03/status-transition-validator.test.ts` | ✅ Passed |
+| **UNIT-03** | Unit | BR-09, AC-06 | Token revocation store domain | Adds token to revocation set, confirms `isRevoked(token) === true`, verifies TTL expiration | `server/tests/lab-03/token-revocation.test.ts` | ✅ Passed |
+| **UNIT-04** | Unit | BR-21, BR-22 | Admin safety constraints validator | Validates self-deactivation rejection and last active admin preservation rules | `server/tests/lab-03/admin-safety-validator.test.ts` | ✅ Passed |
+| **API-01** | API | AC-01, FR-01 | Valid user login *(Handout §10 exact)* | Authenticated response with JWT, safe user data, and role (`200 OK`) | `server/tests/lab-03/auth.api.test.ts` | ✅ Passed |
+| **API-02** | API | AC-05, BR-01 | Inactive account login rejection | Denied access with safe error without leaking account existence (`401 Unauthorized`) | `server/tests/lab-03/auth.api.test.ts` | ✅ Passed |
+| **API-03** | API | BR-07 | Password boundary: length < 8 chars | Rejects password shorter than 8 characters (`400 Bad Request`) | `server/tests/lab-03/auth.api.test.ts` | ✅ Passed |
+| **API-04** | API | BR-07 | Password boundary: missing uppercase/number | Rejects password missing uppercase or numeric/special character (`400 Bad Request`) | `server/tests/lab-03/auth.api.test.ts` | ✅ Passed |
+| **API-05** | API | AC-02, BR-02 | Mandatory password change at first login | Saves valid new password and clears `mustChangePassword` (`200 OK`) | `server/tests/lab-03/auth.api.test.ts` | ✅ Passed |
+| **API-06** | API | AC-06, BR-09 | User logout & token revocation | Adds token to revocation store; subsequent requests using revoked token return `401 Unauthorized` (`TOKEN_REVOKED`) | `server/tests/lab-03/auth.api.test.ts` | ✅ Passed |
+| **API-07** | API | AC-02, BR-02 | Functional endpoints blocked when password change required | Gated endpoint returns `403 Forbidden` (`PASSWORD_CHANGE_REQUIRED`) | `server/tests/lab-03/authorization.api.test.ts` | ✅ Passed |
+| **API-08** | API | AC-04, BR-04 | **Requester requests Internal Notes** | Forbidden; no note data returned (`403 Forbidden`) *(Handout §10 exact)* | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
+| **API-09** | API | AC-03, BR-03 | Requester ownership isolation | Backend applies authenticated identity; ignores client-supplied ID; rejects cross-user access (`403`/`404`) | `server/tests/lab-03/authorization.api.test.ts` | ✅ Passed |
+| **API-10** | API | FR-08, BR-24 | Lab 2 Requester regression under auth | Authenticated requester can create ticket, retrieve owned tickets, and upload attachments | `server/tests/lab-03/authorization.api.test.ts` | ✅ Passed |
+| **API-11** | API | AC-11, FR-09 | Public Comments creation and retrieval | Permitted for Requester (owner) and Staff; append-only feed (`201 Created`) | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
+| **API-12** | API | BR-18 | Whitespace-only comment/note rejection | Rejects empty or whitespace-only content with `400 Bad Request` | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
 | **API-13** | API | AC-07, FR-11 | IT Staff Ticket Queue retrieval | Returns all system tickets with pagination metadata (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | [Planned] |
 | **API-14** | API | AC-07, FR-12 | Queue search & multi-field filtering | Filters by keyword/category/status/priority/owner (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | [Planned] |
 | **API-15** | API | BR-12 | IT Priority initialization & update | Ticket creation copies Requested Priority; IT Staff can update IT Priority independently (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
 | **API-16** | API | AC-08, FR-13 | Claim and reassign ticket ownership | IT Staff can assign ticket to self or active staff member (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
 | **API-17** | API | AC-10, BR-14 | Permitted status transition & resolution summary | Valid status transition succeeds and stores optional `resolutionSummary` (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
 | **API-18** | API | AC-10, BR-14 | Invalid status transition rejected | Invalid transition rejected with `400 Bad Request` (`INVALID_TRANSITION`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
-| **API-19** | API | AC-12, BR-05 | Requester "Problem Appears Resolved" signal | Records resolution indication without prematurely setting `RESOLVED` or `CLOSED` (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
+| **API-19** | API | AC-12, BR-05 | Requester "Problem Appears Resolved" signal | Records resolution indication without prematurely setting `RESOLVED` or `CLOSED` (`200 OK`) | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
 | **API-20** | API | AC-13, FR-18 | Administrator creates user with initial password | User created with role, initial password, and `mustChangePassword = true` (`201 Created`) | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
 | **API-21** | API | BR-20 | Duplicate email rejection | Rejects existing email with `409 Conflict` (`DUPLICATE_EMAIL`) | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
 | **API-22** | API | AC-14, BR-21 | Prevent Administrator self-deactivation | Admin attempting to deactivate own account returns `400 Bad Request` | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
 | **API-23** | API | AC-15, BR-22 | Prevent removing or deactivating last Admin | System rejects deactivating or demoting the last active Administrator (`400 Bad Request`) | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
 | **API-24** | API | AC-16, FR-20 | Administrator sets new initial password | Sets temporary password and marks `mustChangePassword = true` (`200 OK`) | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
 | **API-25** | API | FR-07 | Forbidden access for non-Administrators | Requester and IT Staff attempting Admin endpoints return `403 Forbidden` | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
-| **UI-01** | UI | AC-01, FR-01 | Login screen form, validation, and loading | Renders email/password, validates inputs, shows loading spinner on submit | `client/tests/lab-03/Login.test.tsx` | [Planned] |
-| **UI-02** | UI | AC-02, FR-03 | Mandatory Change Password checklist | Interactive password complexity checkmarks; blocks submission until valid | `client/tests/lab-03/ChangePassword.test.tsx` | [Planned] |
+| **UI-01** | UI | AC-01, FR-01 | Login screen form, validation, and loading | Renders email/password, validates inputs, shows loading spinner on submit | `client/tests/lab-03/Login.test.tsx` | ✅ Passed |
+| **UI-02** | UI | AC-02, FR-03 | Mandatory Change Password checklist | Interactive password complexity checkmarks; blocks submission until valid | `client/tests/lab-03/ChangePassword.test.tsx` | ✅ Passed |
 | **UI-03** | UI | AC-07, FR-11 | Staff Ticket Queue table and filters | Renders queue table, status/priority badges, search bar, pagination | `client/tests/lab-03/StaffTicketQueue.test.tsx` | [Planned] |
 | **UI-04** | UI | AC-08, AC-10 | Staff Ticket Detail actions & resolution summary | Claim to me, reassign select, IT Priority select, status dropdown, resolution summary input | `client/tests/lab-03/StaffTicketDetail.test.tsx` | [Planned] |
 | **UI-05** | UI | AC-04, AC-11 | Comments and Internal Notes tabs | Public comments feed and distinct amber-accented internal notes section with warning banner | `client/tests/lab-03/StaffTicketDetail.test.tsx` | [Planned] |
@@ -160,8 +160,8 @@ npx playwright test e2e/lab-03/
 ## 6. Test Tracking and Final Results
 
 - **Total Planned Tests**: 39 (4 Unit + 25 API + 6 UI + 4 E2E)
-- **Passed**: 0 (Implementation pending)
+- **Passed**: 19 (UNIT-01..04, API-01..12, API-19, UI-01..02)
 - **Failed**: 0
 - **Skipped**: 0
-- **Pending**: 39
+- **Pending**: 20 (API-13..18, API-20..25, UI-03..06, E2E-01..04)
 - **Target Coverage**: 100% of Acceptance Criteria (AC-01 through AC-16), domain utilities, and REST endpoints.

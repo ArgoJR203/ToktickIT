@@ -12,7 +12,6 @@ export type NavTab =
 interface HeaderProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
-  onSwitchToLogin?: () => void;
 }
 
 function getInitials(name: string): string {
@@ -23,7 +22,7 @@ function getInitials(name: string): string {
   return (name[0] || "U").toUpperCase();
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onSwitchToLogin }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const { currentUser, logout } = useAuth();
   const requesterCtx = useContext(RequesterContext);
   const currentRequester = requesterCtx?.currentRequester;
@@ -41,6 +40,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onSwitch
     } else {
       onTabChange("my-tickets");
     }
+  };
+
+  const handleLogout = async () => {
+    if (changeRequester) {
+      changeRequester();
+    }
+    await logout();
   };
 
   return (
@@ -122,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onSwitch
             {/* Logout Button */}
             <button
               className="btn btn-sm btn-outline-light d-flex align-items-center text-nowrap"
-              onClick={logout}
+              onClick={handleLogout}
               title="Sign out of TokTickIT"
               aria-label="Logout"
             >
@@ -164,20 +170,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onSwitch
             </div>
             {changeRequester && (
               <button
-                className="btn btn-sm btn-outline-light text-nowrap me-2"
+                className="btn btn-sm btn-outline-light text-nowrap"
                 onClick={changeRequester}
                 title="Switch to another development requester"
               >
                 Change Requester
-              </button>
-            )}
-            {onSwitchToLogin && (
-              <button
-                className="btn btn-sm btn-outline-light text-nowrap"
-                onClick={onSwitchToLogin}
-                title="Exit development mode and return to Sign In"
-              >
-                Sign In (Lab 3)
               </button>
             )}
           </div>
