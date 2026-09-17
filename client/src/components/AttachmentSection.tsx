@@ -70,7 +70,8 @@ export const AttachmentSection: React.FC<AttachmentSectionProps> = ({
   const activeAttachments = attachments.filter((a) => !a.isRemoved);
   const isMaxReached = activeAttachments.length >= 5;
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes?: number) => {
+    if (bytes === undefined || bytes === null) return "0 B";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

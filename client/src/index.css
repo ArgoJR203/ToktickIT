@@ -403,3 +403,139 @@ body {
 .checklist-item:not(.valid) .checklist-item-icon {
   color: #9E9E9E;
 }
+
+/* ---------------------------------------------------------------------------
+   Lab 3 Badge Design System (UI Spec §2.1 & §2.2)
+   --------------------------------------------------------------------------- */
+
+.badge-ticket-status,
+.badge-priority {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* 2.1 Ticket Status Badges */
+.badge-ticket-status-new {
+  background-color: #E3F2FD;
+  color: #1565C0;
+  border: 1px solid #90CAF9;
+}
+
+.badge-ticket-status-open {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #A5D6A7;
+}
+
+.badge-ticket-status-in-progress {
+  background-color: #FFF8E1;
+  color: #F57F17;
+  border: 1px solid #FFE082;
+}
+
+.badge-ticket-status-waiting-for-requester {
+  background-color: #FFF3E0;
+  color: #E65100;
+  border: 1px solid #FFCC80;
+}
+
+.badge-ticket-status-resolved {
+  background-color: #E8F5E9;
+  color: #1B5E20;
+  border: 1px solid #81C784;
+}
+
+.badge-ticket-status-closed {
+  background-color: #ECEFF1;
+  color: #455A64;
+  border: 1px solid #CFD8DC;
+}
+
+.badge-ticket-status-reopened {
+  background-color: #F3E5F5;
+  color: #7B1FA2;
+  border: 1px solid #CE93D8;
+}
+
+.badge-ticket-status-cancelled {
+  background-color: #FFEBEE;
+  color: #C62828;
+  border: 1px solid #EF9A9A;
+}
+
+/* 2.2 Priority Badges */
+.badge-priority-low {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+}
+
+.badge-priority-medium {
+  background-color: #FFF8E1;
+  color: #F57F17;
+}
+
+.badge-priority-high {
+  background-color: #FFF3E0;
+  color: #E65100;
+}
+
+.badge-priority-urgent {
+  background-color: #FFEBEE;
+  color: #D32F2F;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------------------
+   IT Staff Ticket Queue (UI Spec §4.3)
+   --------------------------------------------------------------------------- */
+
+.staff-queue-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.ticket-number-mono {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 600;
+  color: var(--color-primary-green);
+  text-decoration: none;
+}
+
+.ticket-number-mono:hover {
+  text-decoration: underline;
+  color: var(--color-secondary-green);
+}
+
+.queue-table th {
+  background-color: #F8FAF9;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--color-surface-border);
+  vertical-align: middle;
+}
+
+.queue-table td {
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-surface-border);
+}
+
+.queue-table tbody tr:hover {
+  background-color: var(--color-pale-green);
+  cursor: pointer;
+}
+
+.summary-cell {
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
