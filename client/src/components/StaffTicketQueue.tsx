@@ -147,83 +147,114 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
     setPage(1);
   };
 
-  // Badge renderers matching UI Spec §2.1 and §2.2
+  // Badge renderers matching MyTickets and RequesterTicketDetail
   const renderStatusBadge = (status: string) => {
     const s = status.toUpperCase();
-    let badgeClass = "badge-ticket-status-new";
-    let label = s;
+    const testId = `status-badge-${s.toLowerCase()}`;
 
     switch (s) {
       case "NEW":
-        badgeClass = "badge-ticket-status-new";
-        label = "NEW";
-        break;
+        return (
+          <span
+            className="badge"
+            style={{
+              backgroundColor: "var(--color-pale-green)",
+              color: "var(--color-primary-green)",
+              border: "1px solid var(--color-secondary-green)",
+            }}
+            data-testid={testId}
+          >
+            NEW
+          </span>
+        );
       case "OPEN":
-        badgeClass = "badge-ticket-status-open";
-        label = "OPEN";
-        break;
+        return (
+          <span className="badge bg-success" data-testid={testId}>
+            OPEN
+          </span>
+        );
       case "IN_PROGRESS":
-        badgeClass = "badge-ticket-status-in-progress";
-        label = "IN PROGRESS";
-        break;
+        return (
+          <span className="badge bg-primary" data-testid={testId}>
+            IN PROGRESS
+          </span>
+        );
       case "WAITING_FOR_REQUESTER":
       case "PENDING":
-        badgeClass = "badge-ticket-status-waiting-for-requester";
-        label = "WAITING FOR REQUESTER";
-        break;
+        return (
+          <span className="badge bg-warning text-dark" data-testid={testId}>
+            WAITING FOR REQUESTER
+          </span>
+        );
       case "RESOLVED":
-        badgeClass = "badge-ticket-status-resolved";
-        label = "RESOLVED";
-        break;
+        return (
+          <span className="badge bg-success" data-testid={testId}>
+            RESOLVED
+          </span>
+        );
       case "CLOSED":
-        badgeClass = "badge-ticket-status-closed";
-        label = "CLOSED";
-        break;
+        return (
+          <span className="badge bg-dark" data-testid={testId}>
+            CLOSED
+          </span>
+        );
       case "REOPENED":
-        badgeClass = "badge-ticket-status-reopened";
-        label = "REOPENED";
-        break;
+        return (
+          <span className="badge bg-info text-dark" data-testid={testId}>
+            REOPENED
+          </span>
+        );
       case "CANCELLED":
-        badgeClass = "badge-ticket-status-cancelled";
-        label = "CANCELLED";
-        break;
+        return (
+          <span className="badge bg-danger" data-testid={testId}>
+            CANCELLED
+          </span>
+        );
       default:
-        badgeClass = "badge-ticket-status-open";
-        label = s;
+        return (
+          <span className="badge bg-light text-dark" data-testid={testId}>
+            {status}
+          </span>
+        );
     }
-
-    return (
-      <span className={`badge-ticket-status ${badgeClass}`} data-testid={`status-badge-${s.toLowerCase()}`}>
-        {label}
-      </span>
-    );
   };
 
   const renderPriorityBadge = (priority: string) => {
     const p = priority.toUpperCase();
-    let badgeClass = "badge-priority-low";
+    const testId = `priority-badge-${p.toLowerCase()}`;
 
     switch (p) {
       case "URGENT":
-        badgeClass = "badge-priority-urgent";
-        break;
+        return (
+          <span className="badge bg-danger" data-testid={testId}>
+            URGENT
+          </span>
+        );
       case "HIGH":
-        badgeClass = "badge-priority-high";
-        break;
+        return (
+          <span className="badge bg-warning text-dark" data-testid={testId}>
+            HIGH
+          </span>
+        );
       case "MEDIUM":
-        badgeClass = "badge-priority-medium";
-        break;
+        return (
+          <span className="badge bg-info text-dark" data-testid={testId}>
+            MEDIUM
+          </span>
+        );
       case "LOW":
+        return (
+          <span className="badge bg-secondary" data-testid={testId}>
+            LOW
+          </span>
+        );
       default:
-        badgeClass = "badge-priority-low";
-        break;
+        return (
+          <span className="badge bg-light text-dark" data-testid={testId}>
+            {priority}
+          </span>
+        );
     }
-
-    return (
-      <span className={`badge-priority ${badgeClass}`} data-testid={`priority-badge-${p.toLowerCase()}`}>
-        {p}
-      </span>
-    );
   };
 
   const renderSortIndicator = (field: string) => {
