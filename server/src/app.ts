@@ -5,7 +5,7 @@ import { getPrisma } from "./prisma.js";
 import { generateTicketNumber } from "./utils/ticket-generator.js";
 import { uploadMiddleware } from "./middleware/upload.js";
 import { authRouter } from "./routes/auth.js";
-import { authenticate, enforcePasswordChange, requireRole, authenticateWithLegacyFallback } from "./middleware/auth.js";
+import { authenticate, enforcePasswordChange, requireRole } from "./middleware/auth.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -111,7 +111,7 @@ app.get("/api/related-systems", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // Lab 2 & Lab 3 — Fetch Owned Paginated Tickets (Issue #2-6, #3-5, API-09, API-10)
 // ---------------------------------------------------------------------------
-app.get("/api/tickets", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.get("/api/tickets", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const requesterId = req.user!.id;
 
@@ -215,7 +215,7 @@ app.get("/api/tickets", authenticateWithLegacyFallback, async (req: Request, res
 // ---------------------------------------------------------------------------
 // Lab 2 & Lab 3 — Fetch Owned Ticket Detail (Issue #2-7, #3-5, API-09)
 // ---------------------------------------------------------------------------
-app.get("/api/tickets/:id", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.get("/api/tickets/:id", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const requesterId = req.user!.id;
 
@@ -282,7 +282,7 @@ app.get("/api/tickets/:id", authenticateWithLegacyFallback, async (req: Request,
 // ---------------------------------------------------------------------------
 // Lab 2 & Lab 3 — Create Ticket (Issue #2-5, #3-5, API-09, API-10)
 // ---------------------------------------------------------------------------
-app.post("/api/tickets", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.post("/api/tickets", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const requesterId = req.user!.id;
 
@@ -418,7 +418,7 @@ app.post("/api/tickets", authenticateWithLegacyFallback, async (req: Request, re
 // ---------------------------------------------------------------------------
 
 // POST /api/tickets/:id/attachments (Upload attachment, API-06, API-08, API-10)
-app.post("/api/tickets/:id/attachments", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.post("/api/tickets/:id/attachments", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const requesterId = req.user!.id;
 
@@ -553,7 +553,7 @@ app.post("/api/tickets/:id/attachments", authenticateWithLegacyFallback, async (
 });
 
 // GET /api/attachments/:id/download (Download active attachment binary stream, API-07, API-09, API-10)
-app.get("/api/attachments/:id/download", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.get("/api/attachments/:id/download", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const requesterId = req.user!.id;
 
@@ -619,7 +619,7 @@ app.get("/api/attachments/:id/download", authenticateWithLegacyFallback, async (
 });
 
 // DELETE /api/attachments/:id (Soft-remove attachment, API-07, API-10)
-app.delete("/api/attachments/:id", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.delete("/api/attachments/:id", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const requesterId = req.user!.id;
 
@@ -709,7 +709,7 @@ app.delete("/api/attachments/:id", authenticateWithLegacyFallback, async (req: R
 // ---------------------------------------------------------------------------
 
 // GET /api/tickets/:id/comments (Retrieve public comments feed, API-11)
-app.get("/api/tickets/:id/comments", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.get("/api/tickets/:id/comments", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const ticketId = parseInt(req.params.id, 10);
     if (isNaN(ticketId)) {
@@ -758,7 +758,7 @@ app.get("/api/tickets/:id/comments", authenticateWithLegacyFallback, async (req:
 });
 
 // POST /api/tickets/:id/comments (Post public comment, API-11, API-12)
-app.post("/api/tickets/:id/comments", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.post("/api/tickets/:id/comments", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const ticketId = parseInt(req.params.id, 10);
     if (isNaN(ticketId)) {
@@ -830,7 +830,7 @@ app.post("/api/tickets/:id/comments", authenticateWithLegacyFallback, async (req
 });
 
 // GET /api/tickets/:id/notes (Retrieve internal notes — restricted to Staff & Admin, API-08, BR-04, BR-19)
-app.get("/api/tickets/:id/notes", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.get("/api/tickets/:id/notes", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     if (req.user!.role === "REQUESTER") {
       return res.status(403).json({
@@ -879,7 +879,7 @@ app.get("/api/tickets/:id/notes", authenticateWithLegacyFallback, async (req: Re
 });
 
 // POST /api/tickets/:id/notes (Post internal note — restricted to Staff & Admin, API-08, BR-18, BR-19)
-app.post("/api/tickets/:id/notes", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.post("/api/tickets/:id/notes", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     if (req.user!.role === "REQUESTER") {
       return res.status(403).json({
@@ -953,7 +953,7 @@ app.post("/api/tickets/:id/notes", authenticateWithLegacyFallback, async (req: R
 // ---------------------------------------------------------------------------
 // Lab 3 — Requester "Problem Appears Resolved" (Issue #3-5, API-19, BR-05, BR-16)
 // ---------------------------------------------------------------------------
-app.post("/api/tickets/:id/resolve-indication", authenticateWithLegacyFallback, async (req: Request, res: Response) => {
+app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
     const ticketId = parseInt(req.params.id, 10);
     if (isNaN(ticketId)) {

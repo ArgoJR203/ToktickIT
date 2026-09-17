@@ -270,6 +270,28 @@ describe("Lab 3 Authorization & RBAC Integration Tests (API-07)", () => {
     const ticketIds = listRes.body.data.map((t: any) => t.id);
     expect(ticketIds).toContain(ticketAId);
     expect(ticketIds).not.toContain(ticketBId);
+
+    // 4. Attacker attempts unauthenticated ticket listing with only x-requester-id -> rejected 401 UNAUTHENTICATED
+    const unauthenticatedBypass = await request(app)
+      .get("/api/tickets")
+      .set("x-requester-id", userA.id.toString());
+    expect(unauthenticatedBypass.status).toBe(401);
+    expect(unauthenticatedBypass.body.error.code).toBe("UNAUTHENTICATED");
+    expect(unauthenticatedBypass.body.error.message).toBe("Authentication token is required.");
+
+    // 5. Attacker attempts unauthenticated ticket creation with only x-requester-id -> rejected 401 UNAUTHENTICATED
+    const unauthenticatedPost = await request(app)
+      .post("/api/tickets")
+      .set("x-requester-id", userA.id.toString())
+      .send({
+        categoryId: category!.id,
+        relatedSystemId: system!.id,
+        summary: "Bypass Attempt",
+        description: "Trying to create ticket without token.",
+        requestedPriority: "LOW",
+      });
+    expect(unauthenticatedPost.status).toBe(401);
+    expect(unauthenticatedPost.body.error.code).toBe("UNAUTHENTICATED");
   });
 
   // -------------------------------------------------------------------------
