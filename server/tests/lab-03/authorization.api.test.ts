@@ -158,6 +158,11 @@ describe("Lab 3 Authorization & RBAC Integration Tests (API-07)", () => {
   });
 
   it("allows Administrators to access admin-only routes", async () => {
+    await getPrisma().user.updateMany({
+      where: { email: "john.smith@toktickit.com" },
+      data: { isActive: true },
+    });
+
     const adminLogin = await request(app)
       .post("/api/auth/login")
       .send({

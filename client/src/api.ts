@@ -977,4 +977,160 @@ export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
   return data as StaffAssignee[];
 }
 
+// ---------------------------------------------------------------------------
+// Lab 3 — Administrator User Management API (Issue #3-8, API-20..25, UI-06)
+// ---------------------------------------------------------------------------
+
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive: boolean;
+  mustChangePassword: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive?: boolean;
+  initialPassword?: string;
+}
+
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  role?: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive?: boolean;
+}
+
+export interface FetchAdminUsersParams {
+  search?: string;
+  role?: string;
+}
+
+/**
+ * Fetch all users for administrator management (Issue #3-8, API-25, UI-06)
+ */
+export async function fetchAdminUsers(params: FetchAdminUsersParams = {}): Promise<AdminUser[]> {
+  const query = new URLSearchParams();
+  if (params.search && params.search.trim()) query.set("search", params.search.trim());
+  if (params.role && params.role !== "ALL") query.set("role", params.role);
+
+  const url = `${API_URL}/api/admin/users?${query.toString()}`;
+  const res = await fetch(url, {
+    headers: getAuthHeaders(),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load users.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data as AdminUser[];
+}
+
+/**
+ * Administrator creates a new user (Issue #3-8, API-20, API-21, UI-06)
+ */
+export async function createAdminUser(payload: CreateUserPayload): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/api/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to create user.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).details = data?.error?.details;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data as AdminUser;
+}
+
+/**
+ * Administrator updates a user (Issue #3-8, API-22, API-23, UI-06)
+ */
+export async function updateAdminUser(id: number, payload: UpdateUserPayload): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to update user.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data as AdminUser;
+}
+
+/**
+ * Administrator sets a new initial password for a user (Issue #3-8, API-24, UI-06)
+ */
+export async function resetAdminUserPassword(
+  id: number,
+  newInitialPassword: string
+): Promise<{ message: string; userId: number; mustChangePassword: boolean }> {
+  const res = await fetch(`${API_URL}/api/admin/users/${id}/reset-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ newInitialPassword }),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to reset initial password.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).details = data?.error?.details;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
 
