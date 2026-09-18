@@ -10,6 +10,7 @@ import { MyTickets } from "./components/MyTickets.js";
 import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
+import { UserManagement } from "./components/UserManagement.js";
 import { Ticket, fetchRequesters, AuthUser } from "./api.js";
 
 interface MainContentProps {
@@ -184,13 +185,8 @@ function MainContent({ initialView }: MainContentProps) {
           />
         )}
 
-        {/* Placeholder for Administrator User Management (Issue #3-8) */}
-        {activeTab === "user-management" && (
-          <div className="card zen-card p-4 text-center">
-            <h2 className="h4 fw-bold mb-2">User Management</h2>
-            <p className="text-muted">Administrator User Management will be implemented in Issue #3-8.</p>
-          </div>
-        )}
+        {/* Administrator User Management (Issue #3-8, UI-06) */}
+        {activeTab === "user-management" && <UserManagement />}
       </main>
     </div>
   );
