@@ -210,9 +210,60 @@ describe("Lab 3 Administrator User Management API Tests (API-20..25)", () => {
       expect(res.status).toBe(400);
       expect(res.body.error?.code).toBe("INVALID_INPUT");
     });
+
+    it("preserves exact password without trimming trailing whitespace so login succeeds with original password", async () => {
+      const email = `space.pw.${runId}@toktickit.com`;
+      const originalPassword = "Password123! "; // has trailing space
+      const res = await request(app)
+        .post("/api/admin/users")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          name: "Space Password User",
+          email,
+          role: "IT_STAFF",
+          isActive: true,
+          initialPassword: originalPassword,
+        });
+
+      expect(res.status).toBe(201);
+
+      // Verify login succeeds with exact password containing space
+      const loginOk = await request(app)
+        .post("/api/auth/login")
+        .send({ email, password: originalPassword });
+      expect(loginOk.status).toBe(200);
+
+      // Verify login fails with trimmed password
+      const loginTrimmed = await request(app)
+        .post("/api/auth/login")
+        .send({ email, password: originalPassword.trim() });
+      expect(loginTrimmed.status).toBe(401);
+    });
   });
 
-  describe("API-21: Duplicate Email Rejection (BR-20)", () => {
+  describe("API-21: Duplicate Email Rejection & Concurrency (BR-20)", () => {
+    it("handles simultaneous concurrent user creations with identical email safely returning 409 DUPLICATE_EMAIL instead of 500", async () => {
+      const raceEmail = `race.user.${runId}@example.com`;
+      const payload = {
+        name: "Race Condition User",
+        email: raceEmail,
+        role: "REQUESTER",
+        initialPassword: "Password123!",
+      };
+
+      const [res1, res2] = await Promise.all([
+        request(app).post("/api/admin/users").set("Authorization", `Bearer ${adminToken}`).send(payload),
+        request(app).post("/api/admin/users").set("Authorization", `Bearer ${adminToken}`).send(payload),
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([201, 409]);
+
+      const conflictRes = res1.status === 409 ? res1 : res2;
+      expect(conflictRes.body.error?.code).toBe("DUPLICATE_EMAIL");
+      expect(conflictRes.body.error?.message).toContain("already exists");
+    });
+
     it("rejects creating user with an existing email with 409 DUPLICATE_EMAIL", async () => {
       const res = await request(app)
         .post("/api/admin/users")
@@ -424,6 +475,29 @@ describe("Lab 3 Administrator User Management API Tests (API-20..25)", () => {
       for (const u of res.body) {
         expect(u.role).toBe("ADMINISTRATOR");
       }
+    });
+
+    it("returns X-Active-Admin-Count header reflecting global active admin count regardless of search filters", async () => {
+      const res = await request(app)
+        .get("/api/admin/users?search=NonExistentUserXYZ")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([]);
+      const activeAdminCountHeader = res.headers["x-active-admin-count"];
+      expect(activeAdminCountHeader).toBeDefined();
+      expect(parseInt(activeAdminCountHeader, 10)).toBeGreaterThanOrEqual(1);
+    });
+
+    it("GET /api/admin/users/summary returns authoritative activeAdminCount and totalUsers", async () => {
+      const res = await request(app)
+        .get("/api/admin/users/summary")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(typeof res.body.activeAdminCount).toBe("number");
+      expect(res.body.activeAdminCount).toBeGreaterThanOrEqual(1);
+      expect(typeof res.body.totalUsers).toBe("number");
     });
   });
 });

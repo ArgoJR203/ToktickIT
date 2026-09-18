@@ -54,11 +54,36 @@ adminRouter.get("/users", async (req: Request, res: Response) => {
       },
     });
 
+    const totalActiveAdmins = await getPrisma().user.count({
+      where: { role: "ADMINISTRATOR", isActive: true },
+    });
+    res.setHeader("X-Active-Admin-Count", totalActiveAdmins.toString());
+    res.setHeader("Access-Control-Expose-Headers", "X-Active-Admin-Count");
+
     return res.status(200).json(users);
   } catch (err) {
     console.error("Error in GET /api/admin/users:", err);
     return res.status(500).json({
       error: { code: "INTERNAL_ERROR", message: "Failed to load users." },
+    });
+  }
+});
+
+/**
+ * GET /api/admin/users/summary
+ * Retrieve system-wide user statistics including authoritative active administrator count.
+ */
+adminRouter.get("/users/summary", async (_req: Request, res: Response) => {
+  try {
+    const activeAdminCount = await getPrisma().user.count({
+      where: { role: "ADMINISTRATOR", isActive: true },
+    });
+    const totalUsers = await getPrisma().user.count();
+    return res.status(200).json({ activeAdminCount, totalUsers });
+  } catch (err) {
+    console.error("Error in GET /api/admin/users/summary:", err);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to load user summary." },
     });
   }
 });
@@ -134,7 +159,7 @@ adminRouter.post("/users", async (req: Request, res: Response) => {
     }
 
     // 6. Hash password and persist user with mustChangePassword = true (AC-13, FR-18)
-    const passwordHash = await bcrypt.hash(initialPassword.trim(), 10);
+    const passwordHash = await bcrypt.hash(initialPassword, 10);
     const activeStatus = isActive !== undefined ? Boolean(isActive) : true;
 
     const newUser = await getPrisma().user.create({
@@ -158,7 +183,17 @@ adminRouter.post("/users", async (req: Request, res: Response) => {
     });
 
     return res.status(201).json(newUser);
-  } catch (err) {
+  } catch (err: any) {
+    // Handle Prisma unique constraint race condition (Prisma P2002 on email)
+    if (err?.code === "P2002") {
+      const emailVal = req.body?.email ? String(req.body.email).trim().toLowerCase() : "specified";
+      return res.status(409).json({
+        error: {
+          code: "DUPLICATE_EMAIL",
+          message: `A user account with email '${emailVal}' already exists.`,
+        },
+      });
+    }
     console.error("Error in POST /api/admin/users:", err);
     return res.status(500).json({
       error: { code: "INTERNAL_ERROR", message: "Failed to create user account." },
@@ -309,7 +344,17 @@ adminRouter.patch("/users/:id", async (req: Request, res: Response) => {
     });
 
     return res.status(200).json(updatedUser);
-  } catch (err) {
+  } catch (err: any) {
+    // Handle Prisma unique constraint race condition (Prisma P2002 on email)
+    if (err?.code === "P2002") {
+      const emailVal = req.body?.email ? String(req.body.email).trim().toLowerCase() : "specified";
+      return res.status(409).json({
+        error: {
+          code: "DUPLICATE_EMAIL",
+          message: `A user account with email '${emailVal}' already exists.`,
+        },
+      });
+    }
     console.error("Error in PATCH /api/admin/users/:id:", err);
     return res.status(500).json({
       error: { code: "INTERNAL_ERROR", message: "Failed to update user account." },
@@ -356,7 +401,7 @@ adminRouter.post("/users/:id/reset-password", async (req: Request, res: Response
       });
     }
 
-    const passwordHash = await bcrypt.hash(newInitialPassword.trim(), 10);
+    const passwordHash = await bcrypt.hash(newInitialPassword, 10);
 
     await getPrisma().user.update({
       where: { id: targetUserId },

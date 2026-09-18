@@ -11,6 +11,7 @@ vi.mock("../../src/api.js", async (importOriginal) => {
   return {
     ...actual,
     fetchAdminUsers: vi.fn(),
+    fetchActiveAdminCount: vi.fn(),
     createAdminUser: vi.fn(),
     updateAdminUser: vi.fn(),
     resetAdminUserPassword: vi.fn(),
@@ -83,6 +84,7 @@ describe("UserManagement Component Tests (UI-06, AC-13..16, FR-17..20)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.fetchAdminUsers).mockResolvedValue(mockUsers);
+    vi.mocked(api.fetchActiveAdminCount).mockResolvedValue(1);
   });
 
   it("renders user table with names, emails, role badges, and statuses", async () => {
@@ -105,6 +107,40 @@ describe("UserManagement Component Tests (UI-06, AC-13..16, FR-17..20)", () => {
 
     // Check must change password badge on Bob Staff
     expect(screen.getByTestId("badge-must-change-password")).toBeInTheDocument();
+
+    // Check active admin count badge is visible and displays 1
+    expect(screen.getByTestId("active-admins-count-badge")).toHaveTextContent(/Active Admins:\s*1/i);
+  });
+
+  it("preserves authoritative active admin count when table search or role filters are applied", async () => {
+    // When searching for Alice, API returns only Alice (a Requester)
+    vi.mocked(api.fetchAdminUsers).mockImplementation(async (params) => {
+      if (params?.search === "Alice") {
+        return [mockUsers[1]]; // only Alice
+      }
+      return mockUsers;
+    });
+
+    renderWithAuth(<UserManagement />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("users-table")).toBeInTheDocument();
+    });
+
+    // Before filtering: Active Admins badge shows 1
+    expect(screen.getByTestId("active-admins-count-badge")).toHaveTextContent(/Active Admins:\s*1/i);
+
+    // Apply search for Alice (which contains 0 administrators)
+    const searchInput = screen.getByTestId("search-users-input");
+    fireEvent.change(searchInput, { target: { value: "Alice" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("Alice Requester")).toBeInTheDocument();
+      expect(screen.queryByText("John Smith")).not.toBeInTheDocument();
+    });
+
+    // Active Admins count badge must STILL display 1 (authoritative global count, not 0)
+    expect(screen.getByTestId("active-admins-count-badge")).toHaveTextContent(/Active Admins:\s*1/i);
   });
 
   it("handles search and role filtering correctly", async () => {

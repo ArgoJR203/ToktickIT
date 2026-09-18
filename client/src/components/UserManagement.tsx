@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   AdminUser,
   fetchAdminUsers,
+  fetchActiveAdminCount,
   createAdminUser,
   updateAdminUser,
   resetAdminUserPassword,
@@ -14,6 +15,9 @@ export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Authoritative global active admin count (independent of table filters)
+  const [systemActiveAdminCount, setSystemActiveAdminCount] = useState<number>(1);
 
   // Filters
   const [search, setSearch] = useState<string>("");
@@ -58,6 +62,19 @@ export const UserManagement: React.FC = () => {
         role: roleFilter !== "ALL" ? roleFilter : undefined,
       });
       setUsers(data);
+
+      // Derive authoritative active admin count (independent of table filter)
+      if (typeof (data as any)?.activeAdminCount === "number") {
+        setSystemActiveAdminCount((data as any).activeAdminCount);
+      } else if (!search.trim() && roleFilter === "ALL") {
+        const fullCount = data.filter((u) => u.role === "ADMINISTRATOR" && u.isActive).length;
+        setSystemActiveAdminCount(fullCount);
+      } else {
+        // When filtered and header was absent (e.g. mocked in unit test), fetch global active admin count
+        fetchActiveAdminCount()
+          .then((count) => setSystemActiveAdminCount(count))
+          .catch(() => {});
+      }
     } catch (err: any) {
       setError(err?.message || "Failed to load user list.");
     } finally {
@@ -69,11 +86,6 @@ export const UserManagement: React.FC = () => {
     loadUsers();
   }, [loadUsers]);
 
-  // Active administrator count
-  const activeAdminCount = useMemo(() => {
-    return users.filter((u) => u.role === "ADMINISTRATOR" && u.isActive).length;
-  }, [users]);
-
   // Safety checks for editing user
   const isEditingSelf = useMemo(() => {
     return !!(editingUser && currentUser && editingUser.id === currentUser.id);
@@ -84,9 +96,9 @@ export const UserManagement: React.FC = () => {
       editingUser &&
       editingUser.role === "ADMINISTRATOR" &&
       editingUser.isActive &&
-      activeAdminCount <= 1
+      systemActiveAdminCount <= 1
     );
-  }, [editingUser, activeAdminCount]);
+  }, [editingUser, systemActiveAdminCount]);
 
   // Open Create Modal
   const handleOpenCreateModal = () => {
@@ -344,9 +356,14 @@ export const UserManagement: React.FC = () => {
           </div>
 
           <div className="col-12 col-sm-6 col-md-2 col-lg-4 text-sm-end">
-            <span className="text-muted small">
-              Showing <strong>{users.length}</strong> {users.length === 1 ? "user" : "users"}
-            </span>
+            <div className="d-flex flex-wrap align-items-center justify-content-sm-end gap-2">
+              <span className="badge bg-light text-dark border small py-1 px-2" data-testid="active-admins-count-badge">
+                Active Admins: <strong className="text-success">{systemActiveAdminCount}</strong>
+              </span>
+              <span className="text-muted small">
+                Showing <strong>{users.length}</strong> {users.length === 1 ? "user" : "users"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

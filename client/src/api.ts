@@ -1038,7 +1038,33 @@ export async function fetchAdminUsers(params: FetchAdminUsersParams = {}): Promi
     throw err;
   }
 
+  const countHeader = res.headers?.get ? res.headers.get("x-active-admin-count") : null;
+  if (countHeader !== null && Array.isArray(data)) {
+    (data as any).activeAdminCount = parseInt(countHeader, 10);
+  }
+
   return data as AdminUser[];
+}
+
+/**
+ * Fetch the authoritative global active administrator count (independent of table filters)
+ */
+export async function fetchActiveAdminCount(): Promise<number> {
+  try {
+    const res = await fetch(`${API_URL}/api/admin/users/summary`, {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof data.activeAdminCount === "number") {
+        return data.activeAdminCount;
+      }
+    }
+  } catch {}
+
+  // Fallback: fetch administrators without keyword search
+  const admins = await fetchAdminUsers({ role: "ADMINISTRATOR" });
+  return admins.filter((u) => u.isActive).length;
 }
 
 /**
