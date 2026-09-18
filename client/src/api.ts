@@ -139,8 +139,8 @@ export async function createTicket(payload: CreateTicketPayload, requesterId: nu
   if (!res.ok) {
     const errorMsg = data.message || data.error || "Failed to create ticket.";
     const err = new Error(errorMsg);
-    (err as Record<string, unknown>).details = data.details;
-    (err as Record<string, unknown>).status = res.status;
+    (err as unknown as Record<string, unknown>).details = data.details;
+    (err as unknown as Record<string, unknown>).status = res.status;
     throw err;
   }
   return data;
@@ -206,14 +206,15 @@ export async function fetchTickets(
 
 export interface AttachmentItem {
   id: number;
-  filename: string;
+  ticketId?: number;
+  filename?: string;
   originalName: string;
-  mimeType: string;
-  sizeBytes: number;
+  mimeType?: string;
+  sizeBytes?: number;
   isRemoved: boolean;
   removalReason?: string | null;
   removedAt?: string | null;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface TicketDetail {
@@ -259,8 +260,8 @@ export async function fetchTicketDetail(
   if (!res.ok) {
     const errorMsg = data.message || data.error || `Failed to load ticket details (${res.status})`;
     const err = new Error(errorMsg);
-    (err as Record<string, unknown>).status = res.status;
-    (err as Record<string, unknown>).error = data.error;
+    (err as unknown as Record<string, unknown>).status = res.status;
+    (err as unknown as Record<string, unknown>).error = data.error;
     throw err;
   }
 
@@ -402,8 +403,8 @@ export async function uploadAttachment(
   if (!res.ok) {
     const errorMsg = data.message || data.error || `Failed to upload attachment (${res.status})`;
     const err = new Error(errorMsg);
-    (err as Record<string, unknown>).status = res.status;
-    (err as Record<string, unknown>).code = data.error;
+    (err as unknown as Record<string, unknown>).status = res.status;
+    (err as unknown as Record<string, unknown>).code = data.error;
     throw err;
   }
 
@@ -444,8 +445,8 @@ export async function softRemoveAttachment(
   if (!res.ok) {
     const errorMsg = data.message || data.error || `Failed to remove attachment (${res.status})`;
     const err = new Error(errorMsg);
-    (err as Record<string, unknown>).status = res.status;
-    (err as Record<string, unknown>).code = data.error;
+    (err as unknown as Record<string, unknown>).status = res.status;
+    (err as unknown as Record<string, unknown>).code = data.error;
     throw err;
   }
 
@@ -555,8 +556,8 @@ export async function login(credentials: { email: string; password: string }): P
   if (!res.ok) {
     const errorMsg = data.error?.message || data.message || "Invalid email or password. Please try again.";
     const err = new Error(errorMsg);
-    (err as Record<string, unknown>).code = data.error?.code;
-    (err as Record<string, unknown>).status = res.status;
+    (err as unknown as Record<string, unknown>).code = data.error?.code;
+    (err as unknown as Record<string, unknown>).status = res.status;
     throw err;
   }
 
@@ -632,12 +633,105 @@ export async function changePassword(
   if (!res.ok) {
     const errorMsg = data.error?.message || data.message || "Failed to change password.";
     const err = new Error(errorMsg);
-    (err as Record<string, unknown>).code = data.error?.code;
-    (err as Record<string, unknown>).details = data.error?.details;
-    (err as Record<string, unknown>).status = res.status;
+    (err as unknown as Record<string, unknown>).code = data.error?.code;
+    (err as unknown as Record<string, unknown>).details = data.error?.details;
+    (err as unknown as Record<string, unknown>).status = res.status;
     throw err;
   }
 
   return data as ChangePasswordResponse;
+}
+
+// ---------------------------------------------------------------------------
+// Lab 3 — IT Staff Ticket Queue API (Issue #3-6, API-13, API-14)
+// ---------------------------------------------------------------------------
+
+export interface StaffTicketItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  description?: string;
+  category: { id: number; name: string };
+  relatedSystem?: { id: number; name: string } | null;
+  requester: { id: number; name: string; email: string };
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  itPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  currentStatus: string;
+  owner: { id: number; name: string; email: string } | null;
+  resolutionIndicated?: boolean;
+  resolutionIndicatedAt?: string | null;
+  resolutionSummary?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    attachments?: number;
+    publicComments?: number;
+    internalNotes?: number;
+  };
+}
+
+export interface FetchStaffTicketsParams {
+  search?: string;
+  categoryId?: string | number;
+  status?: string;
+  currentStatus?: string;
+  requestedPriority?: string;
+  itPriority?: string;
+  ownerId?: string | number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedStaffTicketsResponse {
+  data: StaffTicketItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+/**
+ * Fetch IT Staff ticket queue (Issue #3-6, API-13, API-14)
+ */
+export async function fetchStaffTickets(
+  params: FetchStaffTicketsParams = {}
+): Promise<PaginatedStaffTicketsResponse> {
+  const query = new URLSearchParams();
+
+  if (params.search && params.search.trim()) query.set("search", params.search.trim());
+  if (params.categoryId) query.set("categoryId", params.categoryId.toString());
+  if (params.status) query.set("status", params.status);
+  if (params.currentStatus) query.set("currentStatus", params.currentStatus);
+  if (params.requestedPriority) query.set("requestedPriority", params.requestedPriority);
+  if (params.itPriority) query.set("itPriority", params.itPriority);
+  if (params.ownerId !== undefined && params.ownerId !== "") query.set("ownerId", params.ownerId.toString());
+  if (params.sortBy) query.set("sortBy", params.sortBy);
+  if (params.sortOrder) query.set("sortOrder", params.sortOrder);
+  if (params.page) query.set("page", params.page.toString());
+  if (params.pageSize) query.set("pageSize", params.pageSize.toString());
+
+  const url = `${API_URL}/api/staff/tickets?${query.toString()}`;
+
+  const res = await fetch(url, {
+    headers: getAuthHeaders(),
+  });
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message || data.message || `Failed to fetch staff tickets (${res.status})`;
+    throw new Error(errorMsg);
+  }
+
+  return data as PaginatedStaffTicketsResponse;
 }
 

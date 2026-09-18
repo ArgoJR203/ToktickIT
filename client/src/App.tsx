@@ -8,6 +8,7 @@ import { Header, NavTab } from "./components/Header.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
 import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
+import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 import { Ticket, fetchRequesters, AuthUser } from "./api.js";
 
 interface MainContentProps {
@@ -157,17 +158,23 @@ function MainContent({ initialView }: MainContentProps) {
             ticketId={selectedTicketId}
             onBack={() => {
               setSelectedTicketId(null);
-              setActiveTab("my-tickets");
+              if (currentUser?.role === "IT_STAFF" || currentUser?.role === "ADMINISTRATOR") {
+                setActiveTab("ticket-queue");
+              } else {
+                setActiveTab("my-tickets");
+              }
             }}
           />
         )}
 
-        {/* Placeholder for IT Staff Ticket Queue (Issue #3-6) */}
+        {/* IT Staff Ticket Queue (Issue #3-6) */}
         {activeTab === "ticket-queue" && (
-          <div className="card zen-card p-4 text-center">
-            <h2 className="h4 fw-bold mb-2">Ticket Queue</h2>
-            <p className="text-muted">IT Staff Ticket Queue will be implemented in Issue #3-6.</p>
-          </div>
+          <StaffTicketQueue
+            onSelectTicket={(ticketId) => {
+              setSelectedTicketId(ticketId);
+              setActiveTab("ticket-detail");
+            }}
+          />
         )}
 
         {/* Placeholder for Administrator User Management (Issue #3-8) */}

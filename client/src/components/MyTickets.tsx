@@ -173,14 +173,21 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
             NEW
           </span>
         );
+      case "OPEN":
+        return <span className="badge bg-success">OPEN</span>;
       case "IN_PROGRESS":
         return <span className="badge bg-primary">IN PROGRESS</span>;
+      case "WAITING_FOR_REQUESTER":
       case "PENDING":
-        return <span className="badge bg-warning text-dark">PENDING</span>;
+        return <span className="badge bg-warning text-dark">WAITING FOR REQUESTER</span>;
       case "RESOLVED":
         return <span className="badge bg-success">RESOLVED</span>;
       case "CLOSED":
         return <span className="badge bg-dark">CLOSED</span>;
+      case "REOPENED":
+        return <span className="badge bg-info text-dark">REOPENED</span>;
+      case "CANCELLED":
+        return <span className="badge bg-danger">CANCELLED</span>;
       default:
         return <span className="badge bg-light text-dark">{status}</span>;
     }
@@ -338,6 +345,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
               <option value="">All Statuses</option>
               <option value="NEW">NEW</option>
               <option value="IN_PROGRESS">IN PROGRESS</option>
+              <option value="WAITING_FOR_REQUESTER">WAITING FOR REQUESTER</option>
               <option value="PENDING">PENDING</option>
               <option value="RESOLVED">RESOLVED</option>
               <option value="CLOSED">CLOSED</option>
@@ -403,34 +411,34 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("ticketNumber")}
-                    style={{ width: "22%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Ticket No. {renderSortIndicator("ticketNumber")}
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("createdAt")}
-                    style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "14%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Created Date {renderSortIndicator("createdAt")}
                   </th>
-                  <th className="text-white" style={{ width: "26%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
+                  <th className="text-white" style={{ width: "27%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Summary
                   </th>
-                  <th className="text-white" style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
+                  <th className="text-white" style={{ width: "15%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Category
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("requestedPriority")}
-                    style={{ width: "10%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "11%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Priority {renderSortIndicator("requestedPriority")}
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-center text-nowrap"
                     onClick={() => handleSort("currentStatus")}
-                    style={{ width: "10%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "17%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Status {renderSortIndicator("currentStatus")}
                   </th>

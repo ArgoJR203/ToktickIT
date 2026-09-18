@@ -77,8 +77,8 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 | **API-10** | API | FR-08, BR-24 | Lab 2 Requester regression under auth | Authenticated requester can create ticket, retrieve owned tickets, and upload attachments | `server/tests/lab-03/authorization.api.test.ts` | ✅ Passed |
 | **API-11** | API | AC-11, FR-09 | Public Comments creation and retrieval | Permitted for Requester (owner) and Staff; append-only feed (`201 Created`) | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
 | **API-12** | API | BR-18 | Whitespace-only comment/note rejection | Rejects empty or whitespace-only content with `400 Bad Request` | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
-| **API-13** | API | AC-07, FR-11 | IT Staff Ticket Queue retrieval | Returns all system tickets with pagination metadata (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | [Planned] |
-| **API-14** | API | AC-07, FR-12 | Queue search & multi-field filtering | Filters by keyword/category/status/priority/owner (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | [Planned] |
+| **API-13** | API | AC-07, FR-11 | IT Staff Ticket Queue retrieval | Returns all system tickets with pagination metadata (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | ✅ Passed |
+| **API-14** | API | AC-07, FR-12 | Queue search & multi-field filtering | Filters by keyword/category/status/priority/owner (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | ✅ Passed |
 | **API-15** | API | BR-12 | IT Priority initialization & update | Ticket creation copies Requested Priority; IT Staff can update IT Priority independently (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
 | **API-16** | API | AC-08, FR-13 | Claim and reassign ticket ownership | IT Staff can assign ticket to self or active staff member (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
 | **API-17** | API | AC-10, BR-14 | Permitted status transition & resolution summary | Valid status transition succeeds and stores optional `resolutionSummary` (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
@@ -92,7 +92,7 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 | **API-25** | API | FR-07 | Forbidden access for non-Administrators | Requester and IT Staff attempting Admin endpoints return `403 Forbidden` | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
 | **UI-01** | UI | AC-01, FR-01 | Login screen form, validation, and loading | Renders email/password, validates inputs, shows loading spinner on submit | `client/tests/lab-03/Login.test.tsx` | ✅ Passed |
 | **UI-02** | UI | AC-02, FR-03 | Mandatory Change Password checklist | Interactive password complexity checkmarks; blocks submission until valid | `client/tests/lab-03/ChangePassword.test.tsx` | ✅ Passed |
-| **UI-03** | UI | AC-07, FR-11 | Staff Ticket Queue table and filters | Renders queue table, status/priority badges, search bar, pagination | `client/tests/lab-03/StaffTicketQueue.test.tsx` | [Planned] |
+| **UI-03** | UI | AC-07, FR-11 | Staff Ticket Queue table and filters | Renders queue table, status/priority badges, search bar, pagination | `client/tests/lab-03/StaffTicketQueue.test.tsx` | ✅ Passed |
 | **UI-04** | UI | AC-08, AC-10 | Staff Ticket Detail actions & resolution summary | Claim to me, reassign select, IT Priority select, status dropdown, resolution summary input | `client/tests/lab-03/StaffTicketDetail.test.tsx` | [Planned] |
 | **UI-05** | UI | AC-04, AC-11 | Comments and Internal Notes tabs | Public comments feed and distinct amber-accented internal notes section with warning banner | `client/tests/lab-03/StaffTicketDetail.test.tsx` | [Planned] |
 | **UI-06** | UI | AC-13, AC-14 | Admin User Management interface | User list, "+ Create User" modal, edit user, self-deactivation safety alert | `client/tests/lab-03/UserManagement.test.tsx` | [Planned] |
@@ -160,8 +160,8 @@ npx playwright test e2e/lab-03/
 ## 6. Test Tracking and Final Results
 
 - **Total Planned Tests**: 39 (4 Unit + 25 API + 6 UI + 4 E2E)
-- **Passed**: 19 (UNIT-01..04, API-01..12, API-19, UI-01..02)
+- **Passed**: 22 (UNIT-01..04, API-01..14, API-19, UI-01..03)
 - **Failed**: 0
 - **Skipped**: 0
-- **Pending**: 20 (API-13..18, API-20..25, UI-03..06, E2E-01..04)
+- **Pending**: 17 (API-15..18, API-20..25, UI-04..06, E2E-01..04)
 - **Target Coverage**: 100% of Acceptance Criteria (AC-01 through AC-16), domain utilities, and REST endpoints.

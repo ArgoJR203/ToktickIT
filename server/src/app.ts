@@ -5,6 +5,7 @@ import { getPrisma } from "./prisma.js";
 import { generateTicketNumber } from "./utils/ticket-generator.js";
 import { uploadMiddleware } from "./middleware/upload.js";
 import { authRouter } from "./routes/auth.js";
+import { staffRouter } from "./routes/staff.js";
 import { authenticate, enforcePasswordChange, requireRole } from "./middleware/auth.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
@@ -15,9 +16,10 @@ app.use(cors());          // already wired: lets the Vite dev server call this A
 app.use(express.json());
 
 // ---------------------------------------------------------------------------
-// Lab 3 — Auth Routes (Issue #3-3)
+// Lab 3 — Auth & Staff Routes (Issue #3-3, #3-6)
 // ---------------------------------------------------------------------------
 app.use("/api/auth", authRouter);
+app.use("/api/staff", staffRouter);
 
 // Protected endpoints for RBAC and password change gating verification
 app.get("/api/test/gated-endpoint", authenticate, enforcePasswordChange, (_req: Request, res: Response) => {
