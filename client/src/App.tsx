@@ -9,6 +9,7 @@ import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
 import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 import { Ticket, fetchRequesters, AuthUser } from "./api.js";
 
 interface MainContentProps {
@@ -154,17 +155,23 @@ function MainContent({ initialView }: MainContentProps) {
         )}
 
         {activeTab === "ticket-detail" && selectedTicketId !== null && (
-          <RequesterTicketDetail
-            ticketId={selectedTicketId}
-            onBack={() => {
-              setSelectedTicketId(null);
-              if (currentUser?.role === "IT_STAFF" || currentUser?.role === "ADMINISTRATOR") {
+          currentUser?.role === "IT_STAFF" || currentUser?.role === "ADMINISTRATOR" ? (
+            <StaffTicketDetail
+              ticketId={selectedTicketId}
+              onBack={() => {
+                setSelectedTicketId(null);
                 setActiveTab("ticket-queue");
-              } else {
+              }}
+            />
+          ) : (
+            <RequesterTicketDetail
+              ticketId={selectedTicketId}
+              onBack={() => {
+                setSelectedTicketId(null);
                 setActiveTab("my-tickets");
-              }
-            }}
-          />
+              }}
+            />
+          )
         )}
 
         {/* IT Staff Ticket Queue (Issue #3-6) */}

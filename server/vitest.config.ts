@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "node",
       include: ["tests/**/*.test.ts"],
+      fileParallelism: false,
     },
   };
 });

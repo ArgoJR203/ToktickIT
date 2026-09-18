@@ -735,3 +735,246 @@ export async function fetchStaffTickets(
   return data as PaginatedStaffTicketsResponse;
 }
 
+// ---------------------------------------------------------------------------
+// Lab 3 — Internal Notes & Staff Ticket Detail API (Issue #3-7, API-08, API-15..18, UI-04..05)
+// ---------------------------------------------------------------------------
+
+export interface InternalNote {
+  id: number;
+  ticketId: number;
+  content: string;
+  author: {
+    id: number;
+    name: string;
+    role: UserRole;
+  };
+  createdAt: string;
+}
+
+/**
+ * Fetch confidential internal notes (Issue #3-7, API-08, UI-05)
+ * Restricted to IT_STAFF and ADMINISTRATOR roles.
+ */
+export async function fetchInternalNotes(ticketId: number): Promise<InternalNote[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, {
+    headers: getAuthHeaders(),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load internal notes.";
+    throw new Error(errorMsg);
+  }
+
+  return data as InternalNote[];
+}
+
+/**
+ * Post a confidential internal note (Issue #3-7, API-08, UI-05)
+ * Restricted to IT_STAFF and ADMINISTRATOR roles.
+ */
+export async function postInternalNote(
+  ticketId: number,
+  content: string
+): Promise<InternalNote> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to post internal note.";
+    throw new Error(errorMsg);
+  }
+
+  return data as InternalNote;
+}
+
+export interface StaffTicketDetailData {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  description: string;
+  category: { id: number; name: string };
+  relatedSystem?: { id: number; name: string } | null;
+  requester: { id: number; name: string; email: string };
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  itPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  currentStatus: string;
+  owner: { id: number; name: string; email: string } | null;
+  resolutionIndicated?: boolean;
+  resolutionIndicatedAt?: string | null;
+  resolutionSummary?: string | null;
+  permittedNextStatuses: string[];
+  attachments: AttachmentItem[];
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    publicComments?: number;
+    internalNotes?: number;
+  };
+}
+
+export interface StaffAssignee {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+/**
+ * Fetch full ticket detail for IT Staff with permittedNextStatuses (Issue #3-7, UI-04)
+ */
+export async function fetchStaffTicketDetail(ticketId: number): Promise<StaffTicketDetailData> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, {
+    headers: getAuthHeaders(),
+  });
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message || data.message || `Failed to fetch ticket detail (${res.status})`;
+    throw new Error(errorMsg);
+  }
+
+  return data as StaffTicketDetailData;
+}
+
+/**
+ * Claim or reassign ticket ownership (Issue #3-7, API-16, UI-04)
+ */
+export async function updateTicketOwner(
+  ticketId: number,
+  ownerId: number | null
+): Promise<{ id: number; owner: { id: number; name: string; email: string } | null }> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/owner`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ ownerId }),
+  });
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message || data.message || "Failed to update ticket owner.";
+    throw new Error(errorMsg);
+  }
+
+  return data as { id: number; owner: { id: number; name: string; email: string } | null };
+}
+
+/**
+ * Update IT Priority independently (Issue #3-7, API-15, UI-04)
+ */
+export async function updateTicketPriority(
+  ticketId: number,
+  itPriority: string
+): Promise<{ id: number; itPriority: string; updatedAt: string }> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/priority`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ itPriority }),
+  });
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message || data.message || "Failed to update IT priority.";
+    throw new Error(errorMsg);
+  }
+
+  return data as { id: number; itPriority: string; updatedAt: string };
+}
+
+/**
+ * Transition ticket status and optionally save resolution summary (Issue #3-7, API-17, API-18, UI-04)
+ */
+export async function updateTicketStatus(
+  ticketId: number,
+  status: string,
+  resolutionSummary?: string
+): Promise<{
+  id: number;
+  currentStatus: string;
+  resolutionSummary: string | null;
+  permittedNextStatuses: string[];
+  updatedAt: string;
+}> {
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ status, resolutionSummary }),
+  });
+
+  let data: Record<string, any> = {};
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message || data.message || "Failed to update ticket status.";
+    throw new Error(errorMsg);
+  }
+
+  return data as {
+    id: number;
+    currentStatus: string;
+    resolutionSummary: string | null;
+    permittedNextStatuses: string[];
+    updatedAt: string;
+  };
+}
+
+/**
+ * Fetch active IT Staff and Administrator assignees (Issue #3-7, UI-04)
+ */
+export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
+  const res = await fetch(`${API_URL}/api/staff/assignees`, {
+    headers: getAuthHeaders(),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load staff assignees.";
+    throw new Error(errorMsg);
+  }
+
+  return data as StaffAssignee[];
+}
+
+
