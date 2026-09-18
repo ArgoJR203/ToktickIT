@@ -79,10 +79,10 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 | **API-12** | API | BR-18 | Whitespace-only comment/note rejection | Rejects empty or whitespace-only content with `400 Bad Request` | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
 | **API-13** | API | AC-07, FR-11 | IT Staff Ticket Queue retrieval | Returns all system tickets with pagination metadata (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | ✅ Passed |
 | **API-14** | API | AC-07, FR-12 | Queue search & multi-field filtering | Filters by keyword/category/status/priority/owner (`200 OK`) | `server/tests/lab-03/staff-queue.api.test.ts` | ✅ Passed |
-| **API-15** | API | BR-12 | IT Priority initialization & update | Ticket creation copies Requested Priority; IT Staff can update IT Priority independently (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
-| **API-16** | API | AC-08, FR-13 | Claim and reassign ticket ownership | IT Staff can assign ticket to self or active staff member (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
-| **API-17** | API | AC-10, BR-14 | Permitted status transition & resolution summary | Valid status transition succeeds and stores optional `resolutionSummary` (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
-| **API-18** | API | AC-10, BR-14 | Invalid status transition rejected | Invalid transition rejected with `400 Bad Request` (`INVALID_TRANSITION`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | [Planned] |
+| **API-15** | API | BR-12 | IT Priority initialization & update | Ticket creation copies Requested Priority; IT Staff can update IT Priority independently (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | ✅ Passed |
+| **API-16** | API | AC-08, FR-13 | Claim and reassign ticket ownership | IT Staff can assign ticket to self or active staff member (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | ✅ Passed |
+| **API-17** | API | AC-10, BR-14 | Permitted status transition & resolution summary | Valid status transition succeeds and stores optional `resolutionSummary` (`200 OK`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | ✅ Passed |
+| **API-18** | API | AC-10, BR-14 | Invalid status transition rejected | Invalid transition rejected with `400 Bad Request` (`INVALID_TRANSITION`) | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | ✅ Passed |
 | **API-19** | API | AC-12, BR-05 | Requester "Problem Appears Resolved" signal | Records resolution indication without prematurely setting `RESOLVED` or `CLOSED` (`200 OK`) | `server/tests/lab-03/comments-notes.api.test.ts` | ✅ Passed |
 | **API-20** | API | AC-13, FR-18 | Administrator creates user with initial password | User created with role, initial password, and `mustChangePassword = true` (`201 Created`) | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
 | **API-21** | API | BR-20 | Duplicate email rejection | Rejects existing email with `409 Conflict` (`DUPLICATE_EMAIL`) | `server/tests/lab-03/users-admin.api.test.ts` | [Planned] |
@@ -93,8 +93,8 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 | **UI-01** | UI | AC-01, FR-01 | Login screen form, validation, and loading | Renders email/password, validates inputs, shows loading spinner on submit | `client/tests/lab-03/Login.test.tsx` | ✅ Passed |
 | **UI-02** | UI | AC-02, FR-03 | Mandatory Change Password checklist | Interactive password complexity checkmarks; blocks submission until valid | `client/tests/lab-03/ChangePassword.test.tsx` | ✅ Passed |
 | **UI-03** | UI | AC-07, FR-11 | Staff Ticket Queue table and filters | Renders queue table, status/priority badges, search bar, pagination | `client/tests/lab-03/StaffTicketQueue.test.tsx` | ✅ Passed |
-| **UI-04** | UI | AC-08, AC-10 | Staff Ticket Detail actions & resolution summary | Claim to me, reassign select, IT Priority select, status dropdown, resolution summary input | `client/tests/lab-03/StaffTicketDetail.test.tsx` | [Planned] |
-| **UI-05** | UI | AC-04, AC-11 | Comments and Internal Notes tabs | Public comments feed and distinct amber-accented internal notes section with warning banner | `client/tests/lab-03/StaffTicketDetail.test.tsx` | [Planned] |
+| **UI-04** | UI | AC-08, AC-10 | Staff Ticket Detail actions & resolution summary | Claim to me, reassign select, IT Priority select, status dropdown, resolution summary input | `client/tests/lab-03/StaffTicketDetail.test.tsx` | ✅ Passed |
+| **UI-05** | UI | AC-04, AC-11 | Comments and Internal Notes tabs | Public comments feed and distinct amber-accented internal notes section with warning banner | `client/tests/lab-03/StaffTicketDetail.test.tsx` | ✅ Passed |
 | **UI-06** | UI | AC-13, AC-14 | Admin User Management interface | User list, "+ Create User" modal, edit user, self-deactivation safety alert | `client/tests/lab-03/UserManagement.test.tsx` | [Planned] |
 | **E2E-01** | E2E | AC-01, AC-06 | Authentication & role navigation flow | Login as Requester / Staff / Admin, verify navigation tabs, logout | `e2e/lab-03/authentication.spec.ts` | [Planned] |
 | **E2E-02** | E2E | AC-02, BR-02 | **Initial password login and change** | Login with initial password, normal app opens only after valid change *(Handout §10 exact)* | `e2e/lab-03/authentication.spec.ts` | [Planned] |
@@ -160,8 +160,8 @@ npx playwright test e2e/lab-03/
 ## 6. Test Tracking and Final Results
 
 - **Total Planned Tests**: 39 (4 Unit + 25 API + 6 UI + 4 E2E)
-- **Passed**: 22 (UNIT-01..04, API-01..14, API-19, UI-01..03)
+- **Passed**: 28 (UNIT-01..04, API-01..19, UI-01..05)
 - **Failed**: 0
 - **Skipped**: 0
-- **Pending**: 17 (API-15..18, API-20..25, UI-04..06, E2E-01..04)
+- **Pending**: 11 (API-20..25, UI-06, E2E-01..04)
 - **Target Coverage**: 100% of Acceptance Criteria (AC-01 through AC-16), domain utilities, and REST endpoints.
