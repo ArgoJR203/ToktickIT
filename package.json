@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:e2e": "playwright test e2e/lab-02/"
+    "test:e2e": "playwright test e2e/lab-03/",
+    "test:e2e:lab2": "playwright test e2e/lab-02/",
+    "test:e2e:lab3": "playwright test e2e/lab-03/",
+    "test:e2e:all": "playwright test e2e/"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0"
