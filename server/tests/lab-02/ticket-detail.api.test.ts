@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
@@ -12,6 +12,7 @@ describe("GET /api/tickets/:id API Integration Tests (API-05, AC-03, BR-18)", ()
   let ticketANumber: string;
 
   beforeAll(async () => {
+    process.env.ENABLE_LEGACY_LAB2_AUTH = "true";
     const prisma = getPrisma();
     const activeRequesters = await prisma.requesterUser.findMany({
       where: { isActive: true },
@@ -114,5 +115,9 @@ describe("GET /api/tickets/:id API Integration Tests (API-05, AC-03, BR-18)", ()
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("INVALID_INPUT");
+  });
+
+  afterAll(async () => {
+    delete process.env.ENABLE_LEGACY_LAB2_AUTH;
   });
 });

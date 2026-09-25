@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
@@ -11,6 +11,7 @@ describe("GET /api/tickets API Integration Tests (API-03, API-04)", () => {
   let ticketANumber: string;
 
   beforeAll(async () => {
+    process.env.ENABLE_LEGACY_LAB2_AUTH = "true";
     const prisma = getPrisma();
     const activeRequesters = await prisma.requesterUser.findMany({
       where: { isActive: true },
@@ -147,5 +148,9 @@ describe("GET /api/tickets API Integration Tests (API-03, API-04)", () => {
     expect(idx2).toBeGreaterThanOrEqual(0);
     // t2 was created after t1 (higher id), so t2 must appear before t1 with secondary id: desc
     expect(idx2).toBeLessThan(idx1);
+  });
+
+  afterAll(async () => {
+    delete process.env.ENABLE_LEGACY_LAB2_AUTH;
   });
 });

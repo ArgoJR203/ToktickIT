@@ -1,6 +1,7 @@
 # Lab 1 — Peer Review Record (fill this in)
 
 **Author:** จีราวัฒน์ รัชตะประเมษฐ์ — 67070501057 — GitHub: @ArgoJR203
+
 **Peer reviewer:** หฤษฎ์ ไชยานุกิจ — 67070501047 — GitHub: @Gluesaber
 
 ## Pull Requests I authored (reviewed by my partner)

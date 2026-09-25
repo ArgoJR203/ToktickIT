@@ -8,6 +8,13 @@ let client: PrismaClient | null = null;
 import fs from "node:fs";
 import path from "node:path";
 
+// Backward-compatibility shim: Map requesterUser to user for Lab 2 routes and tests
+declare module "@prisma/client" {
+  interface PrismaClient {
+    requesterUser: PrismaClient["user"];
+  }
+}
+
 export function getPrisma(): PrismaClient {
   if (!client) {
     if (!process.env.DATABASE_URL) {
@@ -26,7 +33,35 @@ export function getPrisma(): PrismaClient {
         console.error("Failed to load .env in prisma.ts:", err);
       }
     }
-    client = new PrismaClient();
+    const rawClient = new PrismaClient();
+    client = new Proxy(rawClient, {
+      get(target, prop, receiver) {
+        if (prop === "requesterUser") {
+          const userModel = (target as any).user;
+          return new Proxy(userModel, {
+            get(userTarget, userProp, userReceiver) {
+              if (userProp === "findMany" || userProp === "findFirst") {
+                return (args: any = {}) => {
+                  const mergedArgs = {
+                    ...args,
+                    where: {
+                      ...args?.where,
+                      role: "REQUESTER",
+                    },
+                  };
+                  return userTarget[userProp](mergedArgs);
+                };
+              }
+              return Reflect.get(userTarget, userProp, userReceiver);
+            },
+          });
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    });
   }
   return client;
 }
+
+
+

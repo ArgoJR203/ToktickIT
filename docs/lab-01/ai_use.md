@@ -1,4 +1,4 @@
-# Lab 1 — AI Use and Reflection (fill this in)
+# Lab 1 — AI Use and Reflection
 
 **LLM/agent used:** Claude Opus 4.6
 

@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { useRequester } from "../context/RequesterContext.js";
 
-export const RequesterSelector: React.FC = () => {
+interface RequesterSelectorProps {
+  onSwitchToLogin?: () => void;
+}
+
+export const RequesterSelector: React.FC<RequesterSelectorProps> = ({ onSwitchToLogin }) => {
   const { requesters, loading, error, selectRequester, refetchRequesters } = useRequester();
   const [selectedId, setSelectedId] = useState<string>("");
 
@@ -137,6 +141,19 @@ export const RequesterSelector: React.FC = () => {
               Continue
             </button>
           </form>
+        )}
+
+        {/* Switch back to Login */}
+        {onSwitchToLogin && (
+          <div className="text-center mt-3 pt-3 border-top">
+            <button
+              type="button"
+              className="btn btn-link btn-sm text-decoration-none text-muted"
+              onClick={onSwitchToLogin}
+            >
+              ← Back to Sign In
+            </button>
+          </div>
         )}
       </div>
     </div>

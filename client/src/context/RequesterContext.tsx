@@ -13,7 +13,7 @@ interface RequesterContextType {
   refetchRequesters: () => Promise<void>;
 }
 
-const RequesterContext = createContext<RequesterContextType | undefined>(undefined);
+export const RequesterContext = createContext<RequesterContextType | undefined>(undefined);
 
 export const RequesterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentRequester, setCurrentRequesterState] = useState<RequesterUser | null>(() => {

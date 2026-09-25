@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRequester } from "../context/RequesterContext.js";
+import { useOptionalAuth } from "../context/AuthContext.js";
 import {
   fetchCategories,
   fetchTickets,
@@ -14,7 +15,9 @@ interface MyTicketsProps {
 }
 
 export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTicket }) => {
+  const auth = useOptionalAuth();
   const { currentRequester } = useRequester();
+  const activeUser = auth?.currentUser || currentRequester;
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [tickets, setTickets] = useState<TicketItem[]>([]);
@@ -89,7 +92,10 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
 
   // Fetch ticket list
   useEffect(() => {
-    if (!currentRequester) return;
+    if (!activeUser) {
+      setIsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     setIsLoading(true);
@@ -106,7 +112,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
         page,
         pageSize: 10,
       },
-      currentRequester.id
+      activeUser.id
     )
       .then((res: PaginatedTicketsResponse) => {
         if (isMounted) {
@@ -127,7 +133,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
       isMounted = false;
     };
   }, [
-    currentRequester,
+    activeUser?.id,
     search,
     selectedCategory,
     selectedPriority,
@@ -167,14 +173,21 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
             NEW
           </span>
         );
+      case "OPEN":
+        return <span className="badge bg-success">OPEN</span>;
       case "IN_PROGRESS":
         return <span className="badge bg-primary">IN PROGRESS</span>;
+      case "WAITING_FOR_REQUESTER":
       case "PENDING":
-        return <span className="badge bg-warning text-dark">PENDING</span>;
+        return <span className="badge bg-warning text-dark">WAITING FOR REQUESTER</span>;
       case "RESOLVED":
         return <span className="badge bg-success">RESOLVED</span>;
       case "CLOSED":
         return <span className="badge bg-dark">CLOSED</span>;
+      case "REOPENED":
+        return <span className="badge bg-info text-dark">REOPENED</span>;
+      case "CANCELLED":
+        return <span className="badge bg-danger">CANCELLED</span>;
       default:
         return <span className="badge bg-light text-dark">{status}</span>;
     }
@@ -250,8 +263,8 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
             My Tickets
           </h2>
           <p className="text-muted small mb-0">
-            Showing IT support tickets submitted by <strong>{currentRequester?.name}</strong> (
-            {currentRequester?.email})
+            Showing IT support tickets submitted by <strong>{activeUser?.name}</strong> (
+            {activeUser?.email})
           </p>
         </div>
         <div>
@@ -332,6 +345,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
               <option value="">All Statuses</option>
               <option value="NEW">NEW</option>
               <option value="IN_PROGRESS">IN PROGRESS</option>
+              <option value="WAITING_FOR_REQUESTER">WAITING FOR REQUESTER</option>
               <option value="PENDING">PENDING</option>
               <option value="RESOLVED">RESOLVED</option>
               <option value="CLOSED">CLOSED</option>
@@ -382,7 +396,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
               <h3 className="h6 fw-semibold text-dark mb-1">No tickets submitted yet</h3>
               <p className="text-muted small mb-3">You haven't submitted any IT support tickets yet. Click below to get started.</p>
               <button className="btn btn-zen-primary btn-sm" onClick={onCreateClick}>
-                + Create Ticket
+                Create First Ticket
               </button>
             </div>
           )}
@@ -391,40 +405,40 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
         <>
           {/* Desktop Table View (>=768px) */}
           <div className="table-responsive d-none d-md-block mb-4" data-testid="desktop-table-view">
-            <table className="table table-hover align-middle mb-0 border" style={{ tableLayout: "fixed", width: "100%" }}>
+            <table className="table table-hover align-middle mb-0 border" style={{ width: "100%" }}>
               <thead>
                 <tr style={{ backgroundColor: "var(--color-primary-green)" }}>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("ticketNumber")}
-                    style={{ width: "22%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "20%", minWidth: "135px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Ticket No. {renderSortIndicator("ticketNumber")}
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("createdAt")}
-                    style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "16%", minWidth: "100px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Created Date {renderSortIndicator("createdAt")}
                   </th>
-                  <th className="text-white" style={{ width: "26%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
+                  <th className="text-white" style={{ width: "28%", minWidth: "130px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Summary
                   </th>
-                  <th className="text-white" style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
+                  <th className="text-white d-none d-lg-table-cell" style={{ width: "14%", minWidth: "100px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Category
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("requestedPriority")}
-                    style={{ width: "10%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "14%", minWidth: "85px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Priority {renderSortIndicator("requestedPriority")}
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-center text-nowrap"
                     onClick={() => handleSort("currentStatus")}
-                    style={{ width: "10%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "18%", minWidth: "115px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Status {renderSortIndicator("currentStatus")}
                   </th>
@@ -458,9 +472,16 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
                       })}
                     </td>
                     <td className="fw-medium text-dark text-truncate" style={{ maxWidth: 0 }}>
-                      {ticket.summary}
+                      <div className="text-truncate">{ticket.summary}</div>
+                      {ticket.category && (
+                        <div className="d-lg-none mt-1">
+                          <span className="badge bg-light text-muted border extra-small">
+                            {ticket.category.name}
+                          </span>
+                        </div>
+                      )}
                     </td>
-                    <td className="small text-muted text-truncate">{ticket.category?.name || "Uncategorized"}</td>
+                    <td className="small text-muted text-truncate d-none d-lg-table-cell">{ticket.category?.name || "Uncategorized"}</td>
                     <td className="text-nowrap">{renderPriorityBadge(ticket.requestedPriority)}</td>
                     <td className="text-center text-nowrap">{renderStatusBadge(ticket.currentStatus)}</td>
                   </tr>
