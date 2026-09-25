@@ -81,10 +81,9 @@ test.describe("Lab 3 E2E Suite: Staff Ticket Lifecycle & Operations (E2E-03)", (
 
     // 4. Claim Ticket Ownership: "Assign to Me" (AC-08, API-16)
     const assignToMeBtn = page.locator('[data-testid="assign-to-me-btn"]');
-    if (await assignToMeBtn.isVisible()) {
-      await assignToMeBtn.click();
-      await expect(page.locator('[data-testid="owner-select"]')).toHaveValue(/\d+/, { timeout: 5000 });
-    }
+    await expect(assignToMeBtn).toBeVisible({ timeout: 5000 });
+    await assignToMeBtn.click();
+    await expect(page.locator('[data-testid="owner-select"]')).toHaveValue(/\d+/, { timeout: 5000 });
 
     // 5. Adjust IT Priority independently from Requested Priority (AC-09, API-15)
     const itPrioritySelect = page.locator('[data-testid="it-priority-select"]');
