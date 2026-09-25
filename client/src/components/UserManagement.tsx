@@ -397,113 +397,216 @@ export const UserManagement: React.FC = () => {
             <p className="small mb-0">Try adjusting your search query or role filter.</p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0" data-testid="users-table">
-              <thead>
-                <tr>
-                  <th style={{ minWidth: "180px" }}>Name</th>
-                  <th style={{ minWidth: "220px" }}>Email</th>
-                  <th style={{ minWidth: "130px" }}>Role</th>
-                  <th style={{ minWidth: "150px" }}>Status</th>
-                  <th style={{ minWidth: "120px" }}>Joined</th>
-                  <th className="text-end" style={{ minWidth: "90px" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => {
-                  const isCurrent = currentUser?.id === u.id;
-                  return (
-                    <tr key={u.id} data-testid={`user-row-${u.id}`}>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div
-                            className="rounded-circle d-flex align-items-center justify-content-center fw-bold me-2 flex-shrink-0"
-                            style={{
-                              width: "32px",
-                              height: "32px",
-                              backgroundColor: u.role === "ADMINISTRATOR" ? "#F3E5F5" : u.role === "IT_STAFF" ? "#EAF6EF" : "#E8F4F8",
-                              color: u.role === "ADMINISTRATOR" ? "#6A1B9A" : u.role === "IT_STAFF" ? "#006B3C" : "#0288D1",
-                              fontSize: "0.8rem",
-                            }}
-                          >
-                            {u.name.charAt(0).toUpperCase()}
+          <>
+            {/* Desktop & Tablet Table View (>=768px) */}
+            <div className="table-responsive d-none d-md-block">
+              <table className="table table-hover align-middle mb-0" data-testid="users-table" style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: "24%", minWidth: "120px" }}>Name</th>
+                    <th style={{ width: "27%", minWidth: "140px" }}>Email</th>
+                    <th style={{ width: "16%", minWidth: "90px" }}>Role</th>
+                    <th style={{ width: "20%", minWidth: "110px" }}>Status</th>
+                    <th className="d-none d-lg-table-cell" style={{ width: "13%", minWidth: "90px" }}>Joined</th>
+                    <th className="text-end" style={{ width: "13%", minWidth: "65px" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => {
+                    const isCurrent = currentUser?.id === u.id;
+                    return (
+                      <tr key={u.id} data-testid={`user-row-${u.id}`}>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold me-2 flex-shrink-0"
+                              style={{
+                                width: "32px",
+                                height: "32px",
+                                backgroundColor: u.role === "ADMINISTRATOR" ? "#F3E5F5" : u.role === "IT_STAFF" ? "#EAF6EF" : "#E8F4F8",
+                                color: u.role === "ADMINISTRATOR" ? "#6A1B9A" : u.role === "IT_STAFF" ? "#006B3C" : "#0288D1",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              {u.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="fw-semibold text-dark text-truncate d-inline-block" style={{ maxWidth: "125px" }} title={u.name}>
+                                {u.name}
+                              </span>
+                              {isCurrent && (
+                                <span className="badge bg-secondary ms-2 small" style={{ fontSize: "0.65rem" }}>
+                                  You
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <span className="fw-semibold text-dark">{u.name}</span>
-                            {isCurrent && (
-                              <span className="badge bg-secondary ms-2 small" style={{ fontSize: "0.65rem" }}>
-                                You
+                        </td>
+                        <td>
+                          <span className="text-muted font-monospace small text-truncate d-inline-block" style={{ maxWidth: "160px" }} title={u.email}>
+                            {u.email}
+                          </span>
+                        </td>
+                        <td>
+                          {u.role === "ADMINISTRATOR" && (
+                            <span className="badge-role badge-role-admin" data-testid="role-badge">
+                              Administrator
+                            </span>
+                          )}
+                          {u.role === "IT_STAFF" && (
+                            <span className="badge-role badge-role-it-staff" data-testid="role-badge">
+                              IT Staff
+                            </span>
+                          )}
+                          {u.role === "REQUESTER" && (
+                            <span className="badge-role badge-role-requester" data-testid="role-badge">
+                              Requester
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="d-flex flex-wrap gap-1 align-items-center">
+                            {u.isActive ? (
+                              <span className="badge badge-status-active" data-testid="status-badge-active">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="badge badge-status-inactive" data-testid="status-badge-inactive">
+                                Inactive
+                              </span>
+                            )}
+
+                            {u.mustChangePassword && (
+                              <span
+                                className="badge bg-warning text-dark"
+                                style={{ fontSize: "0.68rem" }}
+                                title="Password change required on next login"
+                                data-testid="badge-must-change-password"
+                              >
+                                Password Reset
                               </span>
                             )}
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="text-muted font-monospace small">{u.email}</span>
-                      </td>
-                      <td>
-                        {u.role === "ADMINISTRATOR" && (
-                          <span className="badge-role badge-role-admin" data-testid="role-badge">
-                            Administrator
+                        </td>
+                        <td className="d-none d-lg-table-cell">
+                          <span className="text-muted small">
+                            {new Date(u.createdAt).toLocaleDateString()}
                           </span>
-                        )}
-                        {u.role === "IT_STAFF" && (
-                          <span className="badge-role badge-role-it-staff" data-testid="role-badge">
-                            IT Staff
-                          </span>
-                        )}
-                        {u.role === "REQUESTER" && (
-                          <span className="badge-role badge-role-requester" data-testid="role-badge">
-                            Requester
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="d-flex flex-wrap gap-1 align-items-center">
-                          {u.isActive ? (
-                            <span className="badge badge-status-active" data-testid="status-badge-active">
-                              Active
-                            </span>
-                          ) : (
-                            <span className="badge badge-status-inactive" data-testid="status-badge-inactive">
-                              Inactive
-                            </span>
-                          )}
+                        </td>
+                        <td className="text-end">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-zen-secondary py-1 px-2"
+                            onClick={() => handleOpenEditModal(u)}
+                            data-testid={`btn-edit-user-${u.id}`}
+                            aria-label={`Edit ${u.name}`}
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                          {u.mustChangePassword && (
-                            <span
-                              className="badge bg-warning text-dark"
-                              style={{ fontSize: "0.68rem" }}
-                              title="Password change required on next login"
-                              data-testid="badge-must-change-password"
-                            >
-                              Password Reset
+            {/* Mobile Card List View (<768px) */}
+            <div className="mobile-card-container d-md-none p-3" data-testid="mobile-card-list">
+              {users.map((u) => {
+                const isCurrent = currentUser?.id === u.id;
+                return (
+                  <div
+                    key={u.id}
+                    className="card zen-card mobile-user-card p-3 mb-3 shadow-sm"
+                    data-testid={`mobile-user-card-${u.id}`}
+                  >
+                    {/* Card Header: Avatar, Name & Current User Indicator */}
+                    <div className="d-flex align-items-center mb-2">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center fw-bold me-2 flex-shrink-0"
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          backgroundColor:
+                            u.role === "ADMINISTRATOR"
+                              ? "#F3E5F5"
+                              : u.role === "IT_STAFF"
+                              ? "#EAF6EF"
+                              : "#E8F4F8",
+                          color:
+                            u.role === "ADMINISTRATOR"
+                              ? "#6A1B9A"
+                              : u.role === "IT_STAFF"
+                              ? "#006B3C"
+                              : "#0288D1",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {u.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-grow-1">
+                        <div className="d-flex align-items-center">
+                          <span className="fw-bold text-dark text-truncate">{u.name}</span>
+                          {isCurrent && (
+                            <span className="badge bg-secondary ms-2" style={{ fontSize: "0.65rem" }}>
+                              You
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td>
-                        <span className="text-muted small">
-                          {new Date(u.createdAt).toLocaleDateString()}
-                        </span>
-                      </td>
-                      <td className="text-end">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-zen-secondary py-1 px-2"
-                          onClick={() => handleOpenEditModal(u)}
-                          data-testid={`btn-edit-user-${u.id}`}
-                          aria-label={`Edit ${u.name}`}
+                        <div className="text-muted font-monospace small text-break">{u.email}</div>
+                      </div>
+                    </div>
+
+                    {/* Badges: Role, Status, Must Change Password */}
+                    <div className="d-flex flex-wrap align-items-center gap-2 my-2 pt-2 border-top">
+                      {u.role === "ADMINISTRATOR" && (
+                        <span className="badge-role badge-role-admin">Administrator</span>
+                      )}
+                      {u.role === "IT_STAFF" && (
+                        <span className="badge-role badge-role-it-staff">IT Staff</span>
+                      )}
+                      {u.role === "REQUESTER" && (
+                        <span className="badge-role badge-role-requester">Requester</span>
+                      )}
+
+                      {u.isActive ? (
+                        <span className="badge badge-status-active">Active</span>
+                      ) : (
+                        <span className="badge badge-status-inactive">Inactive</span>
+                      )}
+
+                      {u.mustChangePassword && (
+                        <span
+                          className="badge bg-warning text-dark"
+                          style={{ fontSize: "0.68rem" }}
+                          title="Password change required on next login"
                         >
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          Password Reset
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Joined Date */}
+                    <div className="d-flex justify-content-between align-items-center text-muted extra-small pt-1">
+                      <span>Joined: {new Date(u.createdAt).toLocaleDateString()}</span>
+                    </div>
+
+                    {/* Edit Button with Touch Target >= 44px */}
+                    <button
+                      type="button"
+                      className="btn btn-zen-primary w-100 btn-touch-target mt-3 d-flex align-items-center justify-content-center"
+                      onClick={() => handleOpenEditModal(u)}
+                      data-testid={`mobile-btn-edit-user-${u.id}`}
+                      aria-label={`Edit ${u.name}`}
+                    >
+                      Edit User
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

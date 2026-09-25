@@ -405,40 +405,40 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
         <>
           {/* Desktop Table View (>=768px) */}
           <div className="table-responsive d-none d-md-block mb-4" data-testid="desktop-table-view">
-            <table className="table table-hover align-middle mb-0 border" style={{ tableLayout: "fixed", width: "100%" }}>
+            <table className="table table-hover align-middle mb-0 border" style={{ width: "100%" }}>
               <thead>
                 <tr style={{ backgroundColor: "var(--color-primary-green)" }}>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("ticketNumber")}
-                    style={{ width: "16%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "20%", minWidth: "135px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Ticket No. {renderSortIndicator("ticketNumber")}
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("createdAt")}
-                    style={{ width: "14%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "16%", minWidth: "100px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Created Date {renderSortIndicator("createdAt")}
                   </th>
-                  <th className="text-white" style={{ width: "27%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
+                  <th className="text-white" style={{ width: "28%", minWidth: "130px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Summary
                   </th>
-                  <th className="text-white" style={{ width: "15%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
+                  <th className="text-white d-none d-lg-table-cell" style={{ width: "14%", minWidth: "100px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                     Category
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-nowrap"
                     onClick={() => handleSort("requestedPriority")}
-                    style={{ width: "11%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "14%", minWidth: "85px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Priority {renderSortIndicator("requestedPriority")}
                   </th>
                   <th
                     className="user-select-none cursor-pointer text-white text-center text-nowrap"
                     onClick={() => handleSort("currentStatus")}
-                    style={{ width: "17%", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
+                    style={{ width: "18%", minWidth: "115px", backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}
                   >
                     Status {renderSortIndicator("currentStatus")}
                   </th>
@@ -472,9 +472,16 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
                       })}
                     </td>
                     <td className="fw-medium text-dark text-truncate" style={{ maxWidth: 0 }}>
-                      {ticket.summary}
+                      <div className="text-truncate">{ticket.summary}</div>
+                      {ticket.category && (
+                        <div className="d-lg-none mt-1">
+                          <span className="badge bg-light text-muted border extra-small">
+                            {ticket.category.name}
+                          </span>
+                        </div>
+                      )}
                     </td>
-                    <td className="small text-muted text-truncate">{ticket.category?.name || "Uncategorized"}</td>
+                    <td className="small text-muted text-truncate d-none d-lg-table-cell">{ticket.category?.name || "Uncategorized"}</td>
                     <td className="text-nowrap">{renderPriorityBadge(ticket.requestedPriority)}</td>
                     <td className="text-center text-nowrap">{renderStatusBadge(ticket.currentStatus)}</td>
                   </tr>

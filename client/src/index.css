@@ -250,6 +250,7 @@ body {
 /* Touch Target Accessibility & Responsive Utilities (RESP-01 / AC-09: touch targets >= 44px) */
 .touch-target,
 .mobile-ticket-card,
+.mobile-user-card,
 .btn-touch-target {
   min-height: 44px;
 }
@@ -260,14 +261,44 @@ body {
   overflow-x: hidden;
 }
 
-.mobile-ticket-card {
+.mobile-ticket-card,
+.mobile-user-card {
   border-radius: 10px;
   border: 1px solid var(--color-surface-border);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.mobile-ticket-card:active {
+.mobile-ticket-card:active,
+.mobile-user-card:active {
   transform: scale(0.99);
+}
+
+/* Tablet Responsive Optimizations (768px - 991.98px) to eliminate horizontal scrolling */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .table thead th,
+  .queue-table thead th {
+    padding: 8px 6px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .table tbody td,
+  .queue-table tbody td {
+    padding: 8px 6px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .queue-table .summary-cell {
+    max-width: 140px !important;
+  }
+
+  .queue-table .badge {
+    font-size: 0.7rem !important;
+    padding: 2px 4px !important;
+  }
+
+  .ticket-number-mono {
+    font-size: 0.78rem !important;
+  }
 }
 
 /* Mobile responsive constraints (<768px) */

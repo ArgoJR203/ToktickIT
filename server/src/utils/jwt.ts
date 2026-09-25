@@ -89,7 +89,10 @@ export function signToken(
   expiresIn: string | number = DEFAULT_EXPIRY
 ): string {
   const secret = getJwtSecret();
-  return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
+  return jwt.sign(payload, secret, {
+    expiresIn,
+    jwtid: crypto.randomUUID(),
+  } as jwt.SignOptions);
 }
 
 /**

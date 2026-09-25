@@ -96,10 +96,10 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 | **UI-04** | UI | AC-08, AC-10 | Staff Ticket Detail actions & resolution summary | Claim to me, reassign select, IT Priority select, status dropdown, resolution summary input | `client/tests/lab-03/StaffTicketDetail.test.tsx` | ✅ Passed |
 | **UI-05** | UI | AC-04, AC-11 | Comments and Internal Notes tabs | Public comments feed and distinct amber-accented internal notes section with warning banner | `client/tests/lab-03/StaffTicketDetail.test.tsx` | ✅ Passed |
 | **UI-06** | UI | AC-13, AC-14 | Admin User Management interface | User list, "+ Create User" modal, edit user, self-deactivation safety alert | `client/tests/lab-03/UserManagement.test.tsx` | ✅ Passed |
-| **E2E-01** | E2E | AC-01, AC-06 | Authentication & role navigation flow | Login as Requester / Staff / Admin, verify navigation tabs, logout | `e2e/lab-03/authentication.spec.ts` | [Planned] |
-| **E2E-02** | E2E | AC-02, BR-02 | **Initial password login and change** | Login with initial password, normal app opens only after valid change *(Handout §10 exact)* | `e2e/lab-03/authentication.spec.ts` | [Planned] |
-| **E2E-03** | E2E | AC-07, AC-08, AC-10 | Staff ticket queue & lifecycle workflow | Open queue, claim ticket, update IT Priority, advance status, post note | `e2e/lab-03/staff-ticket-flow.spec.ts` | [Planned] |
-| **E2E-04** | E2E | AC-13, AC-14, AC-15 | Administrator user lifecycle & safety | Create user, edit profile, test self-deactivation protection, reset password | `e2e/lab-03/user-administration.spec.ts` | [Planned] |
+| **E2E-01** | E2E | AC-01, AC-06 | Authentication & role navigation flow | Login as Requester / Staff / Admin, verify navigation tabs, logout | `e2e/lab-03/authentication.spec.ts` | ✅ Passed |
+| **E2E-02** | E2E | AC-02, BR-02 | **Initial password login and change** | Login with initial password, normal app opens only after valid change *(Handout §10 exact)* | `e2e/lab-03/authentication.spec.ts` | ✅ Passed |
+| **E2E-03** | E2E | AC-07, AC-08, AC-10 | Staff ticket queue & lifecycle workflow | Open queue, claim ticket, update IT Priority, advance status, post note | `e2e/lab-03/staff-ticket-flow.spec.ts` | ✅ Passed |
+| **E2E-04** | E2E | AC-13, AC-14, AC-15 | Administrator user lifecycle & safety | Create user, edit profile, test self-deactivation protection, reset password | `e2e/lab-03/user-administration.spec.ts` | ✅ Passed |
 
 ---
 
@@ -110,14 +110,14 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 | **AC-01** (Valid login & user role) | UNIT-01, API-01, UI-01, E2E-01 | Password check, JWT issuance, response payload, UI dashboard entry |
 | **AC-02** (Mandatory first password change) | UNIT-01, API-05, API-07, UI-02, E2E-02 | Password validation, route guard blocks normal views until valid password saved |
 | **AC-03** (Requester ownership isolation) | API-09 | Backend ignores client-supplied IDs and prevents cross-requester leaks |
-| **AC-04** (Internal Notes hidden from Requester) | API-08, UI-05 | `403 Forbidden` returned to Requesters; notes tab hidden in Requester UI |
-| **AC-05** (Inactive account login rejection) | API-02, UI-01 | Safe error response without leaking password correctness |
+| **AC-04** (Internal Notes hidden from Requester) | API-08, UI-05, E2E-03 | `403 Forbidden` returned to Requesters; notes tab hidden in Requester UI |
+| **AC-05** (Inactive account login rejection) | API-02, UI-01, E2E-01 | Safe error response without leaking password correctness |
 | **AC-06** (Logout token invalidation) | UNIT-03, API-06, E2E-01 | Token registered in revocation store; subsequent calls return `401 Unauthorized` |
 | **AC-07** (IT Staff Ticket Queue) | API-13, API-14, UI-03, E2E-03 | Shared queue retrieval with search, filters, pagination |
 | **AC-08** (Claim & reassign ticket ownership) | API-16, UI-04, E2E-03 | Quick "Assign to Me" and reassignment dropdown |
 | **AC-09** (IT Priority adjustment) | API-15, UI-04, E2E-03 | Initial copy from requested priority, independent update of IT Priority |
 | **AC-10** (Status progression & transition rules) | UNIT-02, API-17, API-18, UI-04, E2E-03 | State machine validator allows valid, rejects invalid; resolution summary |
-| **AC-11** (Public Comments feed) | API-11, UI-05 | Append-only public communication between Requester & Staff |
+| **AC-11** (Public Comments feed) | API-11, UI-05, E2E-03 | Append-only public communication between Requester & Staff |
 | **AC-12** (Problem Appears Resolved signal) | API-19 | Requester resolution indication without premature closure |
 | **AC-13** (Admin user creation with initial password)| API-20, UI-06, E2E-04 | User created with role, initial password, mustChangePassword=true |
 | **AC-14** (Admin self-deactivation protection) | UNIT-04, API-22, UI-06, E2E-04 | `400 Bad Request` and UI disable/warning on self-deactivate |
@@ -128,14 +128,14 @@ The testing strategy for Lab 3 adheres strictly to **Spec-Driven Development (Sp
 
 ## 4. Responsive and Visual Checklist
 
-- [ ] **Zen Green Design System Tokens**: Primary green (`#006B3C`), secondary accents (`#0B7A46`), pale green highlights (`#EAF6EF`), and quiet background (`#F5F7F6`).
-- [ ] **Badge Styling Consistency**: Status badges, priority badges, and role badges consistently styled across all screens.
-- [ ] **Internal Notes Distinction**: Internal Notes visually distinct using warm amber accents (`#FFF3E0`, lock icon) to prevent accidental public disclosure.
-- [ ] **Desktop Viewport (≥992px)**: Full queue table with pagination; 4-column metadata grid; modal dialogs centered with backdrop.
-- [ ] **Tablet Viewport (768-991px)**: Condensed queue table or responsive grid; form labels top-aligned.
-- [ ] **Mobile Viewport (<768px)**: Stacked single-column controls; queue rendered as card list; minimum touch target height 44px; zero horizontal scrolling.
-- [ ] **WCAG AA Compliance**: High-contrast focus outlines (`2px solid #0B7A46`); contrast ratio >= 4.5:1.
-- [ ] **Visual Screenshot Artifacts**: Saved in `artifacts/lab-03/screenshots/` under `authentication/`, `staff-queue/`, `staff-ticket-detail/`, and `user-management/`.
+- [x] **Zen Green Design System Tokens**: Primary green (`#006B3C`), secondary accents (`#0B7A46`), pale green highlights (`#EAF6EF`), and quiet background (`#F5F7F6`).
+- [x] **Badge Styling Consistency**: Status badges, priority badges, and role badges consistently styled across all screens.
+- [x] **Internal Notes Distinction**: Internal Notes visually distinct using warm amber accents (`#FFF3E0`, lock icon) to prevent accidental public disclosure.
+- [x] **Desktop Viewport (≥992px)**: Full queue table with pagination; 4-column metadata grid; modal dialogs centered with backdrop.
+- [x] **Tablet Viewport (768-991px)**: Condensed queue table or responsive grid; form labels top-aligned.
+- [x] **Mobile Viewport (<768px)**: Stacked single-column controls; queue rendered as card list; minimum touch target height 44px; zero horizontal scrolling.
+- [x] **WCAG AA Compliance**: High-contrast focus outlines (`2px solid #0B7A46`); contrast ratio >= 4.5:1.
+- [x] **Visual Screenshot Artifacts**: Saved in `artifacts/lab-03/screenshots/` under `authentication/`, `staff-queue/`, `staff-ticket-detail/`, and `user-management/`.
 
 ---
 
@@ -160,8 +160,8 @@ npx playwright test e2e/lab-03/
 ## 6. Test Tracking and Final Results
 
 - **Total Planned Tests**: 39 (4 Unit + 25 API + 6 UI + 4 E2E)
-- **Passed**: 28 (UNIT-01..04, API-01..19, UI-01..05)
+- **Passed**: 39 (UNIT-01..04, API-01..25, UI-01..06, E2E-01..04)
 - **Failed**: 0
 - **Skipped**: 0
-- **Pending**: 11 (API-20..25, UI-06, E2E-01..04)
-- **Target Coverage**: 100% of Acceptance Criteria (AC-01 through AC-16), domain utilities, and REST endpoints.
+- **Pending**: 0
+- **Target Coverage**: 100% of Acceptance Criteria (AC-01 through AC-16), domain utilities, REST endpoints, responsive visual checkpoints, and complete user journey workflows.
