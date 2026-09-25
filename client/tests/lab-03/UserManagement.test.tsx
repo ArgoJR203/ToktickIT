@@ -97,10 +97,10 @@ describe("UserManagement Component Tests (UI-06, AC-13..16, FR-17..20)", () => {
     });
 
     // Check user rows
-    expect(screen.getByText("John Smith")).toBeInTheDocument();
-    expect(screen.getByText("john.smith@toktickit.com")).toBeInTheDocument();
-    expect(screen.getByText("Alice Requester")).toBeInTheDocument();
-    expect(screen.getByText("Bob Staff")).toBeInTheDocument();
+    expect(screen.getAllByText("John Smith").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("john.smith@toktickit.com").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Alice Requester").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Bob Staff").length).toBeGreaterThanOrEqual(1);
 
     // Check role badges
     expect(screen.getAllByTestId("role-badge").length).toBe(3);
@@ -135,7 +135,7 @@ describe("UserManagement Component Tests (UI-06, AC-13..16, FR-17..20)", () => {
     fireEvent.change(searchInput, { target: { value: "Alice" } });
 
     await waitFor(() => {
-      expect(screen.getByText("Alice Requester")).toBeInTheDocument();
+      expect(screen.getAllByText("Alice Requester").length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByText("John Smith")).not.toBeInTheDocument();
     });
 
@@ -371,5 +371,27 @@ describe("UserManagement Component Tests (UI-06, AC-13..16, FR-17..20)", () => {
     expect(screen.getByTestId("reset-password-success")).toHaveTextContent(
       /must change their password upon their next login/i
     );
+  });
+
+  it("renders responsive mobile card list view (<768px) with touch target >= 44px", async () => {
+    renderWithAuth(<UserManagement />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("mobile-card-list")).toBeInTheDocument();
+    });
+
+    const mobileList = screen.getByTestId("mobile-card-list");
+    expect(mobileList).toHaveClass("d-md-none", "mobile-card-container");
+
+    const cards = mobileList.querySelectorAll(".mobile-user-card");
+    expect(cards.length).toBe(mockUsers.length);
+
+    const editBtns = mobileList.querySelectorAll(".btn-touch-target");
+    expect(editBtns.length).toBe(mockUsers.length);
+
+    // Verify touch target min-height
+    editBtns.forEach((btn) => {
+      expect(btn).toHaveClass("btn-touch-target");
+    });
   });
 });

@@ -500,42 +500,42 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
           {/* Desktop Table View (≥768px) */}
           <div className="d-none d-md-block card zen-card shadow-sm overflow-hidden mb-4">
             <div className="table-responsive">
-              <table className="table queue-table mb-0 align-middle">
+              <table className="table queue-table mb-0 align-middle" style={{ width: "100%" }}>
                 <thead>
                   <tr>
                     <th
-                      style={{ cursor: "pointer", width: "160px" }}
+                      style={{ cursor: "pointer", width: "17%", minWidth: "120px" }}
                       onClick={() => handleSort("ticketNumber")}
                       data-testid="sort-ticket-number"
                     >
                       Ticket No. {renderSortIndicator("ticketNumber")}
                     </th>
                     <th
-                      style={{ cursor: "pointer", width: "170px" }}
+                      style={{ cursor: "pointer", width: "14%", minWidth: "85px" }}
                       onClick={() => handleSort("createdAt")}
                       data-testid="sort-created-at"
                     >
                       Created Date {renderSortIndicator("createdAt")}
                     </th>
-                    <th>Summary</th>
-                    <th style={{ width: "140px" }}>Category</th>
-                    <th style={{ width: "110px" }}>Req. Priority</th>
+                    <th style={{ width: "25%", minWidth: "110px" }}>Summary</th>
+                    <th className="d-none d-lg-table-cell" style={{ width: "12%", minWidth: "85px" }}>Category</th>
+                    <th className="d-none d-xl-table-cell" style={{ width: "10%", minWidth: "90px" }}>Req. Priority</th>
                     <th
-                      style={{ cursor: "pointer", width: "110px" }}
+                      style={{ cursor: "pointer", width: "11%", minWidth: "75px" }}
                       onClick={() => handleSort("itPriority")}
                       data-testid="sort-it-priority"
                     >
                       IT Priority {renderSortIndicator("itPriority")}
                     </th>
                     <th
-                      style={{ cursor: "pointer", width: "140px" }}
+                      style={{ cursor: "pointer", width: "13%", minWidth: "85px" }}
                       onClick={() => handleSort("currentStatus")}
                       data-testid="sort-status"
                     >
                       Status {renderSortIndicator("currentStatus")}
                     </th>
-                    <th style={{ width: "150px" }}>Owner</th>
-                    <th style={{ width: "110px", textAlign: "right" }}>Actions</th>
+                    <th style={{ width: "11%", minWidth: "80px" }}>Owner</th>
+                    <th style={{ width: "9%", minWidth: "65px", textAlign: "right" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -548,7 +548,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
                       <td>
                         <button
                           type="button"
-                          className="btn btn-link p-0 ticket-number-mono"
+                          className="btn btn-link p-0 ticket-number-mono text-nowrap"
                           onClick={(e) => {
                             e.stopPropagation();
                             onSelectTicket?.(ticket.id);
@@ -558,23 +558,33 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
                           {ticket.ticketNumber}
                         </button>
                       </td>
-                      <td className="small text-muted">
-                        {formatDate(ticket.createdAt)}
+                      <td className="small text-muted text-nowrap">
+                        <div>{new Date(ticket.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div className="extra-small opacity-75">{new Date(ticket.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</div>
                       </td>
                       <td>
                         <div className="summary-cell" title={ticket.summary}>
                           {ticket.summary}
                         </div>
+                        {ticket.category && (
+                          <div className="d-lg-none mt-1">
+                            <span className="badge bg-light text-muted border extra-small">
+                              {ticket.category.name}
+                            </span>
+                          </div>
+                        )}
                       </td>
-                      <td className="small text-muted">
+                      <td className="small text-muted text-truncate d-none d-lg-table-cell" style={{ maxWidth: "100px" }}>
                         {ticket.category?.name || "—"}
                       </td>
-                      <td>{renderPriorityBadge(ticket.requestedPriority)}</td>
+                      <td className="d-none d-xl-table-cell">{renderPriorityBadge(ticket.requestedPriority)}</td>
                       <td>{renderPriorityBadge(ticket.itPriority)}</td>
                       <td>{renderStatusBadge(ticket.currentStatus)}</td>
-                      <td className="small">
+                      <td className="small text-truncate" style={{ maxWidth: "90px" }}>
                         {ticket.owner ? (
-                          <span className="fw-medium text-main">{ticket.owner.name}</span>
+                          <span className="fw-medium text-main text-truncate d-inline-block" style={{ maxWidth: "85px" }} title={ticket.owner.name}>
+                            {ticket.owner.name}
+                          </span>
                         ) : (
                           <span className="text-muted fst-italic">Unassigned</span>
                         )}
@@ -582,14 +592,15 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
                       <td style={{ textAlign: "right" }}>
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-secondary"
+                          className="btn btn-sm btn-outline-secondary text-nowrap px-2 py-1"
                           onClick={(e) => {
                             e.stopPropagation();
                             onSelectTicket?.(ticket.id);
                           }}
                           data-testid="view-details-btn"
                         >
-                          View Details
+                          <span className="d-none d-xl-inline">View Details</span>
+                          <span className="d-xl-none">View</span>
                         </button>
                       </td>
                     </tr>

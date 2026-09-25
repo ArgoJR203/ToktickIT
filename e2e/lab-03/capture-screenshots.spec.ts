@@ -126,8 +126,10 @@ test.describe("Lab 3 Responsive Screenshot Evidence Capture (§14 Part 9)", () =
       await expect(page.getByTestId("create-user-modal")).not.toBeVisible();
 
       // 4.3 Edit User Modal with Safety Alerts (John Smith self edit)
-      const adminRow = page.locator("tr", { hasText: "john.smith@toktickit.com" });
-      await adminRow.getByRole("button", { name: /edit/i }).click();
+      const adminItem = vp.name === "mobile"
+        ? page.locator('[data-testid^="mobile-user-card"]', { hasText: "john.smith@toktickit.com" })
+        : page.locator("tr", { hasText: "john.smith@toktickit.com" });
+      await adminItem.getByRole("button", { name: /edit/i }).click();
       await expect(page.getByTestId("edit-user-modal")).toBeVisible({ timeout: 5000 });
       await expect(page.getByTestId("self-deactivation-warning")).toBeVisible();
       await page.waitForTimeout(300);
