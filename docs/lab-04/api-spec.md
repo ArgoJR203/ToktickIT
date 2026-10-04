@@ -25,8 +25,7 @@ The TokTickIT Lab 4 REST API expands the authenticated services established in L
 1. `authenticate`: Verifies JWT signature and claims, checks revocation blocklist, confirms user `isActive === true`. Returns `401 Unauthorized` if invalid.
 2. `enforcePasswordChange`: Blocks functional access with `403 Forbidden` (`code: "PASSWORD_CHANGE_REQUIRED"`) if `user.mustChangePassword === true`.
 3. `requireRole(Role...)`: Verifies that the authenticated user possesses an authorized role; otherwise returns `403 Forbidden` (`code: "FORBIDDEN_ROLE"`).
-4. `requireTicketAccess`: For ticket-specific resources, ensures Requesters can only access their owned tickets (`ticket.requesterId === authUser.id`), while IT Staff and Administrators have access to all system tickets.
-5. **ID Enumeration Protection (`BR-21`)**: If a Requester requests a ticket ID that does not exist OR belongs to another user, the server returns `404 Not Found` (`code: "NOT_FOUND"`), never `403 Forbidden`, preventing resource enumeration.
+4. `requireTicketAccess`: For ticket-specific resources, ensures Requesters can only access their owned tickets (`ticket.requesterId === authUser.id`), returning `403 Forbidden` (`code: "FORBIDDEN"`) if accessed by a different requester (preserving Lab 2 & 3 regression tests), or `404 Not Found` if the ticket does not exist. IT Staff and Administrators have access to all system tickets.
 
 ---
 
@@ -54,12 +53,13 @@ All error responses adhere to the unified envelope:
 | :--- | :--- | :--- |
 | `400 Bad Request` | `INVALID_INPUT` | Payload fields failed schema validation or boundary constraints (e.g. description > 2000 chars). |
 | `400 Bad Request` | `INACTIVE_ASSIGNEE` | Assignee is an inactive account or not an IT Staff/Admin user (`BR-07`). |
-| `400 Bad Request` | `INCOMPLETE_ACTIONS_TAKEN` | Ticket cannot transition to `RESOLVED` or `CLOSED` while Actions Taken are pending or incomplete (`BR-20`). |
+| `400 Bad Request` | `INCOMPLETE_ACTIONS_TAKEN` | Ticket cannot transition to `RESOLVED` or `CLOSED` while Actions Taken are pending or follow-up incomplete (`BR-20`). |
 | `400 Bad Request` | `MISSING_RESOLUTION_SUMMARY` | Ticket resolution or closure requires non-empty resolution summary of at least 5 chars (`BR-13`). |
 | `400 Bad Request` | `INVALID_TRANSITION` | Ticket status change violates the permitted transition matrix (`BR-11`). |
 | `401 Unauthorized` | `UNAUTHENTICATED` | Missing, expired, or revoked authentication credentials. |
 | `403 Forbidden` | `FORBIDDEN_ROLE` | Authenticated user lacks role permissions for the endpoint. |
-| `404 Not Found` | `NOT_FOUND` | Resource not found or hidden for security isolation (prevents ID guessing). |
+| `403 Forbidden` | `FORBIDDEN` | Requester attempted to access a ticket or actions owned by another user (`BR-21`). |
+| `404 Not Found` | `NOT_FOUND` | Resource not found in database. |
 | `409 Conflict` | `STALE_UPDATE` | Optimistic locking collision: ticket or action was concurrently updated by another user (`BR-14`). |
 
 ---
@@ -69,7 +69,7 @@ All error responses adhere to the unified envelope:
 ### 3.1 List Actions Taken for Ticket
 - **Endpoint**: `GET /api/tickets/:id/actions-taken`
 - **Access**:
-  - `REQUESTER`: Permitted **only** if `ticket.requesterId === authUser.id`. If ticket belongs to another user or doesn't exist, returns `404 Not Found` (`code: "NOT_FOUND"`) to prevent ID enumeration.
+  - `REQUESTER`: Permitted **only** if `ticket.requesterId === authUser.id`. If ticket belongs to another user, returns `403 Forbidden` (`FORBIDDEN`); if ticket does not exist, returns `404 Not Found`.
   - `IT_STAFF` & `ADMINISTRATOR`: Permitted for all accessible tickets.
 - **Ordering**: Strict `ORDER BY actionDateTime DESC, id DESC` (newest actions first).
 - **Success Response (200 OK)**:
@@ -102,6 +102,7 @@ All error responses adhere to the unified envelope:
       "result": "Passed all hardware diagnostics tests; battery health 100%.",
       "followUpRequired": false,
       "followUpNote": null,
+      "followUpDone": false,
       "attachmentNotes": "See battery_diagnostic_report.pdf in Attachments tab.",
       "createdAt": "2026-05-12T10:16:00.000Z",
       "updatedAt": "2026-05-12T10:16:00.000Z"
@@ -131,6 +132,7 @@ All error responses adhere to the unified envelope:
       "result": "Pending execution.",
       "followUpRequired": true,
       "followUpNote": "Verify charge cycles and heat dissipation curve.",
+      "followUpDone": false,
       "attachmentNotes": null,
       "createdAt": "2026-05-12T10:20:00.000Z",
       "updatedAt": "2026-05-12T10:20:00.000Z"
@@ -165,40 +167,10 @@ All error responses adhere to the unified envelope:
   - `result`: String, required, 1 to 2000 characters after trimming whitespace.
   - `followUpRequired`: Boolean, optional (default `false`).
   - `followUpNote`: String (1 to 1000 characters). Strictly required if `followUpRequired === true`. Must be null/empty if `false`.
+  - `followUpDone`: Boolean, optional (default `false`).
   - `attachmentNotes`: String, optional (0 to 500 characters).
-  - `performedById`: Auto-populated from the authenticated JWT session (`req.user.id`). Any client-supplied `performedById` is ignored/overwritten.
-- **Success Response (201 Created)**:
-```json
-{
-  "id": 103,
-  "ticketId": 1,
-  "performedById": 7,
-  "performedBy": {
-    "id": 7,
-    "name": "Alex Thompson",
-    "email": "alex.thompson@toktickit.com",
-    "role": "IT_STAFF"
-  },
-  "assigneeId": 8,
-  "assignee": {
-    "id": 8,
-    "name": "Lisa Martinez",
-    "email": "lisa.martinez@toktickit.com",
-    "role": "IT_STAFF"
-  },
-  "updatedById": null,
-  "status": "PENDING",
-  "version": 1,
-  "actionDateTime": "2026-05-14T09:00:00.000Z",
-  "description": "Perform 48-hour follow-up battery telemetry benchmark.",
-  "result": "Pending execution.",
-  "followUpRequired": true,
-  "followUpNote": "Verify charge cycles and heat dissipation curve.",
-  "attachmentNotes": "Reference diagnostics.pdf in Attachments tab.",
-  "createdAt": "2026-05-12T10:20:00.000Z",
-  "updatedAt": "2026-05-12T10:20:00.000Z"
-}
-```
+  - `performedById`: Auto-populated from the authenticated JWT session (`req.user.id`). Any client-supplied `performedById` is ignored/overwritten (`BR-03`).
+- **Success Response (201 Created)**: Returns the newly created Action Taken record with initialized `version = 1`.
 
 ---
 
@@ -210,8 +182,8 @@ All error responses adhere to the unified envelope:
 {
   "status": "COMPLETED",
   "result": "Telemetry confirmed normal power draw and stable discharge curve.",
-  "followUpRequired": false,
-  "followUpNote": null,
+  "followUpRequired": true,
+  "followUpDone": true,
   "version": 1
 }
 ```
@@ -247,8 +219,15 @@ All error responses adhere to the unified envelope:
   - `resolutionSummary`: Required (min 5 chars) if target status is `RESOLVED` or `CLOSED` (`BR-13`).
 - **Action Completion Gate (`BR-20`)**:
   - If target status is `RESOLVED` or `CLOSED`, queries:
-    `SELECT COUNT(*) FROM ActionTaken WHERE ticketId = $1 AND (status IN ('PENDING', 'IN_PROGRESS') OR followUpRequired = true)`
-  - If incomplete actions exist, rejects with `400 Bad Request` (`code: "INCOMPLETE_ACTIONS_TAKEN"`, message: *"Cannot resolve or close ticket while actions taken remain pending or incomplete."*).
+    ```sql
+    SELECT COUNT(*) FROM "ActionTaken"
+    WHERE "ticketId" = $1
+      AND (
+        "status" IN ('PENDING', 'IN_PROGRESS')
+        OR ("followUpRequired" = true AND "followUpDone" = false)
+      );
+    ```
+  - If count > 0, rejects with `400 Bad Request` (`code: "INCOMPLETE_ACTIONS_TAKEN"`, message: *"Cannot resolve or close ticket while actions taken remain pending or incomplete."*).
 - **Atomic OCC Check (`BR-14`)**:
   ```ts
   const result = await prisma.ticket.updateMany({
@@ -318,8 +297,8 @@ All error responses adhere to the unified envelope:
   "metrics": {
     "totalOpen": 2,
     "waitingForRequester": 1,
-    "recentlyUpdated": 5,
-    "recentlyResolved": 3
+    "resolvedCount": 3,
+    "closedCount": 5
   },
   "recentTickets": [
     {
@@ -344,8 +323,8 @@ All error responses adhere to the unified envelope:
   "drillDownUrls": {
     "totalOpen": "/tickets?statusGroup=open",
     "waitingForRequester": "/tickets?currentStatus=WAITING_FOR_REQUESTER",
-    "recentlyUpdated": "/tickets",
-    "recentlyResolved": "/tickets?statusGroup=resolved"
+    "resolvedCount": "/tickets?currentStatus=RESOLVED",
+    "closedCount": "/tickets?currentStatus=CLOSED"
   }
 }
 ```
@@ -410,23 +389,23 @@ All error responses adhere to the unified envelope:
     }
   },
   "drillDownUrls": {
-    "unassigned": "/staff/tickets?owner=unassigned",
-    "assignedToMe": "/staff/tickets?owner=me",
+    "unassigned": "/staff/tickets?ownerId=unassigned",
+    "assignedToMe": "/staff/tickets?ownerId=me",
     "open": "/staff/tickets?currentStatus=OPEN",
     "inProgress": "/staff/tickets?currentStatus=IN_PROGRESS",
     "waitingForRequester": "/staff/tickets?currentStatus=WAITING_FOR_REQUESTER"
   }
 }
 ```
-*Note: `adminStats` is included if and only if `authUser.role === 'ADMINISTRATOR'`. For `IT_STAFF`, `adminStats` is `null`.*
+*Note: `adminStats` is included if and only if `authUser.role === 'ADMINISTRATOR'`. Counts are evaluated dynamically from the database (`COUNT(*)`).*
 
 ---
 
-## 6. Continued Labs 1–3 REST APIs Reference
+## 6. Continued Labs 1–3 REST APIs Reference & Enhancements
 
 All prior APIs continue operating without breaking changes:
 
-| Endpoint | Method | Roles | Purpose |
+| Endpoint | Method | Roles | Purpose & Parameters |
 | :--- | :--- | :--- | :--- |
 | `/api/auth/login` | `POST` | Public | Authenticates credentials and issues JWT token. |
 | `/api/auth/logout` | `POST` | All | Revokes session token in server-side blocklist. |
@@ -435,14 +414,14 @@ All prior APIs continue operating without breaking changes:
 | `/api/categories` | `GET` | All | Retrieves active ticket categories. |
 | `/api/related-systems` | `GET` | All | Retrieves related systems (supports `?categoryId`). |
 | `/api/tickets` | `POST` | All active | Submits new ticket. Copies `requestedPriority` to `itPriority`. |
-| `/api/tickets` | `GET` | Requester | Lists owned tickets with pagination and filtering. |
-| `/api/tickets/:id` | `GET` | Requester | Gets owned ticket detail (404 for non-owners). |
+| `/api/tickets` | `GET` | Requester | Lists owned tickets with pagination, search, `currentStatus`, and new `statusGroup` (`open` \| `resolved`). |
+| `/api/tickets/:id` | `GET` | Requester | Gets owned ticket detail (403 for non-owners, 404 for nonexistent). |
 | `/api/tickets/:id/attachments` | `POST` | Requester | Uploads file attachment (max 5MB, JPG/PNG/WEBP/PDF). |
 | `/api/attachments/:id/download`| `GET` | All (authorized)| Binary stream download (returns `410 Gone` if removed). |
 | `/api/attachments/:id` | `DELETE` | Requester | Soft-removes attachment with audit reason. |
 | `/api/tickets/:id/comments` | `GET`/`POST` | Requester, Staff, Admin | Public comments feed and submission. |
 | `/api/tickets/:id/notes` | `GET`/`POST` | Staff, Admin (403 for Requester)| Internal Notes feed and submission. |
-| `/api/staff/tickets` | `GET` | Staff, Admin | Staff queue with search, filter, sort, and pagination. |
+| `/api/staff/tickets` | `GET` | Staff, Admin | Staff queue supporting `ownerId=unassigned`, `ownerId=me`, `currentStatus`, search, filter, sort, pagination. |
 | `/api/staff/tickets/:id` | `GET` | Staff, Admin | Full staff ticket detail with notes and audit trail. |
 | `/api/staff/tickets/:id/owner` | `PATCH` | Staff, Admin | Claims or reassigns ticket ownership. |
 | `/api/staff/tickets/:id/priority`| `PATCH` | Staff, Admin | Adjusts IT Priority independently. |

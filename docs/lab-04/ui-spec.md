@@ -112,9 +112,9 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 │ │ Email sync failing on mobile          │  │ [ 🔍 Search Tickets ]        │ │
 │ ├───────────────────────────────────────┤  │ [ 📋 My Queue ]              │ │
 │ │ TKT-2026-000002 [Open]        May 10 │  │                              │ │
-│ │ Campus Wi-Fi certificate issue        │  │ Admin Statistics:            │ │
+│ │ Campus Wi-Fi certificate issue        │  │ Admin Statistics (Dynamic):  │ │
 │ ├───────────────────────────────────────┤  │ • Total Users: 11 (9 Active) │ │
-│ │ TKT-2026-000003 [Waiting Req] May 06 │  │ • Requesters: 6 \| Staff: 4   │ │
+│ │ TKT-2026-000003 [Waiting Req] May 06 │  │ • Requesters: 6 | Staff: 4   │ │
 │ └───────────────────────────────────────┘  └──────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -122,19 +122,19 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 #### Layout Specifications:
 - **Greeting Banner**: Personalized greeting (`"Welcome back, {userName}!"`), subtitle, and manual refresh button.
 - **Metric Cards Grid (5 Cards)**:
-  1. **Unassigned**: Count of non-terminal tickets without owner (`ownerId === null`). Drill-down: `/staff/tickets?owner=unassigned`.
+  1. **Unassigned**: Count of non-terminal tickets without owner (`ownerId === null`). Drill-down: `/staff/tickets?ownerId=unassigned`.
   2. **Open**: Count of tickets in `OPEN` status. Drill-down: `/staff/tickets?currentStatus=OPEN`.
   3. **In Progress**: Count of tickets in `IN_PROGRESS` status. Drill-down: `/staff/tickets?currentStatus=IN_PROGRESS`.
   4. **Waiting for Requester**: Count in `WAITING_FOR_REQUESTER`. Drill-down: `/staff/tickets?currentStatus=WAITING_FOR_REQUESTER`.
-  5. **My Assigned**: Count of non-terminal tickets owned by caller (`ownerId === authUser.id`). Drill-down: `/staff/tickets?owner=me`.
+  5. **My Assigned**: Count of non-terminal tickets owned by caller (`ownerId === authUser.id`). Drill-down: `/staff/tickets?ownerId=me`.
 - **Recent Queue Panel (70% width on Desktop)**:
   - Displays top 5 recent operational tickets with Ticket ID (monospace), title, status badge, and timestamp.
   - Clicking any ticket navigates directly to Staff Ticket Detail.
 - **Quick Actions & Admin Panel (30% width on Desktop)**:
   - Shortcuts: *Create Ticket*, *Search Tickets*, *My Queue*.
   - For Administrators (`role === 'ADMINISTRATOR'`), renders **Admin Statistics Card**:
-    - Total Users: 11 (9 Active, 2 Inactive)
-    - Requesters: 6 | Staff: 4 | Admin: 1
+    - Aggregated dynamically via `COUNT(*)` database queries (e.g. baseline seed: 11 total with 9 active: 6 Requesters, 4 Staff, 1 Admin).
+    - Dynamically reflects newly created or deactivated users.
 
 ---
 
@@ -148,13 +148,13 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 │ Here's the latest on your requests.                                         │
 │                                                                             │
 │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
-│ │My Open Tickets││ Waiting on Me│ │Recently Upd │ │Recently Res. │         │
-│ │      2       │ │      1       │ │      5       │ │      3       │         │
+│ │My Open Tickets││Waiting for Me│ │   Resolved   │ │    Closed    │         │
+│ │      2       │ │      1       │ │      3       │ │      4       │         │
 │ │   View all   │ │   View all   │ │   View all   │ │   View all   │         │
 │ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘         │
 │                                                                             │
 │ ┌───────────────────────────────────────┐  ┌──────────────────────────────┐ │
-│ │ My Recent Tickets            View all │  │ Quick Actions                │ │
+│ │ My Recent Tickets (Top 5)    View all │  │ Quick Actions                │ │
 │ ├───────────────────────────────────────┤  ├──────────────────────────────┤ │
 │ │ TKT-2026-000001 [In Progress] May 12 │  │ [ + Create Ticket ]          │ │
 │ │ Email sync failing on mobile          │  │   Submit a new request       │ │
@@ -167,12 +167,12 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 
 #### Layout Specifications:
 - **Ownership Guarantee**: Strictly displays tickets and metrics owned by the authenticated Requester (`ticket.requesterId === authUser.id`).
-- **Metric Cards Row (4 Cards Matching §4.6)**:
-  1. **My Open Tickets**: Total active tickets (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`). Drill-down: `/tickets?statusGroup=open`.
-  2. **Waiting on Me**: Tickets in `WAITING_FOR_REQUESTER`. Drill-down: `/tickets?currentStatus=WAITING_FOR_REQUESTER`.
-  3. **Recently Updated**: Tickets updated recently. Drill-down: `/tickets`.
-  4. **Recently Resolved**: Tickets in `RESOLVED` or `CLOSED`. Drill-down: `/tickets?statusGroup=resolved`.
-- **Recent Tickets List**: Top 5 recent owned tickets with ID, title, status badge, and timestamp.
+- **Metric Cards Row (4 Aggregate Cards Matching §4.6 & api-spec)**:
+  1. **My Open Tickets (`totalOpen`)**: Total active tickets (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`). Drill-down: `/tickets?statusGroup=open`.
+  2. **Waiting on Me (`waitingForRequester`)**: Tickets in `WAITING_FOR_REQUESTER`. Drill-down: `/tickets?currentStatus=WAITING_FOR_REQUESTER`.
+  3. **Resolved Tickets (`resolvedCount`)**: Tickets in `RESOLVED` status awaiting confirmation. Drill-down: `/tickets?currentStatus=RESOLVED` (or `/tickets?statusGroup=resolved`).
+  4. **Closed Tickets (`closedCount`)**: Tickets in `CLOSED` status. Drill-down: `/tickets?currentStatus=CLOSED`.
+- **Recent Tickets List (`recentTickets`)**: Top 5 recent owned tickets with Ticket ID, title, status badge, and timestamp sorted by `updatedAt DESC`.
 - **Quick Actions Panel**: Direct buttons for *Create Ticket* and *View My Tickets*.
 
 ---
@@ -207,10 +207,11 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
   5. `Action Description` (Required `*`): Textarea (1–2000 chars) with live counter.
   6. `Result` (Required `*`): Textarea (1–2000 chars) with live counter.
   7. `Follow-Up Required?` (Checkbox):
-     - Unchecked: `Follow-up Note` field hidden.
-     - Checked: `Follow-up Note` textarea displays with red required asterisk `*`.
+     - Unchecked: `Follow-up Note` and `Follow-up Done?` fields hidden.
+     - Checked: `Follow-up Note` textarea displays with red required asterisk `*`, and `Follow-up Done?` checkbox appears.
   8. `Follow-up Note` (Conditionally Required `*`): Textarea (1–1000 chars).
-  9. `Attachment Notes` (Optional): Text input (0–500 chars).
+  9. `Follow-up Done?` (Checkbox): Checkbox indicating follow-up execution is complete. When checked, clears resolution blocking (`BR-20`).
+  10. `Attachment Notes` (Optional): Text input (0–500 chars).
 - **Actions**: "Save Action Taken" (with loading spinner & double-click debounce), "Cancel".
 
 #### 4.3.3 Requester View (Read-Only)
@@ -226,7 +227,7 @@ On Staff Ticket Detail, the status selector dynamically lists **only permitted n
 - E.g. When status is `NEW`: options are strictly `[ NEW (current), Open, In Progress, Cancelled ]`.
 - Moving to `RESOLVED` or `CLOSED` requires:
   1. Non-empty `Resolution Summary` input (min 5 chars).
-  2. All Actions Taken must be in terminal state (`COMPLETED` or `CANCELLED`) with no unresolved follow-up (`BR-20`). If pending actions exist, an inline error banner blocks submission.
+  2. All Actions Taken must be in terminal state (`COMPLETED` or `CANCELLED`) and any required follow-up must be completed (`followUpRequired = false` OR `followUpDone = true`) (`BR-20`). If pending/in-progress actions or unresolved follow-ups exist, an inline error banner blocks submission.
 
 #### 4.4.2 Advisory Resolution Banner (Staff View)
 When Requester has signaled "Problem Appears Resolved":
@@ -252,8 +253,8 @@ When an update is rejected due to concurrent modification by another user:
 | **409 Conflict Alert** | Amber banner (`#FFF8E1`, border `#FFA000`, text `#5D4037`) with reload button | Informs user of concurrent modification; offers safe reload trigger. |
 | **Success Toast / Banner** | Pale green banner (`#EAF6EF`, border `#2E7D32`, text `#1B5E20`) | Auto-dismisses after 4 seconds or on user close. |
 | **Empty State** | Quiet card with empty illustration and text (e.g. *"No Actions Taken yet"*) | Displays clear helper text and "+ Log Action Taken" call to action. |
-| **Forbidden (403)** | Zen Green error card with shield/lock icon | *"You do not have permission to perform this action or view this resource."* |
-| **Not Found (404)** | Quiet card with search/magnifying-glass icon | *"The requested ticket could not be found."* (Prevents ID enumeration). |
+| **Forbidden (403)** | Zen Green error card with shield/lock icon | *"You do not have permission to perform this action or view this resource."* (Returned on cross-requester ticket/action access to preserve Lab 2/3 regression tests). |
+| **Not Found (404)** | Quiet card with search/magnifying-glass icon | *"The requested ticket could not be found."* (Returned strictly when ticket ID does not exist in the database). |
 
 ---
 

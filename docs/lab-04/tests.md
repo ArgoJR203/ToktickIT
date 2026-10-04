@@ -13,7 +13,7 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 
 ### 1.2 Actions Taken Backend API Tests (`server/tests/lab-04/actions-taken.api.test.ts`)
 - `API-01`: Retrieve Actions Taken list for owned ticket by Requester (`200 OK`, `BR-09`).
-- `API-02`: Cross-requester ID enumeration protection: Requester querying Actions Taken for another user's ticket receives `404 Not Found` (`code: "NOT_FOUND"`) (`BR-21`).
+- `API-02`: **Requester non-owned ticket authorization protection**: Requester querying Actions Taken for another user's ticket receives `403 Forbidden` (`code: "FORBIDDEN"`), preserving 100% backward-compatibility with Lab 2/3 ticket/attachment isolation tests (`BR-21`).
 - `API-03`: Create valid Action Taken by IT Staff with auto-populated performer and approved assignee (`201 Created`) *(Handout §10 exact, AC-01)*.
 - `API-04`: Multi-staff collaboration: Staff Member B logs Action Taken on a ticket owned by Staff Member A (`BR-02`, `AC-04`).
 - `API-05`: Content validation: Empty description or result returns `400 Bad Request` (`INVALID_INPUT`, `BR-04`).
@@ -31,13 +31,14 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 - `API-11`: Atomic optimistic concurrency collision: Submitting status update with obsolete `version` returns `409 Conflict` (`STALE_UPDATE`) and current ticket state (`BR-14`, `AC-08`).
 - `API-12`: Mandatory resolution summary: Advancing to `RESOLVED` or `CLOSED` without resolution summary returns `400 Bad Request` (`code: "MISSING_RESOLUTION_SUMMARY"`, `BR-13`, `AC-09`).
 - `API-13`: Requester advisory resolution indication: `POST /api/tickets/:id/resolve-indication` sets `resolutionIndicated = true` and logs public comment without changing ticket status (`BR-12`, `AC-03`).
-- `API-22`: Action completion resolution gate: Advancing to `RESOLVED` while an Action Taken under the ticket is in `PENDING` or `IN_PROGRESS` returns `400 Bad Request` (`code: "INCOMPLETE_ACTIONS_TAKEN"`, `BR-20`, `AC-16`).
+- `API-22`: Action completion resolution gate: Advancing to `RESOLVED` while an Action Taken under the ticket is in `PENDING`, `IN_PROGRESS`, or has `followUpRequired=true` with `followUpDone=false` returns `400 Bad Request` (`code: "INCOMPLETE_ACTIONS_TAKEN"`, `BR-20`, `AC-16`).
 
-### 1.4 Role Dashboard API Tests (`requester-dashboard.api.test.ts`, `staff-dashboard.api.test.ts`)
-- `API-14`: Requester dashboard: Returns aggregated metrics (`totalOpen`, `waitingForRequester`, `recentlyUpdated`, `recentlyResolved`) and recent tickets strictly owned by the caller (`200 OK`) *(Handout §10 exact, AC-02)*.
+### 1.4 Role Dashboard API Tests (`requester-dashboard.api.test.ts`, `staff-dashboard.api.test.ts`, `tickets.api.test.ts`)
+- `API-14`: Requester dashboard: Returns aggregated metrics (`totalOpen`, `waitingForRequester`, `resolvedCount`, `closedCount`) and recent tickets strictly owned by the caller (`200 OK`) *(Handout §10 exact, AC-02)*.
 - `API-15`: IT Staff dashboard: Returns operational metrics (unassigned count, assigned to caller, status counts, priority counts) (`200 OK`, `AC-10`).
-- `API-16`: Administrator dashboard extension: When requested by Admin, payload includes `adminStats` with total users (11), active users (9), and counts by role (`200 OK`, `AC-11`).
+- `API-16`: Administrator dashboard extension: When requested by Admin, payload includes `adminStats` computed dynamically via `COUNT(*)` DB queries (e.g. baseline seed: total users 11, active 9, role distribution: 6 requesters, 4 staff, 1 admin; correctly reflects dynamic user additions/deactivations) (`200 OK`, `AC-11`, `BR-17`).
 - `API-17`: Cross-role protection: IT Staff accessing requester dashboard or Requester accessing staff dashboard returns `403 Forbidden` (`BR-15`, `BR-16`).
+- `API-23`: Status group ticket filtering: `GET /api/tickets?statusGroup=open` returns active tickets (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`); `GET /api/tickets?statusGroup=resolved` returns `RESOLVED` and `CLOSED` tickets for requester dashboard drill-down (`200 OK`, `AC-12`, `FR-18`).
 
 ### 1.5 Client UI Component Tests (`client/tests/lab-04/`)
 - `ActionsTaken.test.tsx`:
@@ -81,7 +82,7 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 | **UNIT-04** | Unit | BR-16, BR-18 | Operational dashboard calculation helpers | Accurately aggregates counts by status, priority, and ownership | `server/tests/lab-04/dashboard-calculator.test.ts` | ⏳ Pending |
 | **UNIT-05** | Unit | BR-07, AC-15 | Assignee active status validator | Rejects inactive users or requesters as assignees | `server/tests/lab-04/assignee-validator.test.ts` | ⏳ Pending |
 | **API-01** | API | BR-09 | Requester views Actions Taken on owned ticket | Returns chronological actions list (`200 OK`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-02** | API | BR-21 | Requester non-owned ticket isolation | Returns `404 Not Found` on non-owned ticket (prevents ID guessing) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
+| **API-02** | API | BR-21 | Requester non-owned ticket isolation | Returns `403 Forbidden` on non-owned ticket (preserves Lab 2/3 contract) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
 | **API-03** | API | AC-01, FR-02 | Create valid Action Taken by IT Staff *(Handout §10 exact)* | Created under ticket with auto-assigned performer & approved assignee (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
 | **API-04** | API | BR-02, AC-04 | Multi-staff collaboration on Action Taken | Staff B logs action on ticket owned by Staff A (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
 | **API-05** | API | BR-04 | Actions Taken description/result validation | Rejects empty description or result with `400 Bad Request` | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
@@ -93,15 +94,16 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 | **API-11** | API | BR-14, AC-08 | Optimistic concurrency conflict detection | Atomic CAS rejects write with outdated version returning `409 Conflict` (`STALE_UPDATE`) | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
 | **API-12** | API | BR-13, AC-09 | Mandatory resolution summary on resolution | Requires min 5 chars resolution summary when setting `RESOLVED` (`400 Bad Request`) | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
 | **API-13** | API | BR-12, AC-03 | Requester advisory resolution indication | Flags resolutionIndicated, appends comment, status unchanged (`200 OK`) | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
-| **API-14** | API | AC-02, BR-15 | Requester dashboard metrics isolation *(Handout §10 exact)* | Returns only metrics and recent tickets owned by caller (`200 OK`) | `server/tests/lab-04/requester-dashboard.api.test.ts` | ⏳ Pending |
+| **API-14** | API | AC-02, BR-15 | Requester dashboard metrics isolation *(Handout §10 exact)* | Returns owned aggregate metrics (totalOpen, waiting, resolved, closed) and recent tickets (`200 OK`) | `server/tests/lab-04/requester-dashboard.api.test.ts` | ⏳ Pending |
 | **API-15** | API | AC-10, BR-16 | IT Staff operational dashboard metrics | Returns unassigned, assigned to me, status, priority counts (`200 OK`) | `server/tests/lab-04/staff-dashboard.api.test.ts` | ⏳ Pending |
-| **API-16** | API | AC-11, BR-17 | Administrator dashboard user account metrics | Returns staff metrics plus total users (11), active users (9), role counts (`200 OK`) | `server/tests/lab-04/staff-dashboard.api.test.ts` | ⏳ Pending |
+| **API-16** | API | AC-11, BR-17 | Administrator dashboard user account metrics | Returns staff metrics plus dynamic adminStats computed from DB (`200 OK`) | `server/tests/lab-04/staff-dashboard.api.test.ts` | ⏳ Pending |
 | **API-17** | API | BR-15, BR-16 | Dashboard cross-role authorization restriction | Requesters blocked from staff dashboard; staff blocked from requester dashboard (`403`) | `server/tests/lab-04/staff-dashboard.api.test.ts` | ⏳ Pending |
 | **API-18** | API | BR-03 | Performer spoofing protection | Replaces client-sent `performedById` with authenticated user (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
 | **API-19** | API | BR-04 | Content length boundary testing | 2000 chars accepted (`201 Created`); 2001 chars rejected (`400 Bad Request`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
 | **API-20** | API | BR-04 | Planned future action date acceptance | Accepts future datetime for planned work scheduling (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
 | **API-21** | API | BR-07, AC-15 | Inactive assignee rejection | Assigning inactive staff user returns `400 Bad Request` (`INACTIVE_ASSIGNEE`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-22** | API | BR-20, AC-16 | Incomplete Actions Taken blocks resolution | Resolution rejected with `400 Bad Request` while actions are pending | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
+| **API-22** | API | BR-20, AC-16 | Incomplete Actions Taken blocks resolution | Rejects resolution if actions are PENDING/IN_PROGRESS or followUpRequired=true with followUpDone=false (`400 Bad Request`) | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
+| **API-23** | API | AC-12, FR-18 | Status group ticket filtering | Returns tickets filtered by statusGroup=open\|resolved for drill-downs (`200 OK`) | `server/tests/lab-04/tickets.api.test.ts` | ⏳ Pending |
 | **UI-01** | UI | AC-01, FR-02 | Actions Taken table rendering | Renders chronological actions with datetime, performer, assignee, result | `client/tests/lab-04/ActionsTaken.test.tsx` | ⏳ Pending |
 | **UI-02** | UI | AC-05, BR-05 | Actions Taken modal conditional follow-up | Follow-up note input displays and validates dynamically upon toggle | `client/tests/lab-04/ActionsTaken.test.tsx` | ⏳ Pending |
 | **UI-03** | UI | AC-06, BR-09 | Actions Taken requester read-only mode | Hides create and edit buttons when viewed by ticket Requester | `client/tests/lab-04/ActionsTaken.test.tsx` | ⏳ Pending |
@@ -139,7 +141,7 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 | **AC-09** | Valid ticket resolution requires resolution summary and completed actions | `API-12`, `E2E-02` |
 | **AC-10** | IT Staff dashboard operational counts (unassigned, assigned to me, etc.) | `UNIT-04`, `API-15`, `UI-08`, `E2E-03` |
 | **AC-11** | Administrator dashboard includes user account summary metrics | `API-16`, `UI-08`, `E2E-03` |
-| **AC-12** | Clicking metric cards navigates to filtered ticket queue | `UI-07`, `UI-08`, `E2E-03` |
+| **AC-12** | Clicking metric cards navigates to filtered ticket queue | `API-23`, `UI-07`, `UI-08`, `E2E-03` |
 | **AC-13** | Rapid double-click button submit debouncing prevents duplicate dispatch | `UI-09` |
 | **AC-14** | Full regression verification across all Labs 1–3 capabilities | `MIGR-01`, `E2E-04` |
 | **AC-15** | Inactive staff account rejected as Action Taken assignee | `UNIT-05`, `API-21` |
