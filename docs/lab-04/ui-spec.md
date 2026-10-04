@@ -39,13 +39,19 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 - **REOPENED**: Background `#F3E5F5`, Text `#7B1FA2`, Border `1px solid #CE93D8` (Purple)
 - **CANCELLED**: Background `#FFEBEE`, Text `#C62828`, Border `1px solid #EF9A9A` (Muted Red)
 
-### 2.2 Priority Badges
+### 2.2 Action Taken Status Badges
+- **PENDING**: Background `#FFF9C4`, Text `#F57F17`, Border `1px solid #FFF176` (Yellow)
+- **IN PROGRESS**: Background `#FFF8E1`, Text `#E65100`, Border `1px solid #FFE082` (Warm Amber)
+- **COMPLETED**: Background `#E8F5E9`, Text `#2E7D32`, Border `1px solid #A5D6A7` (Soft Green)
+- **CANCELLED**: Background `#ECEFF1`, Text `#607D8B`, Border `1px solid #CFD8DC` (Neutral Gray)
+
+### 2.3 Priority Badges
 - **LOW**: Background `#E8F5E9`, Text `#2E7D32` (Green)
 - **MEDIUM**: Background `#FFF8E1`, Text `#F57F17` (Amber)
 - **HIGH**: Background `#FFF3E0`, Text `#E65100` (Orange)
 - **URGENT**: Background `#FFEBEE`, Text `#D32F2F`, Font-Weight 700 (Red)
 
-### 2.3 User Role Badges
+### 2.4 User Role Badges
 - **Requester**: Background `#E8F4F8`, Text `#0288D1`, Border `1px solid #B3E5FC`
 - **IT Staff**: Background `#EAF6EF`, Text `#006B3C`, Border `1px solid #A3D9BE`, Font-Weight 600
 - **Administrator**: Background `#F3E5F5`, Text `#6A1B9A`, Border `1px solid #E1BEE7`, Font-Weight 600
@@ -59,23 +65,23 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 - **Brand**: TokTickIT logo with ticket/support icon on left.
 - **Role-Tailored Navigation Tabs**:
   - **Requester**:
-    1. **Dashboard** (Default landing view) -> `/dashboard`
-    2. **My Tickets** -> `/tickets`
-    3. **Create Ticket** -> `/tickets/create`
+    1. **Dashboard** (Default landing view) -> view `dashboard`
+    2. **My Tickets** -> view `tickets`
+    3. **Create Ticket** -> view `create-ticket`
   - **IT Staff**:
-    1. **Dashboard** (Default landing view) -> `/staff/dashboard`
-    2. **Ticket Queue** -> `/staff/tickets`
-    3. **Create Ticket** -> `/tickets/create`
+    1. **Dashboard** (Default landing view) -> view `staff-dashboard`
+    2. **Ticket Queue** -> view `staff-queue`
+    3. **Create Ticket** -> view `create-ticket` *(Permitted for logging work)*
   - **Administrator**:
-    1. **Dashboard** (Default landing view) -> `/staff/dashboard`
-    2. **Ticket Queue** -> `/staff/tickets`
-    3. **User Management** -> `/admin/users`
+    1. **Dashboard** (Default landing view) -> view `staff-dashboard`
+    2. **Ticket Queue** -> view `staff-queue`
+    3. **User Management** -> view `user-management`
 - **Active Tab Styling**:
   - Background `--color-secondary-green` (`#0B7A46`).
   - Bottom indicator: `3px solid #FFFFFF`.
   - Accessible `aria-current="page"`.
 - **User Profile Area (Right)**:
-  - Initials avatar chip (e.g. `[JD]`).
+  - Initials avatar chip (e.g. `[JS]` for John Smith).
   - User full name.
   - Role badge (`Requester` / `IT Staff` / `Admin`).
   - "Logout" button with sign-out icon, styled with subtle border and pale hover fill.
@@ -84,65 +90,55 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 
 ## 4. Screen Layouts & Detailed Mockup Specifications
 
-### 4.1 Screen 1: IT Staff Dashboard (`/staff/dashboard`)
+### 4.1 Screen 1: IT Staff Dashboard
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ TokTickIT   [Dashboard]  [Ticket Queue]  [Create Ticket]         [MA] Admin │
+│ TokTickIT   [Dashboard]  [Ticket Queue]  [Create Ticket]         [JS] Admin │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ Welcome back, Michael!                                          [⟳ Refresh] │
+│ Welcome back, John!                                             [⟳ Refresh] │
 │ Here's what's happening with your queue today.                              │
 │                                                                             │
 │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │
-│ │   New    │ │   Open   │ │In Progress││Waiting Req││My Assigned│            │
-│ │    14    │ │    23    │ │    18    │ │    7     │ │    16    │            │
-│ │ +3 today │ │ -2 today │ │ +1 today │ │ +2 today │ │ +4 today │            │
+│ │Unassigned│ │   Open   │ │In Progress││Waiting Req││My Assigned│            │
+│ │    3     │ │    5     │ │    4     │ │    2     │ │    3     │            │
+│ │   View   │ │   View   │ │   View   │ │   View   │ │   View   │            │
 │ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘            │
 │                                                                             │
 │ ┌───────────────────────────────────────┐  ┌──────────────────────────────┐ │
-│ │ My Recent Tickets            View all │  │ Quick Actions                │ │
+│ │ Recent Queue Tickets         View all │  │ Quick Actions                │ │
 │ ├───────────────────────────────────────┤  ├──────────────────────────────┤ │
-│ │ TKT-2026-000234 [In Progress] May 12 │  │ [ + Create Ticket ]          │ │
-│ │ Laptop battery drains quickly         │  │ [ 🔍 Search Tickets ]        │ │
+│ │ TKT-2026-000001 [In Progress] May 12 │  │ [ + Create Ticket ]          │ │
+│ │ Email sync failing on mobile          │  │ [ 🔍 Search Tickets ]        │ │
 │ ├───────────────────────────────────────┤  │ [ 📋 My Queue ]              │ │
-│ │ TKT-2026-000220 [Open]        May 10 │  │                              │ │
-│ │ Printer keeps showing offline         │  │ Admin Statistics:            │ │
+│ │ TKT-2026-000002 [Open]        May 10 │  │                              │ │
+│ │ Campus Wi-Fi certificate issue        │  │ Admin Statistics:            │ │
 │ ├───────────────────────────────────────┤  │ • Total Users: 11 (9 Active) │ │
-│ │ TKT-2026-000218 [In Progress] May 06 │  │ • Requesters: 5 | Staff: 4    │ │
+│ │ TKT-2026-000003 [Waiting Req] May 06 │  │ • Requesters: 6 \| Staff: 4   │ │
 │ └───────────────────────────────────────┘  └──────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### Layout Specifications:
 - **Greeting Banner**: Personalized greeting (`"Welcome back, {userName}!"`), subtitle, and manual refresh button.
-- **Metric Cards Grid**:
-  - 5 cards displayed in a responsive horizontal grid (`grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))`).
-  - Each card contains:
-    - **Header Label**: `New`, `Open`, `In Progress`, `Waiting for Requester`, `My Assigned`.
-    - **Primary Count**: Bold 32px monospace numeral in `--color-text-main`.
-    - **Context Subtitle**: Trend or status indicator (e.g. `+3 today` or `Requires action`).
-    - **Interactive Drill-Down**: Entire card is keyboard accessible (`tabindex="0"`, `role="link"`), linking directly to `/staff/tickets` with prepopulated query filter:
-      - *New* -> `/staff/tickets?status=NEW`
-      - *Open* -> `/staff/tickets?status=OPEN`
-      - *In Progress* -> `/staff/tickets?status=IN_PROGRESS`
-      - *Waiting for Requester* -> `/staff/tickets?status=WAITING_FOR_REQUESTER`
-      - *My Assigned* -> `/staff/tickets?owner=me`
-- **Recent Queue Panel (Left / Main, 70% width on Desktop)**:
-  - Concise list of 5 most recent tickets requiring attention.
-  - Displays: Ticket ID (monospace), Summary title, Status badge, Timestamp, and click-through link to Ticket Detail.
-  - "View all" header link routes to `/staff/tickets`.
-- **Quick Actions & Admin Panel (Right, 30% width on Desktop)**:
-  - Shortcuts: *Create Ticket* (`/tickets/create`), *Search Tickets* (`/staff/tickets?focusSearch=true`), *My Queue* (`/staff/tickets?owner=me`).
-  - If authenticated user is `ADMINISTRATOR`, renders an additional **Admin Summary Card**:
-    - Total Users count, Active Users count, and role breakdown pill badges.
-- **Responsive Layout**:
-  - `>= 992px`: 5-column metric row, 2-column side-by-side body (70% / 30%).
-  - `768px - 991px`: 3-column / 2-column metric grid, stacked panels.
-  - `< 768px`: 2-column metric cards, stacked full-width panels, 44px min touch targets.
+- **Metric Cards Grid (5 Cards)**:
+  1. **Unassigned**: Count of non-terminal tickets without owner (`ownerId === null`). Drill-down: `/staff/tickets?owner=unassigned`.
+  2. **Open**: Count of tickets in `OPEN` status. Drill-down: `/staff/tickets?currentStatus=OPEN`.
+  3. **In Progress**: Count of tickets in `IN_PROGRESS` status. Drill-down: `/staff/tickets?currentStatus=IN_PROGRESS`.
+  4. **Waiting for Requester**: Count in `WAITING_FOR_REQUESTER`. Drill-down: `/staff/tickets?currentStatus=WAITING_FOR_REQUESTER`.
+  5. **My Assigned**: Count of non-terminal tickets owned by caller (`ownerId === authUser.id`). Drill-down: `/staff/tickets?owner=me`.
+- **Recent Queue Panel (70% width on Desktop)**:
+  - Displays top 5 recent operational tickets with Ticket ID (monospace), title, status badge, and timestamp.
+  - Clicking any ticket navigates directly to Staff Ticket Detail.
+- **Quick Actions & Admin Panel (30% width on Desktop)**:
+  - Shortcuts: *Create Ticket*, *Search Tickets*, *My Queue*.
+  - For Administrators (`role === 'ADMINISTRATOR'`), renders **Admin Statistics Card**:
+    - Total Users: 11 (9 Active, 2 Inactive)
+    - Requesters: 6 | Staff: 4 | Admin: 1
 
 ---
 
-### 4.2 Screen 2: Requester Dashboard (`/dashboard`)
+### 4.2 Screen 2: Requester Dashboard
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -152,101 +148,97 @@ TokTickIT preserves and deepens the **Zen Green Design System** established in L
 │ Here's the latest on your requests.                                         │
 │                                                                             │
 │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
-│ │My Open Tickets││ In Progress  │ │   Resolved   │ │    Closed    │         │
-│ │      3       │ │      2       │ │      5       │ │      12      │         │
+│ │My Open Tickets││ Waiting on Me│ │Recently Upd │ │Recently Res. │         │
+│ │      2       │ │      1       │ │      5       │ │      3       │         │
 │ │   View all   │ │   View all   │ │   View all   │ │   View all   │         │
 │ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘         │
 │                                                                             │
 │ ┌───────────────────────────────────────┐  ┌──────────────────────────────┐ │
 │ │ My Recent Tickets            View all │  │ Quick Actions                │ │
 │ ├───────────────────────────────────────┤  ├──────────────────────────────┤ │
-│ │ TKT-2026-000234 [In Progress] May 12 │  │ [ + Create Ticket ]          │ │
-│ │ Laptop battery drains quickly         │  │   Submit a new request       │ │
+│ │ TKT-2026-000001 [In Progress] May 12 │  │ [ + Create Ticket ]          │ │
+│ │ Email sync failing on mobile          │  │   Submit a new request       │ │
 │ ├───────────────────────────────────────┤  │                              │ │
-│ │ TKT-2026-000222 [Resolved]    May 11 │  │ [ 📋 View My Tickets ]       │ │
-│ │ Request software access               │  │   Track existing requests    │ │
+│ │ TKT-2026-000004 [Resolved]    May 11 │  │ [ 📋 View My Tickets ]       │ │
+│ │ VPN configuration assistance          │  │   Track existing requests    │ │
 │ └───────────────────────────────────────┘  └──────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### Layout Specifications:
 - **Ownership Guarantee**: Strictly displays tickets and metrics owned by the authenticated Requester (`ticket.requesterId === authUser.id`).
-- **Metric Cards Row**:
-  - 4 cards: `My Open Tickets` (all active statuses), `In Progress`, `Resolved`, `Closed`.
-  - Accessible drill-down links navigating to `/tickets` filtered by respective status.
-- **Recent Tickets List**:
-  - Displays top 5 recent owned tickets with ID, title, status badge, and last updated timestamp.
-- **Quick Actions Panel**:
-  - Large button: "+ Create Ticket" (routes to `/tickets/create`).
-  - Button: "View My Tickets" (routes to `/tickets`).
+- **Metric Cards Row (4 Cards Matching §4.6)**:
+  1. **My Open Tickets**: Total active tickets (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`). Drill-down: `/tickets?statusGroup=open`.
+  2. **Waiting on Me**: Tickets in `WAITING_FOR_REQUESTER`. Drill-down: `/tickets?currentStatus=WAITING_FOR_REQUESTER`.
+  3. **Recently Updated**: Tickets updated recently. Drill-down: `/tickets`.
+  4. **Recently Resolved**: Tickets in `RESOLVED` or `CLOSED`. Drill-down: `/tickets?statusGroup=resolved`.
+- **Recent Tickets List**: Top 5 recent owned tickets with ID, title, status badge, and timestamp.
+- **Quick Actions Panel**: Direct buttons for *Create Ticket* and *View My Tickets*.
 
 ---
 
 ### 4.3 Screen 3: Actions Taken on Ticket Detail
 
 #### 4.3.1 Staff & Admin View (Interactive Management)
-The Actions Taken component sits on the Ticket Detail screen immediately below the ticket metadata grid and above the comments/notes tabs:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Actions Taken (3)                                       [+ Log Action Taken]│
+│ Actions Taken (2)                                       [+ Log Action Taken]│
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ Date/Time        Description        Result       Follow-Up   Performed By   │
+│ Date/Time        Description      Result      Status      Assignee / Performer│
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 2026-05-12 10:15 Replaced battery   Passed test  No          Sarah Chen     │
-│                  Ref: img_001.jpg                            [Edit]         │
+│ 2026-05-12 10:15 Replaced battery Passed test [COMPLETED] Sarah Chen (P)    │
+│                  Ref: report.pdf                          Alex Thompson (A) │
+│                                                           [Edit]            │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 2026-05-11 14:30 Diagnostics run    Battery degraded Yes      Michael Adams │
-│                  Follow-up Note: Order replacement part      [Edit]         │
+│ 2026-05-13 14:00 Follow-up test   Pending     [PENDING]   Alex Thompson (P) │
+│ (Planned)        Follow-up Note: Verify telemetry after 48h  Alex Thompson (A) │
+│                                                           [Edit]            │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### 4.3.2 Log / Edit Action Taken Modal Dialog
-When clicking "+ Log Action Taken" or "[Edit]":
-- **Modal Container**: Accessible modal dialog (`role="dialog"`, `aria-modal="true"`), max-width 600px.
+- **Modal Container**: Accessible modal dialog (`role="dialog"`, `aria-modal="true"`), max-width 640px.
 - **Form Fields**:
-  1. `Performed By` (Read-only input): Auto-populated with current authenticated user's name (`--color-field-readonly` background `#F0F4F1`).
-  2. `Action Date/Time` (Required `*`): Datetime-local picker, defaulting to current time. Cannot exceed current datetime.
-  3. `Action Description` (Required `*`): Textarea (min 1, max 2000 chars), placeholder: *"Describe diagnostic steps, repairs, or procedures performed..."*. Live character counter.
-  4. `Result` (Required `*`): Textarea (min 1, max 2000 chars), placeholder: *"Describe the observed outcome, system response, or test result..."*. Live character counter.
-  5. `Follow-Up Required?` (Checkbox / Toggle):
-     - Unchecked: `Follow-up Note` field is hidden or disabled.
-     - Checked: `Follow-up Note` textarea animates into view with red required asterisk `*`.
-  6. `Follow-up Note` (Conditionally Required `*`): Textarea (1–1000 chars). Submitting while blank when toggle is checked displays inline error: *"Follow-up note is required when follow-up is requested."*
-  7. `Attachment Notes` (Optional): Text input (max 500 chars), placeholder: *"e.g. Look for diagnostics.pdf in Attachments tab"*.
-- **Actions**:
-  - Primary button: "Save Action Taken" (with loading spinner).
-  - Secondary button: "Cancel" (dismisses modal).
+  1. `Performed By` (Read-only): Auto-populated with current authenticated user's name (`#F0F4F1`).
+  2. `Assignee` (Optional select): Dropdown of active IT Staff and Admin accounts. Inactive accounts are filtered out; selecting an invalid account yields inline validation error.
+  3. `Action Status` (Select): `COMPLETED` (default for executed actions), `PENDING` (for planned actions), `IN_PROGRESS`, `CANCELLED`.
+  4. `Action Date/Time` (Required `*`): Datetime-local picker. Can be past, present, or future for scheduling upcoming actions.
+  5. `Action Description` (Required `*`): Textarea (1–2000 chars) with live counter.
+  6. `Result` (Required `*`): Textarea (1–2000 chars) with live counter.
+  7. `Follow-Up Required?` (Checkbox):
+     - Unchecked: `Follow-up Note` field hidden.
+     - Checked: `Follow-up Note` textarea displays with red required asterisk `*`.
+  8. `Follow-up Note` (Conditionally Required `*`): Textarea (1–1000 chars).
+  9. `Attachment Notes` (Optional): Text input (0–500 chars).
+- **Actions**: "Save Action Taken" (with loading spinner & double-click debounce), "Cancel".
 
 #### 4.3.3 Requester View (Read-Only)
-- Requesters see all logged Actions Taken under their ticket.
-- Rendered in a clean, read-only card or table layout.
+- Requesters see all logged Actions Taken under their ticket in read-only cards or table.
 - No "+ Log Action Taken" button; no "[Edit]" action links.
-- Clearly displays Action Date/Time, Description, Result, Performed by, and Follow-Up information.
 
 ---
 
 ### 4.4 Screen 4: Ticket Workflow & Concurrency Conflict UI
 
 #### 4.4.1 Dynamic Status Transition Dropdown
-On Staff Ticket Detail, the status selector dynamically lists **only permitted next statuses** according to the transition matrix (`BR-10`):
+On Staff Ticket Detail, the status selector dynamically lists **only permitted next statuses** according to the transition matrix (`BR-11`):
 - E.g. When status is `NEW`: options are strictly `[ NEW (current), Open, In Progress, Cancelled ]`.
-- Moving to `RESOLVED` or `CLOSED` opens a mandatory `Resolution Summary` input prompt (min 5 chars).
+- Moving to `RESOLVED` or `CLOSED` requires:
+  1. Non-empty `Resolution Summary` input (min 5 chars).
+  2. All Actions Taken must be in terminal state (`COMPLETED` or `CANCELLED`) with no unresolved follow-up (`BR-20`). If pending actions exist, an inline error banner blocks submission.
 
 #### 4.4.2 Advisory Resolution Banner (Staff View)
-When a Requester has triggered "Problem Appears Resolved":
-- An informational banner appears at the top of Staff Ticket Detail:
-  - Background `#FFF8E1`, Border `1px solid #FFE082`, Text `#F57F17`.
-  - Icon: Info circle.
-  - Text: *"The requester indicated this problem appears resolved on May 12, 10:45 AM. Please verify the work and formally update the ticket status."*
+When Requester has signaled "Problem Appears Resolved":
+- Amber alert banner at the top of Staff Ticket Detail:
+  *"The requester indicated this problem appears resolved. Please verify the work, check completed actions, and formally update the ticket status."*
 
 #### 4.4.3 Stale-Update 409 Conflict Banner & Recovery
-When an IT Staff user attempts to change status or priority on a ticket that was concurrently updated by another user:
-- Backend responds with `409 Conflict` (`code: "STALE_UPDATE"`).
-- UI displays a prominent conflict banner at the top of the detail panel:
-  - Background `#FFF8E1`, Border `2px solid #FFA000`, Text `#5D4037`.
-  - Text: *"⚠️ Update Conflict: Another staff member has updated this ticket while you were viewing it. Your changes were not saved to prevent overwriting their work."*
-  - Action Button: **"Reload Latest Ticket Data"** (fetches fresh ticket state, updates status badge and version counter, and preserves any unsaved draft comments/notes).
+When an update is rejected due to concurrent modification by another user:
+- Backend responds with `409 Conflict` (`STALE_UPDATE`).
+- UI displays a prominent conflict banner:
+  *"⚠️ Update Conflict: Another staff member has updated this ticket while you were viewing it. Your changes were not saved to prevent overwriting their work."*
+  - Button: **"Reload Latest Ticket Data"** (fetches fresh ticket state, updates status badge and version counter, preserving draft text).
 
 ---
 
@@ -254,14 +246,14 @@ When an IT Staff user attempts to change status or priority on a ticket that was
 
 | Mode / Feedback State | Visual Representation | Component Behavior |
 | :--- | :--- | :--- |
-| **Loading / Busy** | Centered Zen Green spinner (`border-top-color: #006B3C`) or button spinner | Submission buttons disabled, prevents double clicks (`FR-17`). |
+| **Loading / Busy** | Centered Zen Green spinner (`border-top-color: #006B3C`) or button spinner | Submission buttons disabled, prevents double clicks (`FR-19`). |
 | **Field Validation Error** | Red border (`#D32F2F`) on input, red error text directly below control | Triggered on blur or submit; clears dynamically on input keystroke. |
-| **Form Error Banner** | Pale red banner (`#FDECEA`, border `#D32F2F`, text `#D32F2F`) at top of form | Displays server error message; retains user-entered inputs (`FR-18`). |
+| **Form Error Banner** | Pale red banner (`#FDECEA`, border `#D32F2F`, text `#D32F2F`) at top of form | Displays server error message; retains user-entered inputs (`FR-20`). |
 | **409 Conflict Alert** | Amber banner (`#FFF8E1`, border `#FFA000`, text `#5D4037`) with reload button | Informs user of concurrent modification; offers safe reload trigger. |
 | **Success Toast / Banner** | Pale green banner (`#EAF6EF`, border `#2E7D32`, text `#1B5E20`) | Auto-dismisses after 4 seconds or on user close. |
 | **Empty State** | Quiet card with empty illustration and text (e.g. *"No Actions Taken yet"*) | Displays clear helper text and "+ Log Action Taken" call to action. |
 | **Forbidden (403)** | Zen Green error card with shield/lock icon | *"You do not have permission to perform this action or view this resource."* |
-| **Server Down / Offline** | Full-width amber/red alert banner | *"Unable to connect to TokTickIT server. Please check your network connection."* |
+| **Not Found (404)** | Quiet card with search/magnifying-glass icon | *"The requested ticket could not be found."* (Prevents ID enumeration). |
 
 ---
 
@@ -279,23 +271,25 @@ When an IT Staff user attempts to change status or priority on a ticket that was
 
 ---
 
-## 7. Completed Visual & Responsive Checklist (Handout §14 Part 9)
+## 7. Visual & Responsive Checklist (Handout §14 Part 9)
 
-| Checklist Category | Inspection Criterion | Specification & Implementation Evidence | Verification Status |
+| Checklist Category | Inspection Criterion | Specification & Implementation Target | Verification Status |
 | :--- | :--- | :--- | :---: |
-| **Design Consistency** | Uniform Zen Green token palette across all views | Primary `#006B3C`, Secondary `#0B7A46`, Pale `#EAF6EF`, Quiet `#F5F7F6`. No ad-hoc generic colors. | **Verified** |
-| **Role Navigation** | Navigation strictly matches authenticated role | Requester sees Dashboard, My Tickets, Create; Staff sees Dashboard, Queue, Create; Admin sees Dashboard, Queue, User Mgmt. | **Verified** |
-| **Role Header Badges** | User profile shows current authenticated identity | Top right shows User Name, Role Badge (Requester / IT Staff / Admin), and Logout button. | **Verified** |
-| **Status Badges** | Consistent color-coded badges for all 8 statuses | New (Blue), Open (Green), In Progress (Amber), Waiting (Orange), Resolved (Emerald), Closed (Slate), Reopened (Purple), Cancelled (Red). | **Verified** |
-| **Priority Badges** | Distinct visual badges for Requested & IT Priority | Low (Green), Medium (Amber), High (Orange), Urgent (Bold Red). | **Verified** |
-| **Editable vs Read-Only** | Clear visual distinction between field states | Editable fields have white background with neutral border; Read-only fields shaded with `#F0F4F1`. | **Verified** |
-| **Actions Taken Component** | Integrated under Ticket Detail with role security | Staff/Admin see interactive table & modal; Requesters see read-only feed without edit controls. | **Verified** |
-| **Follow-Up Conditional UI** | Follow-up note required only when toggle checked | Dynamic DOM expansion; red asterisk and mandatory validation applied only if `followUpRequired = true`. | **Verified** |
-| **Resolution Summary** | Visible to requester on resolved/closed tickets | Input field for IT Staff in detail view; rendered as styled summary card for Requester. | **Verified** |
-| **Conflict 409 Feedback** | Clear feedback when concurrent write is rejected | Amber conflict alert banner with "Reload Latest Ticket Data" action button preventing data loss. | **Verified** |
-| **Validation Placement** | Field errors rendered directly beneath controls | Red text (`#D32F2F`) below invalid inputs; red asterisk (`*`) on required labels. | **Verified** |
-| **Focus Rings** | High-contrast WCAG AA accessible focus rings | `2px solid #0B7A46` with `outline-offset: 2px` across all interactive elements. | **Verified** |
-| **Touch Targets** | Mobile buttons and interactive elements >= 44px | Mobile buttons and form inputs maintain `min-height: 44px` for touch accessibility. | **Verified** |
-| **Clipping & Overlap** | Zero text clipping, truncation, or element overlap | Long descriptions wrap cleanly; cards expand without clipping metadata. | **Verified** |
-| **Horizontal Overflow** | Zero horizontal scrollbar on any viewport | Verified across Mobile (375px), Tablet (768px), and Desktop (1280px); `overflow-x: hidden`. | **Verified** |
-| **Screenshot Evidence** | Captured across Desktop, Tablet, and Mobile | Organized in `artifacts/lab-04/screenshots/` under `staff-dashboard/`, `requester-dashboard/`, and `actions-taken/`. | **Verified** |
+| **Design Consistency** | Uniform Zen Green token palette across all views | Primary `#006B3C`, Secondary `#0B7A46`, Pale `#EAF6EF`, Quiet `#F5F7F6`. No ad-hoc generic colors. | **Planned (Sprint 4 Contract)** |
+| **Role Navigation** | Navigation strictly matches authenticated role | Requester sees Dashboard, My Tickets, Create; Staff sees Dashboard, Queue, Create; Admin sees Dashboard, Queue, User Mgmt. | **Planned (Sprint 4 Contract)** |
+| **Role Header Badges** | User profile shows current authenticated identity | Top right shows User Name, Role Badge (Requester / IT Staff / Admin), and Logout button. | **Planned (Sprint 4 Contract)** |
+| **Status Badges** | Consistent color-coded badges for all 8 statuses | New (Blue), Open (Green), In Progress (Amber), Waiting (Orange), Resolved (Emerald), Closed (Slate), Reopened (Purple), Cancelled (Red). | **Planned (Sprint 4 Contract)** |
+| **Priority Badges** | Distinct visual badges for Requested & IT Priority | Low (Green), Medium (Amber), High (Orange), Urgent (Bold Red). | **Planned (Sprint 4 Contract)** |
+| **Editable vs Read-Only** | Clear visual distinction between field states | Editable fields have white background with neutral border; Read-only fields shaded with `#F0F4F1`. | **Planned (Sprint 4 Contract)** |
+| **Actions Taken Component** | Integrated under Ticket Detail with role security | Staff/Admin see interactive table & modal; Requesters see read-only feed without edit controls. | **Planned (Sprint 4 Contract)** |
+| **Follow-Up Conditional UI** | Follow-up note required only when toggle checked | Dynamic DOM expansion; red asterisk and mandatory validation applied only if `followUpRequired = true`. | **Planned (Sprint 4 Contract)** |
+| **Resolution Summary** | Visible to requester on resolved/closed tickets | Input field for IT Staff in detail view; rendered as styled summary card for Requester. | **Planned (Sprint 4 Contract)** |
+| **Conflict 409 Feedback** | Clear feedback when concurrent write is rejected | Amber conflict alert banner with "Reload Latest Ticket Data" action button preventing data loss. | **Planned (Sprint 4 Contract)** |
+| **Validation Placement** | Field errors rendered directly beneath controls | Red text (`#D32F2F`) below invalid inputs; red asterisk (`*`) on required labels. | **Planned (Sprint 4 Contract)** |
+| **Focus Rings** | High-contrast WCAG AA accessible focus rings | `2px solid #0B7A46` with `outline-offset: 2px` across all interactive elements. | **Planned (Sprint 4 Contract)** |
+| **Touch Targets** | Mobile buttons and interactive elements >= 44px | Mobile buttons and form inputs maintain `min-height: 44px` for touch accessibility. | **Planned (Sprint 4 Contract)** |
+| **Clipping & Overlap** | Zero text clipping, truncation, or element overlap | Long descriptions wrap cleanly; cards expand without clipping metadata. | **Planned (Sprint 4 Contract)** |
+| **Horizontal Overflow** | Zero horizontal scrollbar on any viewport | Verified across Mobile (375px), Tablet (768px), and Desktop (1280px); `overflow-x: hidden`. | **Planned (Sprint 4 Contract)** |
+| **Screenshot Evidence** | Captured across Desktop, Tablet, and Mobile | Organized in `artifacts/lab-04/screenshots/` under `staff-dashboard/`, `requester-dashboard/`, and `actions-taken/`. | **Planned (Sprint 4 Contract)** |
+
+*Note*: Verification Status will be formally updated to **Verified** alongside captured screenshot evidence during Issue #4-6 (Final Hardening & Release Verification).

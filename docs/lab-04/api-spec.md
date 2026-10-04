@@ -2,17 +2,16 @@
 
 ## 1. Overview & Authentication Architecture
 
-The TokTickIT Lab 4 REST API expands the authenticated services established in Lab 3 with endpoints for **Actions Taken**, authoritative **Ticket Workflow & Optimistic Concurrency**, and **Role-Appropriate Operational Dashboards**.
+The TokTickIT Lab 4 REST API expands the authenticated services established in Lab 3 with endpoints for **Actions Taken**, authoritative **Ticket Workflow & Atomic Optimistic Concurrency Control (OCC)**, and **Role-Appropriate Operational Dashboards**.
 
 ### 1.1 Authentication & Session Handling
 - **Bearer Token**: Transmitted via HTTP header:
   `Authorization: Bearer <jwt-token>`
-  or via secure session cookie `toktickit_session`.
 - **JWT Claims Payload**:
   ```json
   {
-    "userId": 2,
-    "email": "sarah.chen@toktickit.com",
+    "userId": 7,
+    "email": "alex.thompson@toktickit.com",
     "role": "IT_STAFF",
     "mustChangePassword": false,
     "exp": 1773289200
@@ -27,6 +26,7 @@ The TokTickIT Lab 4 REST API expands the authenticated services established in L
 2. `enforcePasswordChange`: Blocks functional access with `403 Forbidden` (`code: "PASSWORD_CHANGE_REQUIRED"`) if `user.mustChangePassword === true`.
 3. `requireRole(Role...)`: Verifies that the authenticated user possesses an authorized role; otherwise returns `403 Forbidden` (`code: "FORBIDDEN_ROLE"`).
 4. `requireTicketAccess`: For ticket-specific resources, ensures Requesters can only access their owned tickets (`ticket.requesterId === authUser.id`), while IT Staff and Administrators have access to all system tickets.
+5. **ID Enumeration Protection (`BR-21`)**: If a Requester requests a ticket ID that does not exist OR belongs to another user, the server returns `404 Not Found` (`code: "NOT_FOUND"`), never `403 Forbidden`, preventing resource enumeration.
 
 ---
 
@@ -52,14 +52,15 @@ All error responses adhere to the unified envelope:
 ### 2.2 Error Codes Reference
 | HTTP Status | Error Code | Meaning & Scenario |
 | :--- | :--- | :--- |
-| `400 Bad Request` | `INVALID_INPUT` | Payload fields failed schema validation or boundary constraints. |
-| `400 Bad Request` | `INVALID_TRANSITION` | Ticket status change violates the permitted transition matrix (`BR-10`). |
+| `400 Bad Request` | `INVALID_INPUT` | Payload fields failed schema validation or boundary constraints (e.g. description > 2000 chars). |
+| `400 Bad Request` | `INACTIVE_ASSIGNEE` | Assignee is an inactive account or not an IT Staff/Admin user (`BR-07`). |
+| `400 Bad Request` | `INCOMPLETE_ACTIONS_TAKEN` | Ticket cannot transition to `RESOLVED` or `CLOSED` while Actions Taken are pending or incomplete (`BR-20`). |
+| `400 Bad Request` | `MISSING_RESOLUTION_SUMMARY` | Ticket resolution or closure requires non-empty resolution summary of at least 5 chars (`BR-13`). |
+| `400 Bad Request` | `INVALID_TRANSITION` | Ticket status change violates the permitted transition matrix (`BR-11`). |
 | `401 Unauthorized` | `UNAUTHENTICATED` | Missing, expired, or revoked authentication credentials. |
 | `403 Forbidden` | `FORBIDDEN_ROLE` | Authenticated user lacks role permissions for the endpoint. |
-| `403 Forbidden` | `OWNERSHIP_VIOLATION` | Requester attempted to access a ticket owned by another user. |
-| `404 Not Found` | `NOT_FOUND` | Resource not found or hidden for security isolation. |
-| `409 Conflict` | `STALE_UPDATE` | Optimistic locking conflict: ticket was concurrently updated by another user (`BR-13`). |
-| `422 Unprocessable` | `UNPROCESSABLE_ENTITY` | Semantic business rule failed (e.g. missing resolution summary). |
+| `404 Not Found` | `NOT_FOUND` | Resource not found or hidden for security isolation (prevents ID guessing). |
+| `409 Conflict` | `STALE_UPDATE` | Optimistic locking collision: ticket or action was concurrently updated by another user (`BR-14`). |
 
 ---
 
@@ -68,24 +69,34 @@ All error responses adhere to the unified envelope:
 ### 3.1 List Actions Taken for Ticket
 - **Endpoint**: `GET /api/tickets/:id/actions-taken`
 - **Access**:
-  - `REQUESTER`: Permitted **only** if `ticket.requesterId === authUser.id` (returns 403 otherwise).
-  - `IT_STAFF`: Permitted for all accessible tickets.
-  - `ADMINISTRATOR`: Permitted for all tickets.
+  - `REQUESTER`: Permitted **only** if `ticket.requesterId === authUser.id`. If ticket belongs to another user or doesn't exist, returns `404 Not Found` (`code: "NOT_FOUND"`) to prevent ID enumeration.
+  - `IT_STAFF` & `ADMINISTRATOR`: Permitted for all accessible tickets.
+- **Ordering**: Strict `ORDER BY actionDateTime DESC, id DESC` (newest actions first).
 - **Success Response (200 OK)**:
 ```json
 {
-  "ticketId": 42,
+  "ticketId": 1,
   "actionsTaken": [
     {
       "id": 101,
-      "ticketId": 42,
-      "performedById": 2,
+      "ticketId": 1,
+      "performedById": 7,
       "performedBy": {
-        "id": 2,
-        "name": "Sarah Chen",
-        "email": "sarah.chen@toktickit.com",
+        "id": 7,
+        "name": "Alex Thompson",
+        "email": "alex.thompson@toktickit.com",
         "role": "IT_STAFF"
       },
+      "assigneeId": 8,
+      "assignee": {
+        "id": 8,
+        "name": "Lisa Martinez",
+        "email": "lisa.martinez@toktickit.com",
+        "role": "IT_STAFF"
+      },
+      "updatedById": null,
+      "status": "COMPLETED",
+      "version": 1,
       "actionDateTime": "2026-05-12T10:15:00.000Z",
       "description": "Replaced degraded battery unit with genuine spare part.",
       "result": "Passed all hardware diagnostics tests; battery health 100%.",
@@ -97,22 +108,32 @@ All error responses adhere to the unified envelope:
     },
     {
       "id": 102,
-      "ticketId": 42,
-      "performedById": 3,
+      "ticketId": 1,
+      "performedById": 7,
       "performedBy": {
-        "id": 3,
-        "name": "Michael Adams",
-        "email": "michael.adams@toktickit.com",
+        "id": 7,
+        "name": "Alex Thompson",
+        "email": "alex.thompson@toktickit.com",
         "role": "IT_STAFF"
       },
-      "actionDateTime": "2026-05-11T14:30:00.000Z",
-      "description": "Performed thermal inspection and power cycle benchmark.",
-      "result": "Battery discharge rate exceeds threshold by 45%.",
+      "assigneeId": 7,
+      "assignee": {
+        "id": 7,
+        "name": "Alex Thompson",
+        "email": "alex.thompson@toktickit.com",
+        "role": "IT_STAFF"
+      },
+      "updatedById": null,
+      "status": "PENDING",
+      "version": 1,
+      "actionDateTime": "2026-05-14T09:00:00.000Z",
+      "description": "Perform 48-hour follow-up battery telemetry benchmark.",
+      "result": "Pending execution.",
       "followUpRequired": true,
-      "followUpNote": "Order replacement battery from central hardware inventory.",
+      "followUpNote": "Verify charge cycles and heat dissipation curve.",
       "attachmentNotes": null,
-      "createdAt": "2026-05-11T14:32:00.000Z",
-      "updatedAt": "2026-05-11T14:32:00.000Z"
+      "createdAt": "2026-05-12T10:20:00.000Z",
+      "updatedAt": "2026-05-12T10:20:00.000Z"
     }
   ]
 }
@@ -126,42 +147,56 @@ All error responses adhere to the unified envelope:
 - **Request Body**:
 ```json
 {
-  "actionDateTime": "2026-05-12T10:15:00.000Z",
-  "description": "Replaced degraded battery unit with genuine spare part.",
-  "result": "Passed all hardware diagnostics tests; battery health 100%.",
+  "actionDateTime": "2026-05-14T09:00:00.000Z",
+  "assigneeId": 8,
+  "status": "PENDING",
+  "description": "Perform 48-hour follow-up battery telemetry benchmark.",
+  "result": "Pending execution.",
   "followUpRequired": true,
-  "followUpNote": "Verify battery status with requester after 48 hours of normal usage.",
-  "attachmentNotes": "Refer to battery_diagnostic_report.pdf in Attachments."
+  "followUpNote": "Verify charge cycles and heat dissipation curve.",
+  "attachmentNotes": "Reference diagnostics.pdf in Attachments tab."
 }
 ```
 - **Validation Rules**:
-  - `actionDateTime`: Optional ISO 8601 string. If omitted, server assigns `now()`. Cannot be in the future (`<= now()`).
+  - `actionDateTime`: Optional ISO 8601 string. Can be past, present, or future (for planning upcoming work). Defaults to current time if omitted.
+  - `assigneeId`: Optional integer. If provided, must reference an active user with role `IT_STAFF` or `ADMINISTRATOR`. Inactive accounts return `400 Bad Request` (`INACTIVE_ASSIGNEE`).
+  - `status`: Optional enum (`PENDING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`). Defaults to `COMPLETED` for executed work, or `PENDING` for planned work.
   - `description`: String, required, 1 to 2000 characters after trimming whitespace.
   - `result`: String, required, 1 to 2000 characters after trimming whitespace.
   - `followUpRequired`: Boolean, optional (default `false`).
   - `followUpNote`: String (1 to 1000 characters). Strictly required if `followUpRequired === true`. Must be null/empty if `false`.
   - `attachmentNotes`: String, optional (0 to 500 characters).
-  - `performedById`: Auto-populated from the authenticated JWT session (`req.user.id`). Any client-supplied `performedById` is ignored.
+  - `performedById`: Auto-populated from the authenticated JWT session (`req.user.id`). Any client-supplied `performedById` is ignored/overwritten.
 - **Success Response (201 Created)**:
 ```json
 {
   "id": 103,
-  "ticketId": 42,
-  "performedById": 2,
+  "ticketId": 1,
+  "performedById": 7,
   "performedBy": {
-    "id": 2,
-    "name": "Sarah Chen",
-    "email": "sarah.chen@toktickit.com",
+    "id": 7,
+    "name": "Alex Thompson",
+    "email": "alex.thompson@toktickit.com",
     "role": "IT_STAFF"
   },
-  "actionDateTime": "2026-05-12T10:15:00.000Z",
-  "description": "Replaced degraded battery unit with genuine spare part.",
-  "result": "Passed all hardware diagnostics tests; battery health 100%.",
+  "assigneeId": 8,
+  "assignee": {
+    "id": 8,
+    "name": "Lisa Martinez",
+    "email": "lisa.martinez@toktickit.com",
+    "role": "IT_STAFF"
+  },
+  "updatedById": null,
+  "status": "PENDING",
+  "version": 1,
+  "actionDateTime": "2026-05-14T09:00:00.000Z",
+  "description": "Perform 48-hour follow-up battery telemetry benchmark.",
+  "result": "Pending execution.",
   "followUpRequired": true,
-  "followUpNote": "Verify battery status with requester after 48 hours of normal usage.",
-  "attachmentNotes": "Refer to battery_diagnostic_report.pdf in Attachments.",
-  "createdAt": "2026-05-12T10:16:00.000Z",
-  "updatedAt": "2026-05-12T10:16:00.000Z"
+  "followUpNote": "Verify charge cycles and heat dissipation curve.",
+  "attachmentNotes": "Reference diagnostics.pdf in Attachments tab.",
+  "createdAt": "2026-05-12T10:20:00.000Z",
+  "updatedAt": "2026-05-12T10:20:00.000Z"
 }
 ```
 
@@ -170,74 +205,80 @@ All error responses adhere to the unified envelope:
 ### 3.3 Update Action Taken
 - **Endpoint**: `PATCH /api/tickets/:id/actions-taken/:actionId`
 - **Access**: `IT_STAFF`, `ADMINISTRATOR`
-- **Request Body** (Partial updates supported):
+- **Request Body** (Supports partial updates with optional optimistic locking `version`):
 ```json
 {
-  "description": "Updated action description with revised calibration data.",
-  "result": "Output calibrated to standard operating parameters.",
+  "status": "COMPLETED",
+  "result": "Telemetry confirmed normal power draw and stable discharge curve.",
   "followUpRequired": false,
   "followUpNote": null,
-  "attachmentNotes": "Added calibration log to Attachments."
+  "version": 1
 }
 ```
-- **Behavior**:
-  - Updates the specified fields.
+- **Concurrency & Audit Behavior**:
+  - If `version` is provided, executes atomic compare-and-swap:
+    `prisma.actionTaken.updateMany({ where: { id: actionId, version }, data: { ... } })`.
+    If `count === 0`, responds with `409 Conflict` (`STALE_UPDATE`).
+  - Sets `updatedById = req.user.id` and updates `updatedAt = NOW()`.
+  - Increments `version` by 1.
   - Preserves original `id`, `ticketId`, `performedById`, and `createdAt`.
-  - Updates `updatedAt` timestamp.
-- **Success Response (200 OK)**: Returns the updated Action Taken object.
+- **Success Response (200 OK)**: Returns the updated Action Taken record.
 
 ---
 
-## 4. Ticket Workflow & Optimistic Concurrency Endpoints
+## 4. Ticket Workflow & Atomic Concurrency Endpoints
 
-### 4.1 Update Ticket Status (with Concurrency Protection)
+### 4.1 Update Ticket Status
 - **Endpoint**: `PATCH /api/staff/tickets/:id/status`
 - **Access**: `IT_STAFF`, `ADMINISTRATOR`
 - **Request Body**:
 ```json
 {
-  "currentStatus": "RESOLVED",
-  "version": 3,
-  "resolutionSummary": "Replaced failing network adapter and updated driver package. Connectivity verified."
+  "status": "RESOLVED",
+  "version": 2,
+  "resolutionSummary": "Replaced battery and verified telemetry stability. Issue resolved."
 }
 ```
+*Note: Accepts either `status` or `currentStatus` for seamless backward compatibility with Lab 3.*
+
 - **Parameters & Validation**:
-  - `currentStatus`: String (Enum), required. Must be one of permitted transitions from the ticket's current status (`BR-10`).
-  - `version`: Integer, required. Represents the current version observed by the client.
-  - `resolutionSummary`: String (5 to 2000 characters). Strictly required when transitioning to `RESOLVED` or `CLOSED` (`BR-12`).
-- **Optimistic Concurrency Detection**:
-  - The server reads the existing ticket within a transaction.
-  - If `ticket.version !== body.version`:
-    - Aborts update.
-    - Responds with `409 Conflict` (`code: "STALE_UPDATE"`):
-    ```json
-    {
-      "error": {
-        "code": "STALE_UPDATE",
-        "message": "Ticket has been modified by another user. Please reload the latest ticket data.",
-        "details": {
-          "submittedVersion": 3,
-          "currentVersion": 4,
-          "currentTicket": {
-            "id": 42,
-            "ticketNumber": "TKT-2026-000042",
-            "currentStatus": "IN_PROGRESS",
-            "version": 4,
-            "updatedAt": "2026-05-12T10:45:00.000Z"
-          }
-        }
-      }
+  - `status` / `currentStatus`: Required string. Must be a valid transition from the ticket's current status (`BR-11`).
+  - `version`: Optional integer. When provided, enables atomic compare-and-swap concurrency checking.
+  - `resolutionSummary`: Required (min 5 chars) if target status is `RESOLVED` or `CLOSED` (`BR-13`).
+- **Action Completion Gate (`BR-20`)**:
+  - If target status is `RESOLVED` or `CLOSED`, queries:
+    `SELECT COUNT(*) FROM ActionTaken WHERE ticketId = $1 AND (status IN ('PENDING', 'IN_PROGRESS') OR followUpRequired = true)`
+  - If incomplete actions exist, rejects with `400 Bad Request` (`code: "INCOMPLETE_ACTIONS_TAKEN"`, message: *"Cannot resolve or close ticket while actions taken remain pending or incomplete."*).
+- **Atomic OCC Check (`BR-14`)**:
+  ```ts
+  const result = await prisma.ticket.updateMany({
+    where: { id: ticketId, version: submittedVersion },
+    data: {
+      currentStatus: nextStatus,
+      resolutionSummary,
+      version: { increment: 1 },
     }
-    ```
+  });
+  if (result.count === 0) {
+    const currentTicket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    return res.status(409).json({
+      error: {
+        code: "STALE_UPDATE",
+        message: "Ticket has been modified by another user. Please reload the latest ticket data.",
+        details: { currentTicket }
+      }
+    });
+  }
+  ```
 - **Success Response (200 OK)**:
 ```json
 {
-  "id": 42,
-  "ticketNumber": "TKT-2026-000042",
+  "id": 1,
+  "ticketNumber": "TKT-2026-000001",
   "currentStatus": "RESOLVED",
-  "resolutionSummary": "Replaced failing network adapter and updated driver package. Connectivity verified.",
-  "version": 4,
-  "updatedAt": "2026-05-12T10:50:00.000Z"
+  "resolutionSummary": "Replaced battery and verified telemetry stability. Issue resolved.",
+  "version": 3,
+  "updatedAt": "2026-05-12T11:00:00.000Z"
 }
 ```
 
@@ -246,22 +287,16 @@ All error responses adhere to the unified envelope:
 ### 4.2 Indicate Problem Appears Resolved (Advisory Gate)
 - **Endpoint**: `POST /api/tickets/:id/resolve-indication`
 - **Access**: `REQUESTER` (strictly owned tickets only)
-- **Request Body**: Optional note
-```json
-{
-  "note": "Software patch installed and error no longer occurs."
-}
-```
 - **Behavior**:
   - Validates ticket status is in `('OPEN', 'IN_PROGRESS', 'WAITING_FOR_REQUESTER')`.
   - Sets `resolutionIndicated = true` and `resolutionIndicatedAt = NOW()`.
-  - Does **not** change `currentStatus` (`BR-11`).
+  - Does **not** change `currentStatus` (`BR-12`).
   - Appends an automated Public Comment: *"Requester indicated that the problem appears resolved. Awaiting IT Staff review."*
 - **Success Response (200 OK)**:
 ```json
 {
-  "id": 42,
-  "ticketNumber": "TKT-2026-000042",
+  "id": 1,
+  "ticketNumber": "TKT-2026-000001",
   "currentStatus": "IN_PROGRESS",
   "resolutionIndicated": true,
   "resolutionIndicatedAt": "2026-05-12T11:00:00.000Z",
@@ -281,26 +316,26 @@ All error responses adhere to the unified envelope:
 ```json
 {
   "metrics": {
-    "totalOpen": 3,
-    "inProgress": 2,
-    "resolved": 5,
-    "closed": 12
+    "totalOpen": 2,
+    "waitingForRequester": 1,
+    "recentlyUpdated": 5,
+    "recentlyResolved": 3
   },
   "recentTickets": [
     {
-      "id": 42,
-      "ticketNumber": "TKT-2026-000042",
-      "summary": "Laptop battery drains quickly",
+      "id": 1,
+      "ticketNumber": "TKT-2026-000001",
+      "summary": "Email sync failing on mobile",
       "currentStatus": "IN_PROGRESS",
       "requestedPriority": "HIGH",
-      "category": { "name": "Hardware" },
+      "category": { "name": "Account and Access" },
       "updatedAt": "2026-05-12T10:15:00.000Z"
     },
     {
-      "id": 38,
-      "ticketNumber": "TKT-2026-000038",
-      "summary": "Need VPN software configuration",
-      "currentStatus": "RESOLVED",
+      "id": 4,
+      "ticketNumber": "TKT-2026-000004",
+      "summary": "VPN configuration assistance",
+      "currentStatus": "WAITING_FOR_REQUESTER",
       "requestedPriority": "MEDIUM",
       "category": { "name": "Network" },
       "updatedAt": "2026-05-11T16:20:00.000Z"
@@ -308,9 +343,9 @@ All error responses adhere to the unified envelope:
   ],
   "drillDownUrls": {
     "totalOpen": "/tickets?statusGroup=open",
-    "inProgress": "/tickets?status=IN_PROGRESS",
-    "resolved": "/tickets?status=RESOLVED",
-    "closed": "/tickets?status=CLOSED"
+    "waitingForRequester": "/tickets?currentStatus=WAITING_FOR_REQUESTER",
+    "recentlyUpdated": "/tickets",
+    "recentlyResolved": "/tickets?statusGroup=resolved"
   }
 }
 ```
@@ -324,67 +359,66 @@ All error responses adhere to the unified envelope:
 ```json
 {
   "metrics": {
-    "unassignedCount": 14,
-    "assignedToMeCount": 16,
+    "unassignedCount": 3,
+    "assignedToMeCount": 3,
     "countsByStatus": {
-      "NEW": 14,
-      "OPEN": 23,
-      "IN_PROGRESS": 18,
-      "WAITING_FOR_REQUESTER": 7,
-      "RESOLVED": 25,
-      "CLOSED": 80,
-      "REOPENED": 2,
-      "CANCELLED": 5
+      "NEW": 2,
+      "OPEN": 5,
+      "IN_PROGRESS": 4,
+      "WAITING_FOR_REQUESTER": 2,
+      "RESOLVED": 4,
+      "CLOSED": 6,
+      "REOPENED": 1,
+      "CANCELLED": 1
     },
     "countsByPriority": {
-      "LOW": 10,
-      "MEDIUM": 25,
-      "HIGH": 20,
-      "URGENT": 7
+      "LOW": 4,
+      "MEDIUM": 8,
+      "HIGH": 7,
+      "URGENT": 2
     }
   },
   "recentTickets": [
     {
-      "id": 55,
-      "ticketNumber": "TKT-2026-000055",
-      "summary": "Core router intermittent packet loss",
-      "currentStatus": "NEW",
-      "itPriority": "URGENT",
-      "owner": null,
-      "requester": { "name": "Bob Smith" },
-      "updatedAt": "2026-05-12T11:20:00.000Z"
-    },
-    {
-      "id": 42,
-      "ticketNumber": "TKT-2026-000042",
-      "summary": "Laptop battery drains quickly",
+      "id": 1,
+      "ticketNumber": "TKT-2026-000001",
+      "summary": "Email sync failing on mobile",
       "currentStatus": "IN_PROGRESS",
       "itPriority": "HIGH",
-      "owner": { "id": 2, "name": "Sarah Chen" },
+      "owner": { "id": 7, "name": "Alex Thompson" },
       "requester": { "name": "Jennifer Anderson" },
       "updatedAt": "2026-05-12T10:15:00.000Z"
+    },
+    {
+      "id": 2,
+      "ticketNumber": "TKT-2026-000002",
+      "summary": "Campus Wi-Fi certificate issue",
+      "currentStatus": "OPEN",
+      "itPriority": "URGENT",
+      "owner": null,
+      "requester": { "name": "Sarah Johnson" },
+      "updatedAt": "2026-05-10T14:30:00.000Z"
     }
   ],
   "adminStats": {
     "totalUsers": 11,
     "activeUsers": 9,
     "usersByRole": {
-      "REQUESTER": 5,
+      "REQUESTER": 6,
       "IT_STAFF": 4,
-      "ADMINISTRATOR": 2
+      "ADMINISTRATOR": 1
     }
   },
   "drillDownUrls": {
     "unassigned": "/staff/tickets?owner=unassigned",
     "assignedToMe": "/staff/tickets?owner=me",
-    "new": "/staff/tickets?status=NEW",
-    "open": "/staff/tickets?status=OPEN",
-    "inProgress": "/staff/tickets?status=IN_PROGRESS",
-    "waitingForRequester": "/staff/tickets?status=WAITING_FOR_REQUESTER"
+    "open": "/staff/tickets?currentStatus=OPEN",
+    "inProgress": "/staff/tickets?currentStatus=IN_PROGRESS",
+    "waitingForRequester": "/staff/tickets?currentStatus=WAITING_FOR_REQUESTER"
   }
 }
 ```
-*Note*: `adminStats` is included in the payload if and only if `authUser.role === 'ADMINISTRATOR'`. For `IT_STAFF`, `adminStats` is `null` or omitted.
+*Note: `adminStats` is included if and only if `authUser.role === 'ADMINISTRATOR'`. For `IT_STAFF`, `adminStats` is `null`.*
 
 ---
 
@@ -400,9 +434,9 @@ All prior APIs continue operating without breaking changes:
 | `/api/auth/change-password` | `POST` | All | Updates user password, enforcing complexity. |
 | `/api/categories` | `GET` | All | Retrieves active ticket categories. |
 | `/api/related-systems` | `GET` | All | Retrieves related systems (supports `?categoryId`). |
-| `/api/tickets` | `POST` | Requester | Submits new ticket. Copies `requestedPriority` to `itPriority`. |
+| `/api/tickets` | `POST` | All active | Submits new ticket. Copies `requestedPriority` to `itPriority`. |
 | `/api/tickets` | `GET` | Requester | Lists owned tickets with pagination and filtering. |
-| `/api/tickets/:id` | `GET` | Requester | Gets owned ticket detail, attachments, and comments. |
+| `/api/tickets/:id` | `GET` | Requester | Gets owned ticket detail (404 for non-owners). |
 | `/api/tickets/:id/attachments` | `POST` | Requester | Uploads file attachment (max 5MB, JPG/PNG/WEBP/PDF). |
 | `/api/attachments/:id/download`| `GET` | All (authorized)| Binary stream download (returns `410 Gone` if removed). |
 | `/api/attachments/:id` | `DELETE` | Requester | Soft-removes attachment with audit reason. |
