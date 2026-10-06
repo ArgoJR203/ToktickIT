@@ -76,19 +76,19 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Initial Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
-| **UNIT-01** | Unit | BR-04, BR-05 | Actions Taken content & follow-up validation | Enforces 1–2000 chars; requires follow-up note only if followUpRequired is true | `server/tests/lab-04/actions-taken-validator.test.ts` | ⏳ Pending |
+| **UNIT-01** | Unit | BR-04, BR-05 | Actions Taken content & follow-up validation | Enforces 1–2000 chars; requires follow-up note only if followUpRequired is true | `server/tests/lab-04/actions-taken-validator.test.ts` | ✅ Passed |
 | **UNIT-02** | Unit | BR-14, AC-08 | Optimistic concurrency version check | Rejects mismatched version; accepts matching version | `server/tests/lab-04/concurrency-validator.test.ts` | ⏳ Pending |
 | **UNIT-03** | Unit | BR-10, BR-11 | Status transition state machine logic | Allows legal transitions (including `CLOSED -> REOPENED`); blocks illegal skips | `server/tests/lab-04/workflow-transition-validator.test.ts` | ⏳ Pending |
 | **UNIT-04** | Unit | BR-16, BR-18 | Operational dashboard calculation helpers | Accurately aggregates counts by status, priority, and ownership | `server/tests/lab-04/dashboard-calculator.test.ts` | ⏳ Pending |
-| **UNIT-05** | Unit | BR-07, AC-15 | Assignee active status validator | Rejects inactive users or requesters as assignees | `server/tests/lab-04/assignee-validator.test.ts` | ⏳ Pending |
-| **API-01** | API | BR-09 | Requester views Actions Taken on owned ticket | Returns chronological actions list (`200 OK`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-02** | API | BR-21 | Requester non-owned ticket isolation | Returns `403 Forbidden` on non-owned ticket (preserves Lab 2/3 contract) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-03** | API | AC-01, FR-02 | Create valid Action Taken by IT Staff *(Handout §10 exact)* | Created under ticket with auto-assigned performer & approved assignee (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-04** | API | BR-02, AC-04 | Multi-staff collaboration on Action Taken | Staff B logs action on ticket owned by Staff A (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-05** | API | BR-04 | Actions Taken description/result validation | Rejects empty description or result with `400 Bad Request` | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-06** | API | BR-05, AC-05 | Conditional follow-up note validation | Rejects missing follow-up note when followUpRequired is true (`400 Bad Request`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-07** | API | BR-09, AC-06 | Requester forbidden from creating Action Taken | Write attempt rejected with `403 Forbidden` (`FORBIDDEN_ROLE`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-08** | API | FR-08 | IT Staff updates existing Action Taken | Updates description, result, status with atomic OCC check (`200 OK`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
+| **UNIT-05** | Unit | BR-07, AC-15 | Assignee active status validator | Rejects inactive users or requesters as assignees | `server/tests/lab-04/assignee-validator.test.ts` | ✅ Passed |
+| **API-01** | API | BR-09 | Requester views Actions Taken on owned ticket | Returns chronological actions list (`200 OK`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-02** | API | BR-21 | Requester non-owned ticket isolation | Returns `403 Forbidden` on non-owned ticket (preserves Lab 2/3 contract) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-03** | API | AC-01, FR-02 | Create valid Action Taken by IT Staff *(Handout §10 exact)* | Created under ticket with auto-assigned performer & approved assignee (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-04** | API | BR-02, AC-04 | Multi-staff collaboration on Action Taken | Staff B logs action on ticket owned by Staff A (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-05** | API | BR-04 | Actions Taken description/result validation | Rejects empty description or result with `400 Bad Request` | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-06** | API | BR-05, AC-05 | Conditional follow-up note validation | Rejects missing follow-up note when followUpRequired is true (`400 Bad Request`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-07** | API | BR-09, AC-06 | Requester forbidden from creating Action Taken | Write attempt rejected with `403 Forbidden` (`FORBIDDEN_ROLE`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-08** | API | FR-08 | IT Staff updates existing Action Taken | Updates description, result, status with atomic OCC check (`200 OK`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
 | **API-09** | API | BR-11 | Permitted ticket status transition | Updates status from `OPEN` to `IN_PROGRESS`, increments version (`200 OK`) | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
 | **API-10** | API | BR-11, AC-07 | Illegal status transition rejection | Rejects jump from `NEW` to `RESOLVED` with `400 Bad Request` | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
 | **API-11** | API | BR-14, AC-08 | Optimistic concurrency conflict detection | Atomic CAS rejects write with outdated version returning `409 Conflict` (`STALE_UPDATE`) | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
@@ -98,10 +98,10 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 | **API-15** | API | AC-10, BR-16 | IT Staff operational dashboard metrics | Returns unassigned, assigned to me, status, priority counts (`200 OK`) | `server/tests/lab-04/staff-dashboard.api.test.ts` | ⏳ Pending |
 | **API-16** | API | AC-11, BR-17 | Administrator dashboard user account metrics | Returns staff metrics plus dynamic adminStats computed from DB (`200 OK`) | `server/tests/lab-04/staff-dashboard.api.test.ts` | ⏳ Pending |
 | **API-17** | API | BR-15, BR-16 | Dashboard cross-role authorization restriction | Requesters blocked from staff dashboard; staff blocked from requester dashboard (`403`) | `server/tests/lab-04/staff-dashboard.api.test.ts` | ⏳ Pending |
-| **API-18** | API | BR-03 | Performer spoofing protection | Replaces client-sent `performedById` with authenticated user (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-19** | API | BR-04 | Content length boundary testing | 2000 chars accepted (`201 Created`); 2001 chars rejected (`400 Bad Request`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-20** | API | BR-04 | Planned future action date acceptance | Accepts future datetime for planned work scheduling (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
-| **API-21** | API | BR-07, AC-15 | Inactive assignee rejection | Assigning inactive staff user returns `400 Bad Request` (`INACTIVE_ASSIGNEE`) | `server/tests/lab-04/actions-taken.api.test.ts` | ⏳ Pending |
+| **API-18** | API | BR-03 | Performer spoofing protection | Replaces client-sent `performedById` with authenticated user (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-19** | API | BR-04 | Content length boundary testing | 2000 chars accepted (`201 Created`); 2001 chars rejected (`400 Bad Request`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-20** | API | BR-04 | Planned future action date acceptance | Accepts future datetime for planned work scheduling (`201 Created`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
+| **API-21** | API | BR-07, AC-15 | Inactive assignee rejection | Assigning inactive staff user returns `400 Bad Request` (`INACTIVE_ASSIGNEE`) | `server/tests/lab-04/actions-taken.api.test.ts` | ✅ Passed |
 | **API-22** | API | BR-20, AC-16 | Incomplete Actions Taken blocks resolution | Rejects resolution if actions are PENDING/IN_PROGRESS or followUpRequired=true with followUpDone=false (`400 Bad Request`) | `server/tests/lab-04/ticket-workflow.api.test.ts` | ⏳ Pending |
 | **API-23** | API | AC-12, FR-18 | Status group ticket filtering | Returns tickets filtered by statusGroup=open\|resolved for drill-downs (`200 OK`) | `server/tests/lab-04/tickets.api.test.ts` | ⏳ Pending |
 | **UI-01** | UI | AC-01, FR-02 | Actions Taken table rendering | Renders chronological actions with datetime, performer, assignee, result | `client/tests/lab-04/ActionsTaken.test.tsx` | ⏳ Pending |

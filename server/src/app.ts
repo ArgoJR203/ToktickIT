@@ -7,6 +7,7 @@ import { uploadMiddleware } from "./middleware/upload.js";
 import { authRouter } from "./routes/auth.js";
 import { staffRouter } from "./routes/staff.js";
 import { adminRouter } from "./routes/admin.js";
+import { actionsTakenRouter } from "./routes/actions-taken.js";
 import { authenticate, enforcePasswordChange, requireRole } from "./middleware/auth.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
@@ -22,6 +23,11 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/staff", staffRouter);
 app.use("/api/admin", adminRouter);
+
+// ---------------------------------------------------------------------------
+// Lab 4 — Actions Taken Routes (Issue #4-2)
+// ---------------------------------------------------------------------------
+app.use("/api/tickets", actionsTakenRouter);
 
 // Protected endpoints for RBAC and password change gating verification
 app.get("/api/test/gated-endpoint", authenticate, enforcePasswordChange, (_req: Request, res: Response) => {
