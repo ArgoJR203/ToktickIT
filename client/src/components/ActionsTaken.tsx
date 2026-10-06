@@ -95,6 +95,18 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
     loadActions();
   }, [loadActions]);
 
+  // Handle keyboard Escape to close modal (WCAG AA accessibility)
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSubmitting) {
+        handleCloseModal();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen, isSubmitting]);
+
   // Open modal for Logging new action
   const handleOpenCreateModal = () => {
     setEditingAction(null);
@@ -160,6 +172,8 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
 
     if (!actionDateTime) {
       errors.actionDateTime = "Action date/time is required.";
+    } else if (isNaN(new Date(actionDateTime).getTime())) {
+      errors.actionDateTime = "Invalid date/time format.";
     }
 
     if (followUpRequired) {
@@ -517,7 +531,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
 
                     <div className="d-flex justify-content-between align-items-center pt-2 border-top mt-2 small">
                       <div className="text-muted">
-                        <span>By {act.performedBy?.name}</span>
+                        <span>By {act.performedBy?.name || "System"}</span>
                         {act.assignee && <span> → {act.assignee.name}</span>}
                       </div>
 
@@ -572,14 +586,15 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
               <form onSubmit={handleSubmit} noValidate>
                 <div className="modal-body p-4" style={{ maxHeight: "75vh", overflowY: "auto" }}>
                   {/* Stale Update 409 Conflict Banner */}
-                  {conflictAction && (
+                  {(conflictAction || (modalError && modalError.toLowerCase().includes("conflict"))) && (
                     <div className="alert alert-conflict p-3 mb-3 rounded" data-testid="action-conflict-banner">
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
                           <strong>⚠️ Concurrent Update Collision:</strong>
                           <div className="small mt-1">
-                            This action was concurrently updated by another staff member (Version {conflictAction.version}).
-                            Your changes cannot be saved directly over their work.
+                            {conflictAction
+                              ? `This action was concurrently updated by another staff member (Version ${conflictAction.version}). Your changes cannot be saved directly over their work.`
+                              : modalError || "This action was concurrently modified by another user. Please reload the latest data."}
                           </div>
                         </div>
                         <button
@@ -595,7 +610,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                   )}
 
                   {/* General Modal Error */}
-                  {modalError && !conflictAction && (
+                  {modalError && !conflictAction && !modalError.toLowerCase().includes("conflict") && (
                     <div className="alert alert-danger py-2 small mb-3" data-testid="modal-error-alert">
                       {modalError}
                     </div>

@@ -315,4 +315,80 @@ describe("ActionsTaken Component Tests (UI-01, UI-02, UI-03 / Issue #4-3)", () =
     expect(await screen.findByTestId("no-actions-message")).toBeInTheDocument();
     expect(screen.getByText("No actions taken logged yet.")).toBeInTheDocument();
   });
+
+  // ---------------------------------------------------------------------------
+  // RESP-01: Mobile card layout and touch targets (AC-01, RESP-01)
+  // ---------------------------------------------------------------------------
+  it("RESP-01: renders mobile card layout with performer fallback and touch targets >= 44px", async () => {
+    // Include an action with missing performedBy to verify null fallback
+    const actionsWithNullPerformer: api.ActionTakenItem[] = [
+      {
+        ...mockActions[0],
+        id: 104,
+        performedBy: undefined as any,
+      },
+    ];
+    vi.mocked(api.fetchActionsTaken).mockResolvedValueOnce(actionsWithNullPerformer);
+
+    renderComponent(mockStaffUser);
+
+    // Mobile list container is rendered
+    expect(await screen.findByTestId("actions-mobile-cards")).toBeInTheDocument();
+
+    // Mobile card for action 104
+    const mobileCard = screen.getByTestId("action-card-104");
+    expect(mobileCard).toBeInTheDocument();
+    expect(mobileCard).toHaveTextContent("By System");
+
+    // Verify touch target for mobile edit button
+    const mobileEditBtn = screen.getByTestId("mobile-edit-action-btn-104");
+    expect(mobileEditBtn).toBeInTheDocument();
+    expect(mobileEditBtn).toHaveStyle({ minHeight: "44px" });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Accessibility: Escape key modal dismissal (WCAG AA)
+  // ---------------------------------------------------------------------------
+  it("dismisses modal when Escape key is pressed (WCAG AA accessibility)", async () => {
+    renderComponent(mockStaffUser);
+
+    const logBtn = await screen.findByTestId("log-action-btn");
+    fireEvent.click(logBtn);
+    expect(screen.getByTestId("action-taken-modal")).toBeInTheDocument();
+
+    // Press Escape
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    // Modal should be dismissed
+    expect(screen.queryByTestId("action-taken-modal")).not.toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Validation: Missing datetime rejection
+  // ---------------------------------------------------------------------------
+  it("rejects missing datetime during form validation", async () => {
+    renderComponent(mockStaffUser);
+
+    const logBtn = await screen.findByTestId("log-action-btn");
+    fireEvent.click(logBtn);
+
+    // Fill valid description & result
+    fireEvent.change(screen.getByTestId("action-description-input"), {
+      target: { value: "Checked optical fiber splice" },
+    });
+    fireEvent.change(screen.getByTestId("action-result-input"), {
+      target: { value: "Optical loss within tolerance" },
+    });
+
+    // Clear datetime input
+    fireEvent.change(screen.getByTestId("action-datetime-input"), {
+      target: { value: "" },
+    });
+
+    fireEvent.click(screen.getByTestId("save-action-btn"));
+
+    expect(await screen.findByText(/Action date\/time is required/i)).toBeInTheDocument();
+    expect(api.createActionTaken).not.toHaveBeenCalled();
+  });
 });
+
