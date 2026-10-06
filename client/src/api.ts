@@ -1159,4 +1159,158 @@ export async function resetAdminUserPassword(
   return data;
 }
 
+// ---------------------------------------------------------------------------
+// Lab 4 — Actions Taken APIs (Issue #4-2, #4-3)
+// ---------------------------------------------------------------------------
+
+export type ActionStatusType = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface ActionTakenUser {
+  id: number;
+  name: string;
+  email?: string;
+  role: string;
+}
+
+export interface ActionTakenItem {
+  id: number;
+  ticketId: number;
+  performedById: number;
+  performedBy: ActionTakenUser;
+  assigneeId: number | null;
+  assignee: ActionTakenUser | null;
+  updatedById: number | null;
+  status: ActionStatusType;
+  version: number;
+  actionDateTime: string;
+  description: string;
+  result: string;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  followUpDone: boolean;
+  attachmentNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenPayload {
+  description: string;
+  result: string;
+  status?: ActionStatusType;
+  actionDateTime?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  followUpDone?: boolean;
+  attachmentNotes?: string | null;
+}
+
+export interface UpdateActionTakenPayload {
+  description?: string;
+  result?: string;
+  status?: ActionStatusType;
+  actionDateTime?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  followUpDone?: boolean;
+  attachmentNotes?: string | null;
+  version?: number;
+}
+
+/**
+ * Fetch Actions Taken for a ticket (Issue #4-2, #4-3)
+ */
+export async function fetchActionsTaken(ticketId: number): Promise<ActionTakenItem[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load actions taken.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data.actionsTaken || [];
+}
+
+/**
+ * Create a new Action Taken under a ticket (Issue #4-2, #4-3)
+ */
+export async function createActionTaken(
+  ticketId: number,
+  payload: CreateActionTakenPayload
+): Promise<ActionTakenItem> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to create action taken.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).field = data?.error?.field;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+/**
+ * Update an existing Action Taken with optimistic concurrency control (Issue #4-2, #4-3)
+ */
+export async function updateActionTaken(
+  ticketId: number,
+  actionId: number,
+  payload: UpdateActionTakenPayload
+): Promise<ActionTakenItem> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken/${actionId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to update action taken.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).currentAction = data?.currentAction || data?.error?.details?.currentAction;
+    (err as any).field = data?.error?.field;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+
 
