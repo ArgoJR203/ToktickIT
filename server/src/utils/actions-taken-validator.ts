@@ -42,9 +42,10 @@ export function parseBoolean(val: unknown): boolean {
     const lower = val.trim().toLowerCase();
     if (lower === "true" || lower === "1") return true;
     if (lower === "false" || lower === "0") return false;
+    return false;
   }
-  if (typeof val === "number") return val !== 0;
-  return Boolean(val);
+  if (typeof val === "number") return val === 1;
+  return false;
 }
 
 export function validateActionTaken(input: ActionTakenInput, isPartialUpdate = false): ActionValidationResult {
@@ -116,6 +117,22 @@ export function validateActionTaken(input: ActionTakenInput, isPartialUpdate = f
 
   // 3. Action Date/Time validation (BR-04)
   if (input.actionDateTime !== undefined && input.actionDateTime !== null) {
+    if (typeof input.actionDateTime !== "string" && !(input.actionDateTime instanceof Date)) {
+      return {
+        isValid: false,
+        errorCode: "INVALID_DATETIME",
+        message: "Action date/time must be a valid ISO datetime format.",
+        field: "actionDateTime",
+      };
+    }
+    if (typeof input.actionDateTime === "string" && input.actionDateTime.trim().length === 0) {
+      return {
+        isValid: false,
+        errorCode: "INVALID_DATETIME",
+        message: "Action date/time must be a valid ISO datetime format.",
+        field: "actionDateTime",
+      };
+    }
     const parsedDate = new Date(input.actionDateTime);
     if (isNaN(parsedDate.getTime())) {
       return {

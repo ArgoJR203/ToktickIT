@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ActionStatus } from "@prisma/client";
-import { validateActionTaken } from "../../src/utils/actions-taken-validator.js";
+import { validateActionTaken, parseBoolean } from "../../src/utils/actions-taken-validator.js";
 
 /**
  * UNIT-01: Actions Taken Content & Follow-up Validator (Issue #4-2 / Handout §10)
@@ -186,5 +186,34 @@ describe("UNIT-01: Actions Taken Content & Follow-up Validator", () => {
       true // isPartialUpdate
     );
     expect(result.isValid).toBe(true);
+  });
+
+  it("rejects non-string or non-date types for actionDateTime", () => {
+    const boolDate = validateActionTaken({
+      ...validBaseAction,
+      actionDateTime: true as unknown as string,
+    });
+    expect(boolDate.isValid).toBe(false);
+    expect(boolDate.errorCode).toBe("INVALID_DATETIME");
+
+    const blankDate = validateActionTaken({
+      ...validBaseAction,
+      actionDateTime: "   ",
+    });
+    expect(blankDate.isValid).toBe(false);
+    expect(blankDate.errorCode).toBe("INVALID_DATETIME");
+  });
+
+  it("parseBoolean treats invalid strings and non-boolean types safely", () => {
+    expect(parseBoolean("true")).toBe(true);
+    expect(parseBoolean("1")).toBe(true);
+    expect(parseBoolean(true)).toBe(true);
+    expect(parseBoolean(1)).toBe(true);
+    expect(parseBoolean("false")).toBe(false);
+    expect(parseBoolean("0")).toBe(false);
+    expect(parseBoolean(0)).toBe(false);
+    expect(parseBoolean("invalid")).toBe(false);
+    expect(parseBoolean(null)).toBe(false);
+    expect(parseBoolean(undefined)).toBe(false);
   });
 });

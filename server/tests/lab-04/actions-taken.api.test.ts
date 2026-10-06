@@ -686,5 +686,72 @@ describe("Lab 4 Actions Taken REST API Integration Tests (API-01..08, API-18..21
     expect(alphaAssignee.status).toBe(400);
     expect(alphaAssignee.body.error.code).toBe("INVALID_INPUT");
   });
+
+  it("API-INPUT-HARDEN: rejects float assigneeId, non-positive/float version, and superfluous followUpNote on PATCH", async () => {
+    // 1. Float assigneeId rejected
+    const floatAssigneeRes = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        description: "Test float assignee",
+        result: "Diagnostic ok",
+        assigneeId: 7.5,
+      });
+    expect(floatAssigneeRes.status).toBe(400);
+    expect(floatAssigneeRes.body.error.code).toBe("INVALID_INPUT");
+
+    // 2. Create valid action to test PATCH hardening
+    const createRes = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        description: "Action for hardening checks",
+        result: "Ready",
+        followUpRequired: false,
+        followUpDone: true, // Should be forced to false since followUpRequired is false
+        attachmentNotes: "   ", // Blank string should be sanitized to null
+      });
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.followUpDone).toBe(false);
+    expect(createRes.body.attachmentNotes).toBeNull();
+    const actionId = createRes.body.id;
+    const version = createRes.body.version;
+
+    // 3. Float version rejected with 400
+    const floatVersionRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionId}`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        result: "Updating with float version",
+        version: 1.5,
+      });
+    expect(floatVersionRes.status).toBe(400);
+    expect(floatVersionRes.body.error.code).toBe("INVALID_INPUT");
+
+    // 4. Negative / zero version rejected with 400
+    const zeroVersionRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionId}`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        result: "Updating with zero version",
+        version: 0,
+      });
+    expect(zeroVersionRes.status).toBe(400);
+    expect(zeroVersionRes.body.error.code).toBe("INVALID_INPUT");
+
+    // 5. PATCH with followUpRequired: false and non-empty followUpNote rejected with 400 (BR-05)
+    const badNoteRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionId}`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        followUpRequired: false,
+        followUpNote: "Should not have note when follow-up is false",
+        version,
+      });
+    expect(badNoteRes.status).toBe(400);
+    expect(badNoteRes.body.error.code).toBe("INVALID_INPUT");
+    expect(badNoteRes.body.error.message).toContain("must be empty when follow-up is not required");
+  });
 });
+
 

@@ -142,17 +142,23 @@ actionsTakenRouter.post(
       // Assignee validation if provided (BR-07, AC-15)
       let parsedAssigneeId: number | null = null;
       if (req.body.assigneeId !== undefined && req.body.assigneeId !== null) {
-        if (typeof req.body.assigneeId === "string" && !/^\d+$/.test(req.body.assigneeId)) {
+        if (typeof req.body.assigneeId !== "number" && typeof req.body.assigneeId !== "string") {
           return res.status(400).json({
             error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
           });
         }
-        parsedAssigneeId = parseInt(String(req.body.assigneeId), 10);
-        if (isNaN(parsedAssigneeId) || parsedAssigneeId <= 0) {
+        if (typeof req.body.assigneeId === "string" && !/^\d+$/.test(req.body.assigneeId.trim())) {
           return res.status(400).json({
             error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
           });
         }
+        const candidateNum = Number(req.body.assigneeId);
+        if (!Number.isInteger(candidateNum) || candidateNum <= 0) {
+          return res.status(400).json({
+            error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
+          });
+        }
+        parsedAssigneeId = candidateNum;
 
         const candidateUser = await getPrisma().user.findUnique({
           where: { id: parsedAssigneeId },
@@ -177,8 +183,10 @@ actionsTakenRouter.post(
       const status = req.body.status || "COMPLETED";
       const followUpRequired = parseBoolean(req.body.followUpRequired);
       const followUpNote = followUpRequired && typeof req.body.followUpNote === "string" ? req.body.followUpNote.trim() : null;
-      const followUpDone = parseBoolean(req.body.followUpDone);
-      const attachmentNotes = typeof req.body.attachmentNotes === "string" ? req.body.attachmentNotes.trim() : null;
+      const followUpDone = followUpRequired ? parseBoolean(req.body.followUpDone) : false;
+      const attachmentNotes = typeof req.body.attachmentNotes === "string" && req.body.attachmentNotes.trim().length > 0
+        ? req.body.attachmentNotes.trim()
+        : null;
 
       const newAction = await getPrisma().actionTaken.create({
         data: {
@@ -281,17 +289,23 @@ actionsTakenRouter.patch(
         if (req.body.assigneeId === null) {
           parsedAssigneeId = null;
         } else {
-          if (typeof req.body.assigneeId === "string" && !/^\d+$/.test(req.body.assigneeId)) {
+          if (typeof req.body.assigneeId !== "number" && typeof req.body.assigneeId !== "string") {
             return res.status(400).json({
               error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
             });
           }
-          parsedAssigneeId = parseInt(String(req.body.assigneeId), 10);
-          if (isNaN(parsedAssigneeId) || parsedAssigneeId <= 0) {
+          if (typeof req.body.assigneeId === "string" && !/^\d+$/.test(req.body.assigneeId.trim())) {
             return res.status(400).json({
               error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
             });
           }
+          const candidateNum = Number(req.body.assigneeId);
+          if (!Number.isInteger(candidateNum) || candidateNum <= 0) {
+            return res.status(400).json({
+              error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
+            });
+          }
+          parsedAssigneeId = candidateNum;
 
           const candidateUser = await getPrisma().user.findUnique({
             where: { id: parsedAssigneeId },
@@ -331,6 +345,17 @@ actionsTakenRouter.patch(
             },
           });
         }
+      } else if (req.body.followUpRequired !== undefined && !targetFollowUpRequired) {
+        // If followUpRequired is explicitly turned off and followUpNote is provided non-empty, reject (BR-05)
+        if (typeof req.body.followUpNote === "string" && req.body.followUpNote.trim().length > 0) {
+          return res.status(400).json({
+            error: {
+              code: "INVALID_INPUT",
+              message: "Follow-up note must be empty when follow-up is not required.",
+              field: "followUpNote",
+            },
+          });
+        }
       }
 
       // Build update data
@@ -344,28 +369,44 @@ actionsTakenRouter.patch(
       if (req.body.status !== undefined) updateData.status = req.body.status;
       if (req.body.actionDateTime !== undefined) updateData.actionDateTime = new Date(req.body.actionDateTime);
       if (parsedAssigneeId !== undefined) updateData.assigneeId = parsedAssigneeId;
-      if (req.body.followUpRequired !== undefined) updateData.followUpRequired = targetFollowUpRequired;
+      if (req.body.followUpRequired !== undefined) {
+        updateData.followUpRequired = targetFollowUpRequired;
+        if (!targetFollowUpRequired) {
+          updateData.followUpNote = null;
+          updateData.followUpDone = false;
+        }
+      }
       if (req.body.followUpNote !== undefined) {
         updateData.followUpNote = targetFollowUpRequired ? (typeof req.body.followUpNote === "string" ? req.body.followUpNote.trim() : null) : null;
-      } else if (req.body.followUpRequired !== undefined && !targetFollowUpRequired) {
-        updateData.followUpNote = null;
       }
-      if (req.body.followUpDone !== undefined) updateData.followUpDone = parseBoolean(req.body.followUpDone);
-      if (req.body.attachmentNotes !== undefined) updateData.attachmentNotes = typeof req.body.attachmentNotes === "string" ? req.body.attachmentNotes.trim() : null;
+      if (targetFollowUpRequired && req.body.followUpDone !== undefined) {
+        updateData.followUpDone = parseBoolean(req.body.followUpDone);
+      }
+      if (req.body.attachmentNotes !== undefined) {
+        updateData.attachmentNotes = typeof req.body.attachmentNotes === "string" && req.body.attachmentNotes.trim().length > 0
+          ? req.body.attachmentNotes.trim()
+          : null;
+      }
 
       // Optimistic concurrency control (BR-14)
       if (req.body.version !== undefined && req.body.version !== null) {
-        if (typeof req.body.version === "string" && !/^\d+$/.test(req.body.version)) {
+        if (typeof req.body.version !== "number" && typeof req.body.version !== "string") {
           return res.status(400).json({
-            error: { code: "INVALID_INPUT", message: "Version must be an integer." },
+            error: { code: "INVALID_INPUT", message: "Version must be a positive integer." },
           });
         }
-        const submittedVersion = parseInt(String(req.body.version), 10);
-        if (isNaN(submittedVersion)) {
+        if (typeof req.body.version === "string" && !/^\d+$/.test(req.body.version.trim())) {
           return res.status(400).json({
-            error: { code: "INVALID_INPUT", message: "Version must be an integer." },
+            error: { code: "INVALID_INPUT", message: "Version must be a positive integer." },
           });
         }
+        const candidateVersion = Number(req.body.version);
+        if (!Number.isInteger(candidateVersion) || candidateVersion <= 0) {
+          return res.status(400).json({
+            error: { code: "INVALID_INPUT", message: "Version must be a positive integer." },
+          });
+        }
+        const submittedVersion = candidateVersion;
 
         const updateResult = await getPrisma().actionTaken.updateMany({
           where: {
@@ -410,6 +451,12 @@ actionsTakenRouter.patch(
           updatedBy: { select: { id: true, name: true, email: true, role: true } },
         },
       });
+
+      if (!updatedAction) {
+        return res.status(404).json({
+          error: { code: "NOT_FOUND", message: "Action Taken not found." },
+        });
+      }
 
       return res.status(200).json(updatedAction);
     } catch (err) {
