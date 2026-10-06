@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { getPrisma } from "../prisma.js";
 import { authenticate, enforcePasswordChange, requireRole } from "../middleware/auth.js";
-import { validateActionTaken } from "../utils/actions-taken-validator.js";
+import { validateActionTaken, parseBoolean } from "../utils/actions-taken-validator.js";
 import { validateAssignee } from "../utils/assignee-validator.js";
 
 export const actionsTakenRouter = Router();
@@ -10,11 +10,16 @@ export const actionsTakenRouter = Router();
  * GET /api/tickets/:id/actions-taken
  * Retrieve list of Actions Taken for a ticket in descending chronological order.
  * Access:
- * - REQUESTER: Permitted strictly for owned tickets; 403 Forbidden for non-owned tickets (BR-21).
+ * - REQUESTER: Permitted strictly for owned tickets; 403 Forbidden for non-owned tickets (BR-21). Staff emails are omitted for privacy.
  * - IT_STAFF / ADMINISTRATOR: Permitted for all accessible tickets.
  */
 actionsTakenRouter.get("/:id/actions-taken", authenticate, enforcePasswordChange, async (req: Request, res: Response) => {
   try {
+    if (!/^\d+$/.test(req.params.id)) {
+      return res.status(400).json({
+        error: { code: "INVALID_INPUT", message: "Ticket ID must be a positive integer." },
+      });
+    }
     const ticketId = parseInt(req.params.id, 10);
     if (isNaN(ticketId) || ticketId <= 0) {
       return res.status(400).json({
@@ -59,9 +64,25 @@ actionsTakenRouter.get("/:id/actions-taken", authenticate, enforcePasswordChange
       },
     });
 
+    // Requester privacy: omit staff emails for requesters, matching PublicComment pattern
+    const sanitizedActions = actionsTaken.map((action) => {
+      if (req.user!.role === "REQUESTER") {
+        return {
+          ...action,
+          performedBy: action.performedBy
+            ? { id: action.performedBy.id, name: action.performedBy.name, role: action.performedBy.role }
+            : null,
+          assignee: action.assignee
+            ? { id: action.assignee.id, name: action.assignee.name, role: action.assignee.role }
+            : null,
+        };
+      }
+      return action;
+    });
+
     return res.status(200).json({
       ticketId,
-      actionsTaken,
+      actionsTaken: sanitizedActions,
     });
   } catch (err) {
     console.error("Error in GET /api/tickets/:id/actions-taken:", err);
@@ -83,6 +104,11 @@ actionsTakenRouter.post(
   requireRole("IT_STAFF", "ADMINISTRATOR"),
   async (req: Request, res: Response) => {
     try {
+      if (!/^\d+$/.test(req.params.id)) {
+        return res.status(400).json({
+          error: { code: "INVALID_INPUT", message: "Ticket ID must be a positive integer." },
+        });
+      }
       const ticketId = parseInt(req.params.id, 10);
       if (isNaN(ticketId) || ticketId <= 0) {
         return res.status(400).json({
@@ -116,10 +142,15 @@ actionsTakenRouter.post(
       // Assignee validation if provided (BR-07, AC-15)
       let parsedAssigneeId: number | null = null;
       if (req.body.assigneeId !== undefined && req.body.assigneeId !== null) {
-        parsedAssigneeId = parseInt(req.body.assigneeId, 10);
-        if (isNaN(parsedAssigneeId)) {
+        if (typeof req.body.assigneeId === "string" && !/^\d+$/.test(req.body.assigneeId)) {
           return res.status(400).json({
-            error: { code: "INVALID_INPUT", message: "Assignee ID must be an integer." },
+            error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
+          });
+        }
+        parsedAssigneeId = parseInt(String(req.body.assigneeId), 10);
+        if (isNaN(parsedAssigneeId) || parsedAssigneeId <= 0) {
+          return res.status(400).json({
+            error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
           });
         }
 
@@ -144,10 +175,10 @@ actionsTakenRouter.post(
 
       const actionDateTime = req.body.actionDateTime ? new Date(req.body.actionDateTime) : new Date();
       const status = req.body.status || "COMPLETED";
-      const followUpRequired = Boolean(req.body.followUpRequired);
-      const followUpNote = followUpRequired ? req.body.followUpNote.trim() : null;
-      const followUpDone = Boolean(req.body.followUpDone);
-      const attachmentNotes = req.body.attachmentNotes ? req.body.attachmentNotes.trim() : null;
+      const followUpRequired = parseBoolean(req.body.followUpRequired);
+      const followUpNote = followUpRequired && typeof req.body.followUpNote === "string" ? req.body.followUpNote.trim() : null;
+      const followUpDone = parseBoolean(req.body.followUpDone);
+      const attachmentNotes = typeof req.body.attachmentNotes === "string" ? req.body.attachmentNotes.trim() : null;
 
       const newAction = await getPrisma().actionTaken.create({
         data: {
@@ -196,6 +227,12 @@ actionsTakenRouter.patch(
   requireRole("IT_STAFF", "ADMINISTRATOR"),
   async (req: Request, res: Response) => {
     try {
+      if (!/^\d+$/.test(req.params.id) || !/^\d+$/.test(req.params.actionId)) {
+        return res.status(400).json({
+          error: { code: "INVALID_INPUT", message: "Invalid ticket ID or action ID." },
+        });
+      }
+
       const ticketId = parseInt(req.params.id, 10);
       const actionId = parseInt(req.params.actionId, 10);
 
@@ -244,10 +281,15 @@ actionsTakenRouter.patch(
         if (req.body.assigneeId === null) {
           parsedAssigneeId = null;
         } else {
-          parsedAssigneeId = parseInt(req.body.assigneeId, 10);
-          if (isNaN(parsedAssigneeId)) {
+          if (typeof req.body.assigneeId === "string" && !/^\d+$/.test(req.body.assigneeId)) {
             return res.status(400).json({
-              error: { code: "INVALID_INPUT", message: "Assignee ID must be an integer." },
+              error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
+            });
+          }
+          parsedAssigneeId = parseInt(String(req.body.assigneeId), 10);
+          if (isNaN(parsedAssigneeId) || parsedAssigneeId <= 0) {
+            return res.status(400).json({
+              error: { code: "INVALID_INPUT", message: "Assignee ID must be a positive integer." },
             });
           }
 
@@ -268,9 +310,9 @@ actionsTakenRouter.patch(
         }
       }
 
-      // Combined follow-up validation
+      // Combined follow-up validation: merge submitted body with existing action state
       const targetFollowUpRequired =
-        req.body.followUpRequired !== undefined ? Boolean(req.body.followUpRequired) : existingAction.followUpRequired;
+        req.body.followUpRequired !== undefined ? parseBoolean(req.body.followUpRequired) : existingAction.followUpRequired;
       const targetFollowUpNote =
         req.body.followUpNote !== undefined ? req.body.followUpNote : existingAction.followUpNote;
 
@@ -302,14 +344,23 @@ actionsTakenRouter.patch(
       if (req.body.status !== undefined) updateData.status = req.body.status;
       if (req.body.actionDateTime !== undefined) updateData.actionDateTime = new Date(req.body.actionDateTime);
       if (parsedAssigneeId !== undefined) updateData.assigneeId = parsedAssigneeId;
-      if (req.body.followUpRequired !== undefined) updateData.followUpRequired = Boolean(req.body.followUpRequired);
-      if (req.body.followUpNote !== undefined) updateData.followUpNote = targetFollowUpRequired ? req.body.followUpNote.trim() : null;
-      if (req.body.followUpDone !== undefined) updateData.followUpDone = Boolean(req.body.followUpDone);
-      if (req.body.attachmentNotes !== undefined) updateData.attachmentNotes = req.body.attachmentNotes ? req.body.attachmentNotes.trim() : null;
+      if (req.body.followUpRequired !== undefined) updateData.followUpRequired = targetFollowUpRequired;
+      if (req.body.followUpNote !== undefined) {
+        updateData.followUpNote = targetFollowUpRequired ? (typeof req.body.followUpNote === "string" ? req.body.followUpNote.trim() : null) : null;
+      } else if (req.body.followUpRequired !== undefined && !targetFollowUpRequired) {
+        updateData.followUpNote = null;
+      }
+      if (req.body.followUpDone !== undefined) updateData.followUpDone = parseBoolean(req.body.followUpDone);
+      if (req.body.attachmentNotes !== undefined) updateData.attachmentNotes = typeof req.body.attachmentNotes === "string" ? req.body.attachmentNotes.trim() : null;
 
       // Optimistic concurrency control (BR-14)
       if (req.body.version !== undefined && req.body.version !== null) {
-        const submittedVersion = parseInt(req.body.version, 10);
+        if (typeof req.body.version === "string" && !/^\d+$/.test(req.body.version)) {
+          return res.status(400).json({
+            error: { code: "INVALID_INPUT", message: "Version must be an integer." },
+          });
+        }
+        const submittedVersion = parseInt(String(req.body.version), 10);
         if (isNaN(submittedVersion)) {
           return res.status(400).json({
             error: { code: "INVALID_INPUT", message: "Version must be an integer." },
@@ -338,6 +389,7 @@ actionsTakenRouter.patch(
             error: {
               code: "STALE_UPDATE",
               message: "Conflict: This action was modified by another user. Please reload the latest data.",
+              details: { currentAction: freshAction },
             },
             currentAction: freshAction,
           });

@@ -485,4 +485,206 @@ describe("Lab 4 Actions Taken REST API Integration Tests (API-01..08, API-18..21
     expect(res.body.error.code).toBe("INACTIVE_ASSIGNEE");
     expect(res.body.error.message).toContain("inactive");
   });
+
+  // ---------------------------------------------------------------------------
+  // Additional Edge-Case & Feedback Tests
+  // ---------------------------------------------------------------------------
+  it("API-07b: rejects Requester attempting to edit/PATCH an Action Taken with 403 Forbidden (AC-06 / BR-09)", async () => {
+    // Staff creates an action first
+    const createRes = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        description: "Action to test Requester edit block",
+        result: "Staff execution",
+      });
+    expect(createRes.status).toBe(201);
+    const actionId = createRes.body.id;
+
+    // Requester attempts to PATCH the action
+    const patchRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionId}`)
+      .set("Authorization", `Bearer ${requester1Token}`)
+      .send({
+        result: "Requester trying to tamper with action",
+      });
+
+    expect(patchRes.status).toBe(403);
+  });
+
+  it("API-AUTH: rejects unauthenticated requests with 401 Unauthorized across endpoints", async () => {
+    const getRes = await request(app).get(`/api/tickets/${ticketUser1.id}/actions-taken`);
+    expect(getRes.status).toBe(401);
+
+    const postRes = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .send({ description: "Test", result: "Test" });
+    expect(postRes.status).toBe(401);
+
+    const patchRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/1`)
+      .send({ result: "Test" });
+    expect(patchRes.status).toBe(401);
+  });
+
+  it("API-CROSS: returns 404 Not Found when PATCHing an action belonging to a different ticket", async () => {
+    // Create action under ticketUser2
+    const createRes = await request(app)
+      .post(`/api/tickets/${ticketUser2.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff2Token}`)
+      .send({
+        description: "Action under ticket 2",
+        result: "Done",
+      });
+    expect(createRes.status).toBe(201);
+    const actionUnderTicket2 = createRes.body.id;
+
+    // Attempt to PATCH that action under ticketUser1
+    const patchRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionUnderTicket2}`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        result: "Cross-ticket update attempt",
+      });
+
+    expect(patchRes.status).toBe(404);
+    expect(patchRes.body.error.code).toBe("NOT_FOUND");
+    expect(patchRes.body.error.message).toContain("not found under this ticket");
+  });
+
+  it("API-UNVERSIONED: increments version when PATCHing without providing version field", async () => {
+    const createRes = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        description: "Unversioned patch test",
+        result: "Initial state",
+      });
+    expect(createRes.status).toBe(201);
+    const actionId = createRes.body.id;
+    const initialVersion = createRes.body.version; // 1
+
+    const patchRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionId}`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        result: "Updated state without explicit version",
+      });
+
+    expect(patchRes.status).toBe(200);
+    expect(patchRes.body.version).toBe(initialVersion + 1);
+  });
+
+  it("API-PATCH-FOLLOWUP: allows PATCH with followUpRequired: true and followUpDone: true without resending followUpNote (Issue 1 / api-spec §3.3)", async () => {
+    // 1. Create action with existing followUpNote
+    const createRes = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        description: "Power unit replacement diagnostic",
+        result: "Initial diagnostics ok",
+        status: "IN_PROGRESS",
+        followUpRequired: true,
+        followUpNote: "Verify continuous 24h stability curve",
+      });
+    expect(createRes.status).toBe(201);
+    const actionId = createRes.body.id;
+    const initialVersion = createRes.body.version;
+
+    // 2. PATCH matching api-spec §3.3 example payload exactly (no followUpNote passed)
+    const patchRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionId}`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        status: "COMPLETED",
+        result: "Telemetry confirmed normal power draw and stable discharge curve.",
+        followUpRequired: true,
+        followUpDone: true,
+        version: initialVersion,
+      });
+
+    expect(patchRes.status).toBe(200);
+    expect(patchRes.body.status).toBe("COMPLETED");
+    expect(patchRes.body.followUpDone).toBe(true);
+    expect(patchRes.body.followUpRequired).toBe(true);
+    expect(patchRes.body.followUpNote).toBe("Verify continuous 24h stability curve"); // Preserved!
+  });
+
+  it("API-PATCH-INACTIVE: rejects PATCH updating assignee to an inactive user with 400 Bad Request (INACTIVE_ASSIGNEE)", async () => {
+    const createRes = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        description: "Test action for assignee update",
+        result: "Initial state",
+      });
+    expect(createRes.status).toBe(201);
+    const actionId = createRes.body.id;
+
+    const patchRes = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/${actionId}`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        assigneeId: inactiveStaffUser.id,
+      });
+
+    expect(patchRes.status).toBe(400);
+    expect(patchRes.body.error.code).toBe("INACTIVE_ASSIGNEE");
+  });
+
+  it("API-PRIVACY: omits staff emails from GET /actions-taken for Requester role while including for IT Staff", async () => {
+    // 1. Requester GET
+    const reqRes = await request(app)
+      .get(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${requester1Token}`);
+
+    expect(reqRes.status).toBe(200);
+    expect(reqRes.body.actionsTaken.length).toBeGreaterThan(0);
+    const reqAction = reqRes.body.actionsTaken[0];
+    expect(reqAction.performedBy).toHaveProperty("name");
+    expect(reqAction.performedBy).not.toHaveProperty("email");
+    if (reqAction.assignee) {
+      expect(reqAction.assignee).toHaveProperty("name");
+      expect(reqAction.assignee).not.toHaveProperty("email");
+    }
+
+    // 2. Staff GET
+    const staffRes = await request(app)
+      .get(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`);
+
+    expect(staffRes.status).toBe(200);
+    const staffAction = staffRes.body.actionsTaken[0];
+    expect(staffAction.performedBy).toHaveProperty("email");
+    if (staffAction.assignee) {
+      expect(staffAction.assignee).toHaveProperty("email");
+    }
+  });
+
+  it("API-STRICT-ID: rejects non-numeric or alphanumeric IDs with 400 Bad Request", async () => {
+    const alphaTicket = await request(app)
+      .get("/api/tickets/12abc/actions-taken")
+      .set("Authorization", `Bearer ${staff1Token}`);
+    expect(alphaTicket.status).toBe(400);
+    expect(alphaTicket.body.error.code).toBe("INVALID_INPUT");
+
+    const alphaAction = await request(app)
+      .patch(`/api/tickets/${ticketUser1.id}/actions-taken/99xyz`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({ result: "Test" });
+    expect(alphaAction.status).toBe(400);
+    expect(alphaAction.body.error.code).toBe("INVALID_INPUT");
+
+    const alphaAssignee = await request(app)
+      .post(`/api/tickets/${ticketUser1.id}/actions-taken`)
+      .set("Authorization", `Bearer ${staff1Token}`)
+      .send({
+        description: "Test",
+        result: "Test",
+        assigneeId: "12abc",
+      });
+    expect(alphaAssignee.status).toBe(400);
+    expect(alphaAssignee.body.error.code).toBe("INVALID_INPUT");
+  });
 });
+

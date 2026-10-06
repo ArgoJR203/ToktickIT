@@ -67,10 +67,10 @@ describe("UNIT-05: Action Assignee Active Status Validator", () => {
   it("rejects null or undefined candidate user", () => {
     const nullResult = validateAssignee(null);
     expect(nullResult.isValid).toBe(false);
-    expect(nullResult.errorCode).toBe("USER_NOT_FOUND");
+    expect(nullResult.errorCode).toBe("INACTIVE_ASSIGNEE");
 
     const undefResult = validateAssignee(undefined);
     expect(undefResult.isValid).toBe(false);
-    expect(undefResult.errorCode).toBe("USER_NOT_FOUND");
+    expect(undefResult.errorCode).toBe("INACTIVE_ASSIGNEE");
   });
 });

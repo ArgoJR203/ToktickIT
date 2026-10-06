@@ -24,8 +24,8 @@ export function validateAssignee(user: AssigneeCandidate | null | undefined): As
   if (!user) {
     return {
       isValid: false,
-      errorCode: "USER_NOT_FOUND",
-      message: "Designated assignee does not exist.",
+      errorCode: "INACTIVE_ASSIGNEE",
+      message: "Designated assignee does not exist or is not valid.",
     };
   }
 

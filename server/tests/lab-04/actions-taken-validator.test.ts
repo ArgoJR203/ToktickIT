@@ -174,4 +174,17 @@ describe("UNIT-01: Actions Taken Content & Follow-up Validator", () => {
     });
     expect(validNotes.isValid).toBe(true);
   });
+
+  it("allows partial update with followUpRequired: true without followUpNote in payload (Issue 1 fix)", () => {
+    const result = validateActionTaken(
+      {
+        status: ActionStatus.COMPLETED,
+        result: "Updated result",
+        followUpRequired: true,
+        followUpDone: true,
+      },
+      true // isPartialUpdate
+    );
+    expect(result.isValid).toBe(true);
+  });
 });
