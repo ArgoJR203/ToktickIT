@@ -297,11 +297,18 @@ describe("ActionsTaken Component Tests (UI-01, UI-02, UI-03 / Issue #4-3)", () =
     expect(await screen.findByTestId("action-conflict-banner")).toBeInTheDocument();
     expect(screen.getByTestId("reload-conflict-action-btn")).toBeInTheDocument();
 
-    // Clicking reload fetches fresh actions
+    // Clicking reload fetches fresh actions while PRESERVING user draft in modal
     fireEvent.click(screen.getByTestId("reload-conflict-action-btn"));
     await waitFor(() => {
       expect(api.fetchActionsTaken).toHaveBeenCalledTimes(2);
     });
+
+    // Modal stays open with drafted text intact and conflict banner dismissed
+    expect(screen.getByTestId("action-taken-modal")).toBeInTheDocument();
+    expect(screen.getByTestId("action-description-input")).toHaveValue(
+      "Replaced degraded battery unit with genuine spare part."
+    );
+    expect(screen.queryByTestId("action-conflict-banner")).not.toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------
@@ -389,6 +396,104 @@ describe("ActionsTaken Component Tests (UI-01, UI-02, UI-03 / Issue #4-3)", () =
 
     expect(await screen.findByText(/Action date\/time is required/i)).toBeInTheDocument();
     expect(api.createActionTaken).not.toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Inactive Assignee Handling (Review Feedback Point 1)
+  // ---------------------------------------------------------------------------
+  it("handles editing an action with a deactivated assignee gracefully without breaking save", async () => {
+    // Action 105 has an assignee (ID 99) who is not in the active assignees list
+    const actionWithInactiveAssignee: api.ActionTakenItem = {
+      ...mockActions[0],
+      id: 105,
+      assigneeId: 99,
+      assignee: {
+        id: 99,
+        name: "Old Deactivated Staff",
+        role: "IT_STAFF",
+      },
+    };
+    vi.mocked(api.fetchActionsTaken).mockResolvedValueOnce([actionWithInactiveAssignee]);
+
+    renderComponent(mockStaffUser);
+
+    const editBtn = await screen.findByTestId("edit-action-btn-105");
+    fireEvent.click(editBtn);
+
+    // Dropdown shows option for (Inactive) Old Deactivated Staff
+    const assigneeSelect = screen.getByTestId("action-assignee-select");
+    expect(assigneeSelect).toHaveValue("99");
+    expect(screen.getByText("(Inactive) Old Deactivated Staff")).toBeInTheDocument();
+
+    // Inactive warning notice is displayed
+    expect(screen.getByTestId("inactive-assignee-warning")).toBeInTheDocument();
+
+    // Edit description only (leave assignee unchanged)
+    fireEvent.change(screen.getByTestId("action-description-input"), {
+      target: { value: "Updated description without modifying inactive assignee" },
+    });
+
+    vi.mocked(api.updateActionTaken).mockResolvedValueOnce({
+      ...actionWithInactiveAssignee,
+      description: "Updated description without modifying inactive assignee",
+      version: 2,
+    });
+
+    fireEvent.click(screen.getByTestId("save-action-btn"));
+
+    await waitFor(() => {
+      expect(api.updateActionTaken).toHaveBeenCalled();
+    });
+
+    // Crucial check: assigneeId should NOT be included in update payload when unchanged
+    const callArgs = vi.mocked(api.updateActionTaken).mock.calls[0];
+    expect(callArgs[2].assigneeId).toBeUndefined();
+  });
+
+  it("maps INACTIVE_ASSIGNEE error code from backend to assignee field error", async () => {
+    renderComponent(mockStaffUser);
+
+    const editBtn = await screen.findByTestId("edit-action-btn-101");
+    fireEvent.click(editBtn);
+
+    // Simulate backend rejecting with INACTIVE_ASSIGNEE
+    const inactiveErr = new Error("Assignee is inactive");
+    (inactiveErr as any).code = "INACTIVE_ASSIGNEE";
+    (inactiveErr as any).status = 400;
+
+    vi.mocked(api.updateActionTaken).mockRejectedValueOnce(inactiveErr);
+
+    fireEvent.click(screen.getByTestId("save-action-btn"));
+
+    expect(await screen.findByTestId("assignee-error")).toHaveTextContent(
+      /The selected assignee is no longer active/i
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // WCAG AA Accessibility: Label htmlFor and focus restoration
+  // ---------------------------------------------------------------------------
+  it("WCAG AA: binds Performed By label with htmlFor and restores focus on close", async () => {
+    renderComponent(mockStaffUser);
+
+    const logBtn = await screen.findByTestId("log-action-btn");
+    logBtn.focus();
+    fireEvent.click(logBtn);
+
+    expect(screen.getByTestId("action-taken-modal")).toBeInTheDocument();
+
+    // Check htmlFor and id pairing on Performed By
+    const performerInput = screen.getByTestId("action-performer-field");
+    expect(performerInput).toHaveAttribute("id", "action-performer-field");
+    const performerLabel = screen.getByText(/Performed By/i);
+    expect(performerLabel).toHaveAttribute("for", "action-performer-field");
+
+    // Close modal
+    fireEvent.click(screen.getByTestId("close-modal-btn"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("action-taken-modal")).not.toBeInTheDocument();
+    });
   });
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useOptionalAuth } from "../context/AuthContext.js";
 import {
   ActionTakenItem,
@@ -38,6 +38,11 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingAction, setEditingAction] = useState<ActionTakenItem | null>(null);
+  const [isConflict, setIsConflict] = useState<boolean>(false);
+
+  // Focus management refs for WCAG AA
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerButtonRef = useRef<HTMLElement | null>(null);
 
   // Form Field States
   const [actionDateTime, setActionDateTime] = useState<string>("");
@@ -55,6 +60,13 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
   const [modalError, setModalError] = useState<string | null>(null);
   const [conflictAction, setConflictAction] = useState<ActionTakenItem | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+
+  // Check if editing action has an assignee who is currently deactivated (not in active assignees)
+  const inactiveAssignee = useMemo(() => {
+    if (!editingAction?.assignee) return null;
+    const existsInActive = assignees.some((a) => a.id === editingAction.assignee?.id);
+    return existsInActive ? null : editingAction.assignee;
+  }, [editingAction, assignees]);
 
   // Helper to format ISO datetime for datetime-local input (YYYY-MM-DDTHH:mm)
   const formatDateTimeLocal = (dateString?: string) => {
@@ -95,20 +107,60 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
     loadActions();
   }, [loadActions]);
 
-  // Handle keyboard Escape to close modal (WCAG AA accessibility)
+  // Focus management: move focus into modal when opened (WCAG AA)
+  useEffect(() => {
+    if (isModalOpen && modalRef.current) {
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length > 0) {
+        focusable[0].focus();
+      } else {
+        modalRef.current.focus();
+      }
+    }
+  }, [isModalOpen]);
+
+  // Handle keyboard accessibility (Escape dismissal and Tab focus trap - WCAG AA)
   useEffect(() => {
     if (!isModalOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isSubmitting) {
         handleCloseModal();
+        return;
+      }
+
+      if (e.key === "Tab" && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, isSubmitting]);
 
   // Open modal for Logging new action
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = (e?: React.MouseEvent) => {
+    triggerButtonRef.current = (e?.currentTarget as HTMLElement) || (document.activeElement as HTMLElement | null);
     setEditingAction(null);
     setActionDateTime(formatDateTimeLocal());
     setAssigneeId(currentUser?.id ? currentUser.id.toString() : "");
@@ -120,13 +172,15 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
     setFollowUpDone(false);
     setAttachmentNotes("");
     setModalError(null);
+    setIsConflict(false);
     setConflictAction(null);
     setFieldErrors({});
     setIsModalOpen(true);
   };
 
   // Open modal for Editing existing action
-  const handleOpenEditModal = (action: ActionTakenItem) => {
+  const handleOpenEditModal = (action: ActionTakenItem, e?: React.MouseEvent) => {
+    triggerButtonRef.current = (e?.currentTarget as HTMLElement) || (document.activeElement as HTMLElement | null);
     setEditingAction(action);
     setActionDateTime(formatDateTimeLocal(action.actionDateTime));
     setAssigneeId(action.assigneeId ? action.assigneeId.toString() : "");
@@ -138,6 +192,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
     setFollowUpDone(action.followUpDone);
     setAttachmentNotes(action.attachmentNotes || "");
     setModalError(null);
+    setIsConflict(false);
     setConflictAction(null);
     setFieldErrors({});
     setIsModalOpen(true);
@@ -148,8 +203,17 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
     setIsModalOpen(false);
     setEditingAction(null);
     setModalError(null);
+    setIsConflict(false);
     setConflictAction(null);
     setFieldErrors({});
+
+    // Restore focus to trigger element (WCAG AA accessibility)
+    if (triggerButtonRef.current) {
+      setTimeout(() => {
+        triggerButtonRef.current?.focus();
+        triggerButtonRef.current = null;
+      }, 0);
+    }
   };
 
   // Validate form client-side before submission
@@ -203,6 +267,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
 
     setIsSubmitting(true);
     setModalError(null);
+    setIsConflict(false);
     setConflictAction(null);
 
     try {
@@ -210,10 +275,22 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
       const formattedDate = actionDateTime ? new Date(actionDateTime).toISOString() : new Date().toISOString();
 
       if (editingAction) {
+        const originalAssigneeId = editingAction.assigneeId ? String(editingAction.assigneeId) : "";
+        const hasAssigneeChanged = assigneeId !== originalAssigneeId;
+
+        // If user changed assignee to an inactive one:
+        if (hasAssigneeChanged && inactiveAssignee && assigneeId === String(inactiveAssignee.id)) {
+          setFieldErrors((prev) => ({
+            ...prev,
+            assigneeId: "Cannot assign to a deactivated staff member. Please select an active staff member or leave unassigned.",
+          }));
+          setIsSubmitting(false);
+          return;
+        }
+
         // Update Action Taken (PATCH)
-        await updateActionTaken(ticketId, editingAction.id, {
+        const updatePayload: any = {
           actionDateTime: formattedDate,
-          assigneeId: parsedAssignee,
           status,
           description: description.trim(),
           result: result.trim(),
@@ -222,7 +299,14 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
           followUpDone: followUpRequired ? followUpDone : false,
           attachmentNotes: attachmentNotes.trim().length > 0 ? attachmentNotes.trim() : null,
           version: editingAction.version,
-        });
+        };
+
+        // Only send assigneeId if user explicitly modified it
+        if (hasAssigneeChanged) {
+          updatePayload.assigneeId = parsedAssignee;
+        }
+
+        await updateActionTaken(ticketId, editingAction.id, updatePayload);
       } else {
         // Create Action Taken (POST)
         await createActionTaken(ticketId, {
@@ -246,11 +330,19 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
       }
     } catch (err: any) {
       if (err.code === "STALE_UPDATE" || err.status === 409) {
+        setIsConflict(true);
         setConflictAction(err.currentAction || null);
         setModalError(
-          "⚠️ Update Conflict: Another staff member has modified this action. Please reload the latest data to avoid overwriting their work."
+          "⚠️ Update Conflict: Another staff member has modified this action. You can sync the latest version while keeping your drafted work."
         );
+      } else if (err.code === "INACTIVE_ASSIGNEE") {
+        setIsConflict(false);
+        setFieldErrors((prev) => ({
+          ...prev,
+          assigneeId: "The selected assignee is no longer active. Please choose an active staff member.",
+        }));
       } else {
+        setIsConflict(false);
         setModalError(err.message || "Failed to save action taken.");
       }
     } finally {
@@ -259,8 +351,31 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
   };
 
   const handleConflictReload = async () => {
-    await loadActions();
-    handleCloseModal();
+    try {
+      setIsSubmitting(true);
+      let targetVersion = conflictAction?.version;
+      try {
+        const refreshedActions = await fetchActionsTaken(ticketId);
+        setActions(refreshedActions);
+        if (editingAction) {
+          const latestAction = refreshedActions.find((a) => a.id === editingAction.id);
+          if (latestAction) {
+            targetVersion = latestAction.version;
+          }
+        }
+      } catch {}
+
+      if (editingAction && targetVersion !== undefined) {
+        setEditingAction((prev) => (prev ? { ...prev, version: targetVersion! } : null));
+      }
+      setIsConflict(false);
+      setConflictAction(null);
+      setModalError(null);
+    } catch (err: any) {
+      setModalError(err.message || "Failed to reload latest data.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Status Badge Rendering
@@ -325,7 +440,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
             <button
               type="button"
               className="btn btn-zen-primary btn-sm d-flex align-items-center"
-              onClick={handleOpenCreateModal}
+              onClick={(e) => handleOpenCreateModal(e)}
               data-testid="log-action-btn"
             >
               <span className="me-1 fw-bold">+</span> Log Action Taken
@@ -461,7 +576,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                             <button
                               type="button"
                               className="btn btn-outline-secondary btn-sm px-2 py-1"
-                              onClick={() => handleOpenEditModal(act)}
+                              onClick={(e) => handleOpenEditModal(act, e)}
                               data-testid={`edit-action-btn-${act.id}`}
                               aria-label={`Edit Action ${act.id}`}
                             >
@@ -540,7 +655,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                           type="button"
                           className="btn btn-outline-secondary btn-sm"
                           style={{ minHeight: "44px", minWidth: "60px" }}
-                          onClick={() => handleOpenEditModal(act)}
+                          onClick={(e) => handleOpenEditModal(act, e)}
                           data-testid={`mobile-edit-action-btn-${act.id}`}
                         >
                           Edit
@@ -558,10 +673,12 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
       {/* Log / Edit Action Taken Modal Dialog */}
       {isModalOpen && (
         <div
+          ref={modalRef}
           className="modal-backdrop-custom"
           role="dialog"
           aria-modal="true"
           aria-labelledby="action-modal-title"
+          tabIndex={-1}
           data-testid="action-taken-modal"
           onClick={(e) => {
             if (e.target === e.currentTarget) handleCloseModal();
@@ -586,20 +703,20 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
               <form onSubmit={handleSubmit} noValidate>
                 <div className="modal-body p-4" style={{ maxHeight: "75vh", overflowY: "auto" }}>
                   {/* Stale Update 409 Conflict Banner */}
-                  {(conflictAction || (modalError && modalError.toLowerCase().includes("conflict"))) && (
+                  {isConflict && (
                     <div className="alert alert-conflict p-3 mb-3 rounded" data-testid="action-conflict-banner">
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
                           <strong>⚠️ Concurrent Update Collision:</strong>
                           <div className="small mt-1">
                             {conflictAction
-                              ? `This action was concurrently updated by another staff member (Version ${conflictAction.version}). Your changes cannot be saved directly over their work.`
+                              ? `This action was concurrently updated by another staff member (Version ${conflictAction.version}). You can sync the latest version while keeping your drafted work.`
                               : modalError || "This action was concurrently modified by another user. Please reload the latest data."}
                           </div>
                         </div>
                         <button
                           type="button"
-                          className="btn btn-warning btn-sm fw-bold ms-3"
+                          className="btn btn-warning btn-sm fw-bold ms-3 text-nowrap"
                           onClick={handleConflictReload}
                           data-testid="reload-conflict-action-btn"
                         >
@@ -610,7 +727,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                   )}
 
                   {/* General Modal Error */}
-                  {modalError && !conflictAction && !modalError.toLowerCase().includes("conflict") && (
+                  {modalError && !isConflict && (
                     <div className="alert alert-danger py-2 small mb-3" data-testid="modal-error-alert">
                       {modalError}
                     </div>
@@ -619,10 +736,11 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                   <div className="row g-3">
                     {/* Performer (Read-Only) */}
                     <div className="col-12 col-md-6">
-                      <label className="form-label small text-muted fw-semibold">
+                      <label htmlFor="action-performer-field" className="form-label small text-muted fw-semibold">
                         Performed By (Session User)
                       </label>
                       <input
+                        id="action-performer-field"
                         type="text"
                         className="form-control"
                         readOnly
@@ -647,21 +765,39 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                       </label>
                       <select
                         id="action-assignee-select"
-                        className="form-select"
+                        className={`form-select ${fieldErrors.assigneeId ? "is-invalid" : ""}`}
                         value={assigneeId}
-                        onChange={(e) => setAssigneeId(e.target.value)}
+                        onChange={(e) => {
+                          setAssigneeId(e.target.value);
+                          if (fieldErrors.assigneeId) {
+                            setFieldErrors((prev) => ({ ...prev, assigneeId: undefined }));
+                          }
+                        }}
                         disabled={isSubmitting}
                         data-testid="action-assignee-select"
+                        aria-describedby={fieldErrors.assigneeId ? "assignee-error" : undefined}
                       >
                         <option value="">Unassigned</option>
+                        {inactiveAssignee && (
+                          <option key={inactiveAssignee.id} value={String(inactiveAssignee.id)}>
+                            (Inactive) {inactiveAssignee.name}
+                          </option>
+                        )}
                         {assignees.map((a) => (
-                          <option key={a.id} value={a.id}>
+                          <option key={a.id} value={String(a.id)}>
                             {a.name} ({a.role === "ADMINISTRATOR" ? "Admin" : "Staff"})
                           </option>
                         ))}
                       </select>
                       {fieldErrors.assigneeId && (
-                        <div className="text-danger small mt-1">{fieldErrors.assigneeId}</div>
+                        <div id="assignee-error" className="invalid-feedback d-block small" data-testid="assignee-error">
+                          {fieldErrors.assigneeId}
+                        </div>
+                      )}
+                      {inactiveAssignee && assigneeId === String(inactiveAssignee.id) && !fieldErrors.assigneeId && (
+                        <div className="form-text text-warning small mt-1" data-testid="inactive-assignee-warning">
+                          ⚠️ This staff member is deactivated. Keep unchanged or reassign to an active staff member.
+                        </div>
                       )}
                     </div>
 
