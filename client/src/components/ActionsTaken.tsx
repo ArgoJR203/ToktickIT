@@ -59,7 +59,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [conflictAction, setConflictAction] = useState<ActionTakenItem | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
 
   // Check if editing action has an assignee who is currently deactivated (not in active assignees)
   const inactiveAssignee = useMemo(() => {
@@ -770,7 +770,10 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                         onChange={(e) => {
                           setAssigneeId(e.target.value);
                           if (fieldErrors.assigneeId) {
-                            setFieldErrors((prev) => ({ ...prev, assigneeId: undefined }));
+                            setFieldErrors((prev) => {
+                              const { assigneeId: _removed, ...rest } = prev;
+                              return rest;
+                            });
                           }
                         }}
                         disabled={isSubmitting}
