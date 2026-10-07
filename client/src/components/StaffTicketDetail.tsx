@@ -16,6 +16,7 @@ import {
   InternalNote,
 } from "../api.js";
 import { AttachmentSection } from "./AttachmentSection.js";
+import { ActionsTaken } from "./ActionsTaken.js";
 
 interface StaffTicketDetailProps {
   ticketId: number;
@@ -682,6 +683,14 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
           </div>
         )}
       </div>
+
+      {/* Actions Taken Section (Issue #4-3) */}
+      <ActionsTaken
+        ticketId={ticketId}
+        isReadOnly={!isStaffOrAdmin}
+        assignees={assignees}
+        onActionSaved={loadTicket}
+      />
 
       {/* Tabbed Activity & Communication Container */}
       <div className="card zen-card shadow-sm mb-4">

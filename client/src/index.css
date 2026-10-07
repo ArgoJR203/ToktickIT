@@ -522,6 +522,62 @@ body {
   font-weight: 700;
 }
 
+/* 2.3 Action Taken Status Badges (UI Spec §2.2) */
+.badge-action-pending {
+  background-color: #FFF9C4;
+  color: #F57F17;
+  border: 1px solid #FFF176;
+}
+
+.badge-action-in-progress {
+  background-color: #FFF8E1;
+  color: #E65100;
+  border: 1px solid #FFE082;
+}
+
+.badge-action-completed {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #A5D6A7;
+}
+
+.badge-action-cancelled {
+  background-color: #ECEFF1;
+  color: #607D8B;
+  border: 1px solid #CFD8DC;
+}
+
+/* Stale Update 409 Conflict Banner (UI Spec §1) */
+.alert-conflict {
+  background-color: var(--color-conflict-bg, #FFF8E1);
+  border: 1px solid var(--color-conflict-border, #FFA000);
+  color: #5D4037;
+}
+
+/* Modal Overlay & Responsive Cards */
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(10, 25, 18, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.action-card-mobile {
+  border-left: 4px solid var(--color-primary-green);
+  transition: box-shadow 0.2s ease;
+}
+
+.action-card-mobile:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
 /* ---------------------------------------------------------------------------
    IT Staff Ticket Queue (UI Spec §4.3)
    --------------------------------------------------------------------------- */

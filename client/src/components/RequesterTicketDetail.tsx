@@ -10,6 +10,7 @@ import {
   indicateProblemResolved,
 } from "../api.js";
 import { AttachmentSection } from "./AttachmentSection.js";
+import { ActionsTaken } from "./ActionsTaken.js";
 
 interface RequesterTicketDetailProps {
   ticketId: number;
@@ -482,6 +483,14 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
               )}
             </div>
           )}
+
+          {/* Actions Taken Section (Issue #4-3 / Read-Only for Requester) */}
+          <div className="mb-4">
+            <ActionsTaken
+              ticketId={ticket.id}
+              isReadOnly={true}
+            />
+          </div>
 
           {/* Attachment Lifecycle Section (Issue #2-8) */}
           <div className="mb-4">
