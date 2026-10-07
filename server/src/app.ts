@@ -974,7 +974,7 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
 
     const ticket = await getPrisma().ticket.findUnique({
       where: { id: ticketId },
-      select: { id: true, requesterId: true, currentStatus: true, resolutionIndicated: true },
+      select: { id: true, ticketNumber: true, requesterId: true, currentStatus: true, resolutionIndicated: true },
     });
 
     if (!ticket) {
@@ -992,11 +992,15 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
       });
     }
 
-    if (ticket.currentStatus !== "IN_PROGRESS" && ticket.currentStatus !== "WAITING_FOR_REQUESTER") {
+    if (
+      ticket.currentStatus !== "OPEN" &&
+      ticket.currentStatus !== "IN_PROGRESS" &&
+      ticket.currentStatus !== "WAITING_FOR_REQUESTER"
+    ) {
       return res.status(400).json({
         error: {
           code: "INVALID_TRANSITION",
-          message: "Resolution indication can only be submitted when ticket is in progress or waiting for requester.",
+          message: "Resolution indication can only be submitted when ticket is open, in progress, or waiting for requester.",
         },
       });
     }
@@ -1014,7 +1018,7 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
         data: {
           ticketId,
           authorId: req.user!.id,
-          content: "Requester indicated that the problem appears resolved.",
+          content: "Requester indicated that the problem appears resolved. Awaiting IT Staff review.",
         },
       });
 
@@ -1022,10 +1026,13 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
     });
 
     return res.status(200).json({
-      message: "Problem resolution indicated. IT Staff have been notified to review and finalize.",
+      id: updated.id,
       ticketId: updated.id,
+      ticketNumber: updated.ticketNumber,
+      currentStatus: updated.currentStatus,
       resolutionIndicated: updated.resolutionIndicated,
       resolutionIndicatedAt: updated.resolutionIndicatedAt,
+      message: "Problem resolution indicated. IT Staff will review and formally close the ticket.",
     });
   } catch (err) {
     console.error("Error in POST /api/tickets/:id/resolve-indication:", err);

@@ -413,7 +413,7 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
 
     const ticket = await getPrisma().ticket.findUnique({
       where: { id: ticketId },
-      select: { id: true, currentStatus: true, resolutionSummary: true },
+      select: { id: true, ticketNumber: true, currentStatus: true, resolutionSummary: true, version: true },
     });
 
     if (!ticket) {
@@ -422,7 +422,8 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       });
     }
 
-    const { status, resolutionSummary } = req.body ?? {};
+    const statusInput = req.body?.status ?? req.body?.currentStatus;
+    const { resolutionSummary, version } = req.body ?? {};
     const validStatuses: TicketStatus[] = [
       "NEW",
       "OPEN",
@@ -434,7 +435,7 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       "CANCELLED",
     ];
 
-    if (typeof status !== "string" || !validStatuses.includes(status.trim().toUpperCase() as TicketStatus)) {
+    if (typeof statusInput !== "string" || !validStatuses.includes(statusInput.trim().toUpperCase() as TicketStatus)) {
       return res.status(400).json({
         error: {
           code: "INVALID_INPUT",
@@ -443,7 +444,7 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       });
     }
 
-    const nextStatus = status.trim().toUpperCase() as TicketStatus;
+    const nextStatus = statusInput.trim().toUpperCase() as TicketStatus;
 
     // State machine check
     if (!isValidStatusTransition(ticket.currentStatus, nextStatus)) {
@@ -455,8 +456,29 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       });
     }
 
-    // Resolution summary handling:
-    // If transitioning to RESOLVED or CLOSED, accept resolutionSummary if provided
+    // Action Completion Gate (BR-20, AC-16)
+    if (nextStatus === "RESOLVED" || nextStatus === "CLOSED") {
+      const incompleteActionsCount = await getPrisma().actionTaken.count({
+        where: {
+          ticketId,
+          OR: [
+            { status: { in: ["PENDING", "IN_PROGRESS"] } },
+            { followUpRequired: true, followUpDone: false },
+          ],
+        },
+      });
+
+      if (incompleteActionsCount > 0) {
+        return res.status(400).json({
+          error: {
+            code: "INCOMPLETE_ACTIONS_TAKEN",
+            message: "Cannot resolve or close ticket while actions taken remain pending or incomplete.",
+          },
+        });
+      }
+    }
+
+    // Resolution summary handling & validation (BR-13, AC-09)
     let updatedResolutionSummary: string | null = ticket.resolutionSummary;
 
     if (nextStatus === "RESOLVED" || nextStatus === "CLOSED") {
@@ -476,28 +498,111 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
           updatedResolutionSummary = null;
         }
       }
+
+      if (!updatedResolutionSummary || updatedResolutionSummary.trim().length < 5) {
+        return res.status(400).json({
+          error: {
+            code: "MISSING_RESOLUTION_SUMMARY",
+            message: "Resolution summary is mandatory (min 5 characters) when resolving or closing a ticket.",
+          },
+        });
+      }
+    } else if (resolutionSummary !== undefined) {
+      if (typeof resolutionSummary === "string") {
+        const trimmed = resolutionSummary.trim();
+        if (trimmed.length > 2000) {
+          return res.status(400).json({
+            error: {
+              code: "INVALID_INPUT",
+              message: "Resolution summary cannot exceed 2000 characters.",
+            },
+          });
+        }
+        updatedResolutionSummary = trimmed.length > 0 ? trimmed : null;
+      } else if (resolutionSummary === null) {
+        updatedResolutionSummary = null;
+      }
     }
 
-    const updated = await getPrisma().ticket.update({
+    // Atomic Optimistic Concurrency Control (OCC) Check (BR-14, AC-08)
+    if (version !== undefined && version !== null) {
+      const submittedVersion = Number(version);
+      if (!Number.isInteger(submittedVersion) || submittedVersion <= 0) {
+        return res.status(400).json({
+          error: {
+            code: "INVALID_INPUT",
+            message: "Version must be a positive integer.",
+          },
+        });
+      }
+
+      const updateResult = await getPrisma().ticket.updateMany({
+        where: { id: ticketId, version: submittedVersion },
+        data: {
+          currentStatus: nextStatus,
+          resolutionSummary: updatedResolutionSummary,
+          version: { increment: 1 },
+        },
+      });
+
+      if (updateResult.count === 0) {
+        const currentTicket = await getPrisma().ticket.findUnique({
+          where: { id: ticketId },
+          include: {
+            category: { select: { id: true, name: true } },
+            relatedSystem: { select: { id: true, name: true } },
+            requester: { select: { id: true, name: true, email: true } },
+            owner: { select: { id: true, name: true, email: true } },
+          },
+        });
+
+        return res.status(409).json({
+          error: {
+            code: "STALE_UPDATE",
+            message: "Ticket has been modified by another user. Please reload the latest ticket data.",
+            details: { currentTicket },
+          },
+          currentTicket,
+        });
+      }
+    } else {
+      // Backward compatibility: If client omits version, update executes without concurrency rejection
+      await getPrisma().ticket.update({
+        where: { id: ticketId },
+        data: {
+          currentStatus: nextStatus,
+          resolutionSummary: updatedResolutionSummary,
+          version: { increment: 1 },
+        },
+      });
+    }
+
+    const updated = await getPrisma().ticket.findUnique({
       where: { id: ticketId },
-      data: {
-        currentStatus: nextStatus,
-        resolutionSummary: updatedResolutionSummary,
-      },
       select: {
         id: true,
+        ticketNumber: true,
         currentStatus: true,
         resolutionSummary: true,
+        version: true,
         updatedAt: true,
       },
     });
+
+    if (!updated) {
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Ticket not found after update." },
+      });
+    }
 
     const permittedNextStatuses = getAllowedTransitions(updated.currentStatus);
 
     return res.status(200).json({
       id: updated.id,
+      ticketNumber: updated.ticketNumber,
       currentStatus: updated.currentStatus,
       resolutionSummary: updated.resolutionSummary,
+      version: updated.version,
       permittedNextStatuses,
       updatedAt: updated.updatedAt,
     });

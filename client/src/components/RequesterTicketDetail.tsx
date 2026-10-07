@@ -424,11 +424,16 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
             </div>
           )}
 
-          {/* Problem Appears Resolved Callout (BR-05, BR-16, AC-12) */}
-          {(ticket.currentStatus === "IN_PROGRESS" || ticket.currentStatus === "WAITING_FOR_REQUESTER") && (
+          {/* Problem Appears Resolved Callout (BR-05, BR-12, BR-16, AC-03, AC-12) */}
+          {(ticket.currentStatus === "OPEN" ||
+            ticket.currentStatus === "IN_PROGRESS" ||
+            ticket.currentStatus === "WAITING_FOR_REQUESTER") && (
             <div className="mb-4 p-3 rounded border" style={{ backgroundColor: "#F5F7F6" }}>
               {ticket.resolutionIndicated ? (
-                <div className="d-flex align-items-center text-success small">
+                <div
+                  className="d-flex align-items-center text-success small"
+                  data-testid="requester-resolution-indicated-banner"
+                >
                   <svg className="me-2 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="9 12 11 14 15 10"></polyline>
@@ -463,6 +468,7 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
                       style={{ minHeight: "44px" }}
                       onClick={handleIndicateResolved}
                       disabled={isResolving}
+                      data-testid="indicate-resolved-btn"
                     >
                       {isResolving ? (
                         <>
