@@ -157,6 +157,7 @@ export interface FetchTicketsParams {
   categoryId?: string | number;
   requestedPriority?: string;
   currentStatus?: string;
+  statusGroup?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   page?: number;
@@ -186,6 +187,7 @@ export async function fetchTickets(
   if (params.categoryId) query.set("categoryId", params.categoryId.toString());
   if (params.requestedPriority) query.set("requestedPriority", params.requestedPriority);
   if (params.currentStatus) query.set("currentStatus", params.currentStatus);
+  if (params.statusGroup) query.set("statusGroup", params.statusGroup);
   if (params.sortBy) query.set("sortBy", params.sortBy);
   if (params.sortOrder) query.set("sortOrder", params.sortOrder);
   if (params.page) query.set("page", params.page.toString());
@@ -1321,6 +1323,125 @@ export async function updateActionTaken(
     (err as any).code = data?.error?.code;
     (err as any).currentAction = data?.currentAction || data?.error?.details?.currentAction;
     (err as any).field = data?.error?.field;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Lab 4 — Role-Appropriate Operational Dashboards (Issue #4-5)
+// ---------------------------------------------------------------------------
+
+export interface RequesterRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  requestedPriority: string;
+  category: { name: string } | null;
+  updatedAt: string;
+}
+
+export interface RequesterDashboardData {
+  metrics: {
+    totalOpen: number;
+    waitingForRequester: number;
+    resolvedCount: number;
+    closedCount: number;
+  };
+  recentTickets: RequesterRecentTicket[];
+  drillDownUrls: {
+    totalOpen: string;
+    waitingForRequester: string;
+    resolvedCount: string;
+    closedCount: string;
+  };
+}
+
+/**
+ * Fetch Requester Dashboard (AC-02, BR-15, API-14)
+ */
+export async function fetchRequesterDashboard(): Promise<RequesterDashboardData> {
+  const res = await fetch(`${API_URL}/api/requester/dashboard`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load requester dashboard.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+export interface StaffRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  itPriority: string;
+  owner: { id: number; name: string } | null;
+  requester: { name: string } | null;
+  updatedAt: string;
+}
+
+export interface StaffDashboardData {
+  metrics: {
+    unassignedCount: number;
+    assignedToMeCount: number;
+    countsByStatus: Record<string, number>;
+    countsByPriority: Record<string, number>;
+  };
+  recentTickets: StaffRecentTicket[];
+  adminStats?: {
+    totalUsers: number;
+    activeUsers: number;
+    usersByRole: {
+      REQUESTER: number;
+      IT_STAFF: number;
+      ADMINISTRATOR: number;
+    };
+  };
+  drillDownUrls: {
+    unassigned: string;
+    assignedToMe: string;
+    open: string;
+    inProgress: string;
+    waitingForRequester: string;
+  };
+}
+
+/**
+ * Fetch IT Staff & Admin Dashboard (AC-10, AC-11, BR-16, BR-17, API-15, API-16)
+ */
+export async function fetchStaffDashboard(): Promise<StaffDashboardData> {
+  const res = await fetch(`${API_URL}/api/staff/dashboard`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load staff dashboard.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
     (err as any).status = res.status;
     throw err;
   }

@@ -11,6 +11,8 @@ import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 import { UserManagement } from "./components/UserManagement.js";
+import { RequesterDashboard } from "./components/RequesterDashboard.js";
+import { StaffDashboard } from "./components/StaffDashboard.js";
 import { Ticket, fetchRequesters, AuthUser } from "./api.js";
 
 interface MainContentProps {
@@ -24,6 +26,8 @@ function MainContent({ initialView }: MainContentProps) {
   const [activeTab, setActiveTab] = useState<NavTab>("my-tickets");
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [createdTicketNotice, setCreatedTicketNotice] = useState<string | null>(null);
+  const [requesterFilter, setRequesterFilter] = useState<{ statusGroup?: "open" | "resolved"; currentStatus?: string }>({});
+  const [staffQueueFilter, setStaffQueueFilter] = useState<{ ownerFilter?: string; statusFilter?: string }>({});
 
   // Check if running in a legacy test suite that specifically mocks fetchRequesters (Lab 2)
   const isFetchRequestersMocked =
@@ -133,6 +137,53 @@ function MainContent({ initialView }: MainContentProps) {
           </div>
         )}
 
+        {/* Role Dashboards (Issue #4-5) */}
+        {activeTab === "dashboard" && (
+          currentUser?.role === "IT_STAFF" || currentUser?.role === "ADMINISTRATOR" ? (
+            <StaffDashboard
+              onCreateClick={() => {
+                setCreatedTicketNotice(null);
+                setActiveTab("create-ticket");
+              }}
+              onSearchClick={() => {
+                setStaffQueueFilter({});
+                setActiveTab("ticket-queue");
+              }}
+              onMyQueueClick={() => {
+                setStaffQueueFilter({ ownerFilter: "me" });
+                setActiveTab("ticket-queue");
+              }}
+              onSelectTicket={(ticketId) => {
+                setSelectedTicketId(ticketId);
+                setActiveTab("ticket-detail");
+              }}
+              onDrillDown={(filters) => {
+                setStaffQueueFilter(filters);
+                setActiveTab("ticket-queue");
+              }}
+            />
+          ) : (
+            <RequesterDashboard
+              onCreateClick={() => {
+                setCreatedTicketNotice(null);
+                setActiveTab("create-ticket");
+              }}
+              onViewMyTickets={() => {
+                setRequesterFilter({});
+                setActiveTab("my-tickets");
+              }}
+              onSelectTicket={(ticketId) => {
+                setSelectedTicketId(ticketId);
+                setActiveTab("ticket-detail");
+              }}
+              onDrillDown={(filters) => {
+                setRequesterFilter(filters);
+                setActiveTab("my-tickets");
+              }}
+            />
+          )
+        )}
+
         {/* Requester Views */}
         {activeTab === "my-tickets" && (
           <MyTickets
@@ -145,13 +196,21 @@ function MainContent({ initialView }: MainContentProps) {
               setSelectedTicketId(ticketId);
               setActiveTab("ticket-detail");
             }}
+            initialStatus={requesterFilter.currentStatus}
+            initialStatusGroup={requesterFilter.statusGroup}
           />
         )}
 
         {activeTab === "create-ticket" && (
           <CreateTicket
             onSuccess={handleTicketCreated}
-            onCancel={() => setActiveTab("my-tickets")}
+            onCancel={() => {
+              if (currentUser?.role === "IT_STAFF" || currentUser?.role === "ADMINISTRATOR") {
+                setActiveTab("ticket-queue");
+              } else {
+                setActiveTab("my-tickets");
+              }
+            }}
           />
         )}
 
@@ -182,6 +241,8 @@ function MainContent({ initialView }: MainContentProps) {
               setSelectedTicketId(ticketId);
               setActiveTab("ticket-detail");
             }}
+            initialStatus={staffQueueFilter.statusFilter}
+            initialAssignment={staffQueueFilter.ownerFilter}
           />
         )}
 

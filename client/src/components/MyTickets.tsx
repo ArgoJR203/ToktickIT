@@ -12,9 +12,16 @@ import {
 interface MyTicketsProps {
   onCreateClick: () => void;
   onSelectTicket?: (ticketId: number) => void;
+  initialStatus?: string;
+  initialStatusGroup?: "open" | "resolved";
 }
 
-export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTicket }) => {
+export const MyTickets: React.FC<MyTicketsProps> = ({
+  onCreateClick,
+  onSelectTicket,
+  initialStatus,
+  initialStatusGroup,
+}) => {
   const auth = useOptionalAuth();
   const { currentRequester } = useRequester();
   const activeUser = auth?.currentUser || currentRequester;
@@ -31,7 +38,8 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
   const [search, setSearch] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPriority, setSelectedPriority] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus || "");
+  const [selectedStatusGroup, setSelectedStatusGroup] = useState<string>(initialStatusGroup || "");
   const [sortBy, setSortBy] = useState<string>("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState<number>(1);
@@ -72,6 +80,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
     setSelectedCategory("");
     setSelectedPriority("");
     setSelectedStatus("");
+    setSelectedStatusGroup("");
     setSortBy("createdAt");
     setSortOrder("desc");
     setPage(1);
@@ -107,6 +116,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
         categoryId: selectedCategory,
         requestedPriority: selectedPriority,
         currentStatus: selectedStatus,
+        statusGroup: selectedStatusGroup || undefined,
         sortBy,
         sortOrder,
         page,
@@ -138,6 +148,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
     selectedCategory,
     selectedPriority,
     selectedStatus,
+    selectedStatusGroup,
     sortBy,
     sortOrder,
     page,
