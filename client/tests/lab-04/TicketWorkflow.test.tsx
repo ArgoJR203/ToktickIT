@@ -153,11 +153,12 @@ describe("Lab 4 Ticket Workflow & Concurrency UI Component Tests (UI-04..06)", (
       const updateBtn = screen.getByTestId("update-status-btn");
       fireEvent.click(updateBtn);
 
-      // Verify conflict banner appears
+      // Verify conflict banner appears and generic action-error-banner is suppressed
       await waitFor(() => {
         expect(screen.getByTestId("ticket-conflict-banner")).toBeInTheDocument();
       });
       expect(screen.getByTestId("ticket-conflict-banner")).toHaveTextContent("Update Conflict:");
+      expect(screen.queryByTestId("action-error-banner")).not.toBeInTheDocument();
       expect(screen.getByTestId("reload-conflict-ticket-btn")).toBeInTheDocument();
 
       // Now mock fresh ticket fetch on reload
@@ -177,6 +178,62 @@ describe("Lab 4 Ticket Workflow & Concurrency UI Component Tests (UI-04..06)", (
         expect(screen.queryByTestId("ticket-conflict-banner")).not.toBeInTheDocument();
       });
       expect(api.fetchStaffTicketDetail).toHaveBeenCalledTimes(2);
+    });
+
+    it("preserves drafted resolution summary text across conflict reload", async () => {
+      renderStaffDetail({
+        ...mockTicketDetailBase,
+        currentStatus: "IN_PROGRESS",
+        version: 1,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("status-select")).toBeInTheDocument();
+      });
+
+      // Select RESOLVED so resolution-summary-input appears
+      fireEvent.change(screen.getByTestId("status-select"), { target: { value: "RESOLVED" } });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("resolution-summary-input")).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByTestId("resolution-summary-input"), {
+        target: { value: "My drafted resolution explanation" },
+      });
+
+      // Mock update rejection with STALE_UPDATE
+      const conflictError: any = new Error("Ticket has been modified");
+      conflictError.code = "STALE_UPDATE";
+      conflictError.status = 409;
+      vi.mocked(api.updateTicketStatus).mockRejectedValueOnce(conflictError);
+
+      fireEvent.click(screen.getByTestId("update-status-btn"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ticket-conflict-banner")).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("action-error-banner")).not.toBeInTheDocument();
+
+      // Mock fetch on reload
+      const refreshedTicket: api.StaffTicketDetailData = {
+        ...mockTicketDetailBase,
+        currentStatus: "IN_PROGRESS",
+        version: 2,
+        resolutionSummary: null,
+      };
+      vi.mocked(api.fetchStaffTicketDetail).mockResolvedValueOnce(refreshedTicket);
+
+      fireEvent.click(screen.getByTestId("reload-conflict-ticket-btn"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("ticket-conflict-banner")).not.toBeInTheDocument();
+      });
+
+      // Switch to RESOLVED again and verify draft is preserved
+      fireEvent.change(screen.getByTestId("status-select"), { target: { value: "RESOLVED" } });
+      const summaryInput = screen.getByTestId("resolution-summary-input") as HTMLTextAreaElement;
+      expect(summaryInput.value).toBe("My drafted resolution explanation");
     });
   });
 

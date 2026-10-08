@@ -214,7 +214,29 @@ describe("Lab 4 Ticket Workflow & Concurrency REST API Integration Tests (API-09
       expect(inDb?.version).toBe(2);
     });
 
-    it("rejects invalid non-positive integer versions with 400 INVALID_INPUT", async () => {
+    it("rejects update with 409 STALE_UPDATE before checking transition or resolution summary when version is stale", async () => {
+      // Ticket was cancelled by another user, version is now 5
+      const ticket = await createTestTicket({ currentStatus: "CANCELLED", version: 5 });
+
+      // Client submits obsolete version = 1 with invalid transition (CANCELLED -> RESOLVED) and missing resolution summary
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${ticket.id}/status`)
+        .set("Authorization", `Bearer ${staffToken}`)
+        .send({
+          status: "RESOLVED",
+          version: 1,
+        });
+
+      // OCC check must fire first and return 409 Conflict, NOT 400 INVALID_TRANSITION or MISSING_RESOLUTION_SUMMARY
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe("STALE_UPDATE");
+      expect(res.body.currentTicket).toBeDefined();
+      expect(res.body.currentTicket.id).toBe(ticket.id);
+      expect(res.body.currentTicket.version).toBe(5);
+      expect(res.body.currentTicket.currentStatus).toBe("CANCELLED");
+    });
+
+    it("succeeds when version is omitted in request body (legacy backward compatibility path)", async () => {
       const ticket = await createTestTicket({ currentStatus: "OPEN", version: 1 });
 
       const res = await request(app)
@@ -222,11 +244,39 @@ describe("Lab 4 Ticket Workflow & Concurrency REST API Integration Tests (API-09
         .set("Authorization", `Bearer ${staffToken}`)
         .send({
           status: "IN_PROGRESS",
-          version: -1,
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error.code).toBe("INVALID_INPUT");
+      expect(res.status).toBe(200);
+      expect(res.body.currentStatus).toBe("IN_PROGRESS");
+      expect(res.body.version).toBe(2);
+
+      const inDb = await getPrisma().ticket.findUnique({ where: { id: ticket.id } });
+      expect(inDb?.currentStatus).toBe("IN_PROGRESS");
+      expect(inDb?.version).toBe(2);
+    });
+
+    it("rejects non-numeric versions like booleans, hex strings, and objects with 400 INVALID_INPUT", async () => {
+      const ticket = await createTestTicket({ currentStatus: "OPEN", version: 1 });
+
+      const resBool = await request(app)
+        .patch(`/api/staff/tickets/${ticket.id}/status`)
+        .set("Authorization", `Bearer ${staffToken}`)
+        .send({
+          status: "IN_PROGRESS",
+          version: true,
+        });
+      expect(resBool.status).toBe(400);
+      expect(resBool.body.error.code).toBe("INVALID_INPUT");
+
+      const resHex = await request(app)
+        .patch(`/api/staff/tickets/${ticket.id}/status`)
+        .set("Authorization", `Bearer ${staffToken}`)
+        .send({
+          status: "IN_PROGRESS",
+          version: "0x10",
+        });
+      expect(resHex.status).toBe(400);
+      expect(resHex.body.error.code).toBe("INVALID_INPUT");
     });
   });
 
@@ -400,6 +450,113 @@ describe("Lab 4 Ticket Workflow & Concurrency REST API Integration Tests (API-09
 
       expect(resAllowed.status).toBe(200);
       expect(resAllowed.body.currentStatus).toBe("RESOLVED");
+    });
+
+    it("blocks transition to RESOLVED when an Action Taken is in IN_PROGRESS status", async () => {
+      const ticket = await createTestTicket({ currentStatus: "IN_PROGRESS", version: 1 });
+
+      // Create an action in IN_PROGRESS status
+      await getPrisma().actionTaken.create({
+        data: {
+          ticketId: ticket.id,
+          performedById: staffUser.id,
+          status: "IN_PROGRESS",
+          description: "Active server diagnostics in progress",
+          result: "Under analysis",
+        },
+      });
+
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${ticket.id}/status`)
+        .set("Authorization", `Bearer ${staffToken}`)
+        .send({
+          status: "RESOLVED",
+          resolutionSummary: "Attempted early resolution",
+          version: 1,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("INCOMPLETE_ACTIONS_TAKEN");
+    });
+
+    it("blocks transition to CLOSED when incomplete actions exist", async () => {
+      const ticket = await createTestTicket({ currentStatus: "RESOLVED", version: 1 });
+
+      await getPrisma().actionTaken.create({
+        data: {
+          ticketId: ticket.id,
+          performedById: staffUser.id,
+          status: "PENDING",
+          description: "Pending post-incident review action",
+          result: "Not started",
+        },
+      });
+
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${ticket.id}/status`)
+        .set("Authorization", `Bearer ${staffToken}`)
+        .send({
+          status: "CLOSED",
+          resolutionSummary: "Closing with pending action",
+          version: 1,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("INCOMPLETE_ACTIONS_TAKEN");
+    });
+
+    it("permits transition to RESOLVED when all actions are COMPLETED or CANCELLED with follow-up satisfied", async () => {
+      const ticket = await createTestTicket({ currentStatus: "IN_PROGRESS", version: 1 });
+
+      // Action 1: COMPLETED with no follow-up
+      await getPrisma().actionTaken.create({
+        data: {
+          ticketId: ticket.id,
+          performedById: staffUser.id,
+          status: "COMPLETED",
+          description: "Applied hotfix patch",
+          result: "Hotfix deployed successfully",
+          followUpRequired: false,
+        },
+      });
+
+      // Action 2: CANCELLED (abandoned route)
+      await getPrisma().actionTaken.create({
+        data: {
+          ticketId: ticket.id,
+          performedById: staffUser.id,
+          status: "CANCELLED",
+          description: "Alternative rollback plan",
+          result: "Cancelled since hotfix succeeded",
+          followUpRequired: false,
+        },
+      });
+
+      // Action 3: COMPLETED with follow-up marked as done
+      await getPrisma().actionTaken.create({
+        data: {
+          ticketId: ticket.id,
+          performedById: staffUser.id,
+          status: "COMPLETED",
+          description: "Health monitor check",
+          result: "Clean health probe",
+          followUpRequired: true,
+          followUpNote: "Verify monitoring dashboard next morning",
+          followUpDone: true,
+        },
+      });
+
+      const res = await request(app)
+        .patch(`/api/staff/tickets/${ticket.id}/status`)
+        .set("Authorization", `Bearer ${staffToken}`)
+        .send({
+          status: "RESOLVED",
+          resolutionSummary: "All actions completed or cancelled; verified fix.",
+          version: 1,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentStatus).toBe("RESOLVED");
     });
   });
 });

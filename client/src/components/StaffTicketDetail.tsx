@@ -99,9 +99,13 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
   }, [ticketId]);
 
   const handleReloadConflictTicket = async () => {
+    const draftSummary = resolutionSummaryText;
     setConflictError(false);
     setActionError(null);
     await loadTicket();
+    if (draftSummary.trim().length > 0) {
+      setResolutionSummaryText(draftSummary);
+    }
   };
 
   // Load communications feeds
@@ -232,7 +236,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
     } catch (err: any) {
       if (err.code === "STALE_UPDATE" || err.status === 409) {
         setConflictError(true);
-        setActionError(err.message || "Conflict: This ticket was modified by another user.");
+        setActionError(null);
       } else {
         setActionError(err.message || "Failed to update ticket status.");
       }
@@ -457,7 +461,22 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
           }}
         >
           <div className="d-flex align-items-center mb-2 mb-sm-0">
-            <span className="me-2" style={{ fontSize: "1.25rem" }}>⚠️</span>
+            <svg
+              className="me-2 flex-shrink-0"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#B78103"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
             <div>
               <strong>Update Conflict:</strong> Another staff member has updated this ticket while you were viewing it. Your changes were not saved to prevent overwriting their work.
             </div>

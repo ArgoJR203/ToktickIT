@@ -12,6 +12,7 @@ export interface VersionValidationResult {
 
 /**
  * Validates that a submitted version is a positive integer.
+ * Strictly rejects booleans, objects, floats, hex strings ("0x10"), and non-positive numbers.
  */
 export function parseAndValidateVersion(rawVersion: unknown): {
   isValid: boolean;
@@ -22,16 +23,30 @@ export function parseAndValidateVersion(rawVersion: unknown): {
     return { isValid: false, error: "Version is required." };
   }
 
-  if (typeof rawVersion === "string" && !/^\d+$/.test(rawVersion.trim())) {
+  // Reject booleans, objects, arrays, symbols, functions
+  if (typeof rawVersion !== "number" && typeof rawVersion !== "string") {
     return { isValid: false, error: "Version must be a positive integer." };
   }
 
-  const parsed = Number(rawVersion);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
+  // If string, strictly digits only (no hex 0x..., no signs +/-, no scientific notation, no decimals)
+  if (typeof rawVersion === "string") {
+    const trimmed = rawVersion.trim();
+    if (!/^\d+$/.test(trimmed)) {
+      return { isValid: false, error: "Version must be a positive integer." };
+    }
+    const parsed = parseInt(trimmed, 10);
+    if (parsed <= 0) {
+      return { isValid: false, error: "Version must be a positive integer." };
+    }
+    return { isValid: true, version: parsed };
+  }
+
+  // If number, must be positive safe integer
+  if (!Number.isInteger(rawVersion) || rawVersion <= 0) {
     return { isValid: false, error: "Version must be a positive integer." };
   }
 
-  return { isValid: true, version: parsed };
+  return { isValid: true, version: rawVersion };
 }
 
 /**
@@ -53,7 +68,7 @@ export function validateOptimisticLock(
       isMatch: false,
       error: {
         code: "STALE_UPDATE",
-        message: "Record has been modified by another user. Please reload the latest data.",
+        message: "Ticket has been modified by another user. Please reload the latest ticket data.",
       },
     };
   }

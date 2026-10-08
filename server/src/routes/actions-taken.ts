@@ -3,6 +3,7 @@ import { getPrisma } from "../prisma.js";
 import { authenticate, enforcePasswordChange, requireRole } from "../middleware/auth.js";
 import { validateActionTaken, parseBoolean } from "../utils/actions-taken-validator.js";
 import { validateAssignee } from "../utils/assignee-validator.js";
+import { parseAndValidateVersion } from "../utils/concurrency-validator.js";
 
 export const actionsTakenRouter = Router();
 
@@ -390,23 +391,13 @@ actionsTakenRouter.patch(
 
       // Optimistic concurrency control (BR-14)
       if (req.body.version !== undefined && req.body.version !== null) {
-        if (typeof req.body.version !== "number" && typeof req.body.version !== "string") {
+        const parsedVersionResult = parseAndValidateVersion(req.body.version);
+        if (!parsedVersionResult.isValid || parsedVersionResult.version === undefined) {
           return res.status(400).json({
-            error: { code: "INVALID_INPUT", message: "Version must be a positive integer." },
+            error: { code: "INVALID_INPUT", message: parsedVersionResult.error || "Version must be a positive integer." },
           });
         }
-        if (typeof req.body.version === "string" && !/^\d+$/.test(req.body.version.trim())) {
-          return res.status(400).json({
-            error: { code: "INVALID_INPUT", message: "Version must be a positive integer." },
-          });
-        }
-        const candidateVersion = Number(req.body.version);
-        if (!Number.isInteger(candidateVersion) || candidateVersion <= 0) {
-          return res.status(400).json({
-            error: { code: "INVALID_INPUT", message: "Version must be a positive integer." },
-          });
-        }
-        const submittedVersion = candidateVersion;
+        const submittedVersion = parsedVersionResult.version;
 
         const updateResult = await getPrisma().actionTaken.updateMany({
           where: {

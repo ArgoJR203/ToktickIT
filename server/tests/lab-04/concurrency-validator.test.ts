@@ -30,8 +30,11 @@ describe("Optimistic Concurrency Version Validator (UNIT-02, BR-14, AC-08)", () 
       expect(parseAndValidateVersion("2.3").isValid).toBe(false);
     });
 
-    it("rejects non-numeric strings and null/undefined", () => {
+    it("rejects non-numeric strings, hex strings, booleans, and null/undefined", () => {
       expect(parseAndValidateVersion("abc").isValid).toBe(false);
+      expect(parseAndValidateVersion("0x10").isValid).toBe(false);
+      expect(parseAndValidateVersion(true).isValid).toBe(false);
+      expect(parseAndValidateVersion(false).isValid).toBe(false);
       expect(parseAndValidateVersion(null).isValid).toBe(false);
       expect(parseAndValidateVersion(undefined).isValid).toBe(false);
       expect(parseAndValidateVersion("").isValid).toBe(false);
