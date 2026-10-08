@@ -6,6 +6,10 @@ import {
   getAllowedTransitions,
   isValidStatusTransition,
 } from "../utils/status-transition-validator.js";
+import {
+  parseAndValidateVersion,
+  validateOptimisticLock,
+} from "../utils/concurrency-validator.js";
 
 export const staffRouter = Router();
 
@@ -413,7 +417,12 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
 
     const ticket = await getPrisma().ticket.findUnique({
       where: { id: ticketId },
-      select: { id: true, currentStatus: true, resolutionSummary: true },
+      include: {
+        category: { select: { id: true, name: true } },
+        relatedSystem: { select: { id: true, name: true } },
+        requester: { select: { id: true, name: true, email: true } },
+        owner: { select: { id: true, name: true, email: true } },
+      },
     });
 
     if (!ticket) {
@@ -422,7 +431,37 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       });
     }
 
-    const { status, resolutionSummary } = req.body ?? {};
+    const { resolutionSummary, version } = req.body ?? {};
+    let submittedVersion: number | undefined = undefined;
+
+    // 1. Optimistic Concurrency Control (OCC) Check FIRST (BR-14, AC-08)
+    // Check against current ticket version in DB before performing any transition or gate checks.
+    if (version !== undefined && version !== null) {
+      const parsedVersion = parseAndValidateVersion(version);
+      if (!parsedVersion.isValid || parsedVersion.version === undefined) {
+        return res.status(400).json({
+          error: {
+            code: "INVALID_INPUT",
+            message: parsedVersion.error || "Version must be a positive integer.",
+          },
+        });
+      }
+      submittedVersion = parsedVersion.version;
+
+      const lockCheck = validateOptimisticLock(submittedVersion, ticket.version);
+      if (!lockCheck.isMatch) {
+        return res.status(409).json({
+          error: {
+            code: "STALE_UPDATE",
+            message: "Ticket has been modified by another user. Please reload the latest ticket data.",
+            details: { currentTicket: ticket },
+          },
+          currentTicket: ticket,
+        });
+      }
+    }
+
+    const statusInput = req.body?.status ?? req.body?.currentStatus;
     const validStatuses: TicketStatus[] = [
       "NEW",
       "OPEN",
@@ -434,7 +473,7 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       "CANCELLED",
     ];
 
-    if (typeof status !== "string" || !validStatuses.includes(status.trim().toUpperCase() as TicketStatus)) {
+    if (typeof statusInput !== "string" || !validStatuses.includes(statusInput.trim().toUpperCase() as TicketStatus)) {
       return res.status(400).json({
         error: {
           code: "INVALID_INPUT",
@@ -443,9 +482,9 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       });
     }
 
-    const nextStatus = status.trim().toUpperCase() as TicketStatus;
+    const nextStatus = statusInput.trim().toUpperCase() as TicketStatus;
 
-    // State machine check
+    // 2. State machine transition check
     if (!isValidStatusTransition(ticket.currentStatus, nextStatus)) {
       return res.status(400).json({
         error: {
@@ -455,8 +494,7 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
       });
     }
 
-    // Resolution summary handling:
-    // If transitioning to RESOLVED or CLOSED, accept resolutionSummary if provided
+    // 3. Resolution summary handling & validation (BR-13, AC-09)
     let updatedResolutionSummary: string | null = ticket.resolutionSummary;
 
     if (nextStatus === "RESOLVED" || nextStatus === "CLOSED") {
@@ -476,28 +514,142 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
           updatedResolutionSummary = null;
         }
       }
+
+      if (!updatedResolutionSummary || updatedResolutionSummary.trim().length < 5) {
+        return res.status(400).json({
+          error: {
+            code: "MISSING_RESOLUTION_SUMMARY",
+            message: "Resolution summary is mandatory (min 5 characters) when resolving or closing a ticket.",
+          },
+        });
+      }
+    } else if (resolutionSummary !== undefined) {
+      if (typeof resolutionSummary === "string") {
+        const trimmed = resolutionSummary.trim();
+        if (trimmed.length > 2000) {
+          return res.status(400).json({
+            error: {
+              code: "INVALID_INPUT",
+              message: "Resolution summary cannot exceed 2000 characters.",
+            },
+          });
+        }
+        updatedResolutionSummary = trimmed.length > 0 ? trimmed : null;
+      } else if (resolutionSummary === null) {
+        updatedResolutionSummary = null;
+      }
     }
 
-    const updated = await getPrisma().ticket.update({
-      where: { id: ticketId },
-      data: {
-        currentStatus: nextStatus,
-        resolutionSummary: updatedResolutionSummary,
-      },
-      select: {
-        id: true,
-        currentStatus: true,
-        resolutionSummary: true,
-        updatedAt: true,
-      },
+    // 4. Action Completion Gate and Ticket Update wrapped in transaction (BR-20, AC-16, BR-14)
+    const txResult = await getPrisma().$transaction(async (tx) => {
+      // Action Completion Gate inside transaction
+      if (nextStatus === "RESOLVED" || nextStatus === "CLOSED") {
+        const incompleteActionsCount = await tx.actionTaken.count({
+          where: {
+            ticketId,
+            OR: [
+              { status: { in: ["PENDING", "IN_PROGRESS"] } },
+              { followUpRequired: true, followUpDone: false },
+            ],
+          },
+        });
+
+        if (incompleteActionsCount > 0) {
+          return {
+            status: 400 as const,
+            body: {
+              error: {
+                code: "INCOMPLETE_ACTIONS_TAKEN",
+                message: "Cannot resolve or close ticket while actions taken remain pending or incomplete.",
+              },
+            },
+          };
+        }
+      }
+
+      // Atomic conditional update
+      if (submittedVersion !== undefined) {
+        const updateResult = await tx.ticket.updateMany({
+          where: { id: ticketId, version: submittedVersion },
+          data: {
+            currentStatus: nextStatus,
+            resolutionSummary: updatedResolutionSummary,
+            version: { increment: 1 },
+          },
+        });
+
+        if (updateResult.count === 0) {
+          const currentTicket = await tx.ticket.findUnique({
+            where: { id: ticketId },
+            include: {
+              category: { select: { id: true, name: true } },
+              relatedSystem: { select: { id: true, name: true } },
+              requester: { select: { id: true, name: true, email: true } },
+              owner: { select: { id: true, name: true, email: true } },
+            },
+          });
+
+          return {
+            status: 409 as const,
+            body: {
+              error: {
+                code: "STALE_UPDATE",
+                message: "Ticket has been modified by another user. Please reload the latest ticket data.",
+                details: { currentTicket },
+              },
+              currentTicket,
+            },
+          };
+        }
+      } else {
+        // Backward compatibility: If client omits version, update executes without concurrency rejection
+        await tx.ticket.update({
+          where: { id: ticketId },
+          data: {
+            currentStatus: nextStatus,
+            resolutionSummary: updatedResolutionSummary,
+            version: { increment: 1 },
+          },
+        });
+      }
+
+      const updated = await tx.ticket.findUnique({
+        where: { id: ticketId },
+        select: {
+          id: true,
+          ticketNumber: true,
+          currentStatus: true,
+          resolutionSummary: true,
+          version: true,
+          updatedAt: true,
+        },
+      });
+
+      return {
+        status: 200 as const,
+        body: updated,
+      };
     });
+
+    if (txResult.status !== 200) {
+      return res.status(txResult.status).json(txResult.body);
+    }
+
+    const updated = txResult.body;
+    if (!updated) {
+      return res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Ticket not found after update." },
+      });
+    }
 
     const permittedNextStatuses = getAllowedTransitions(updated.currentStatus);
 
     return res.status(200).json({
       id: updated.id,
+      ticketNumber: updated.ticketNumber,
       currentStatus: updated.currentStatus,
       resolutionSummary: updated.resolutionSummary,
+      version: updated.version,
       permittedNextStatuses,
       updatedAt: updated.updatedAt,
     });

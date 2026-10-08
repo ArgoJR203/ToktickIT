@@ -818,6 +818,7 @@ export interface StaffTicketDetailData {
   resolutionIndicated?: boolean;
   resolutionIndicatedAt?: string | null;
   resolutionSummary?: string | null;
+  version?: number;
   permittedNextStatuses: string[];
   attachments: AttachmentItem[];
   createdAt: string;
@@ -920,21 +921,29 @@ export async function updateTicketPriority(
 export async function updateTicketStatus(
   ticketId: number,
   status: string,
-  resolutionSummary?: string
+  resolutionSummary?: string,
+  version?: number
 ): Promise<{
   id: number;
+  ticketNumber?: string;
   currentStatus: string;
   resolutionSummary: string | null;
+  version?: number;
   permittedNextStatuses: string[];
   updatedAt: string;
 }> {
+  const body: Record<string, any> = { status, resolutionSummary };
+  if (version !== undefined && version !== null) {
+    body.version = version;
+  }
+
   const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       ...getAuthHeaders(),
     },
-    body: JSON.stringify({ status, resolutionSummary }),
+    body: JSON.stringify(body),
   });
 
   let data: Record<string, any> = {};
@@ -944,13 +953,20 @@ export async function updateTicketStatus(
 
   if (!res.ok) {
     const errorMsg = data.error?.message || data.message || "Failed to update ticket status.";
-    throw new Error(errorMsg);
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).currentTicket = data?.currentTicket || data?.error?.details?.currentTicket;
+    (err as any).field = data?.error?.field;
+    (err as any).status = res.status;
+    throw err;
   }
 
   return data as {
     id: number;
+    ticketNumber?: string;
     currentStatus: string;
     resolutionSummary: string | null;
+    version?: number;
     permittedNextStatuses: string[];
     updatedAt: string;
   };

@@ -48,6 +48,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
   // Feedback Notifications
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [conflictError, setConflictError] = useState<boolean>(false);
 
   // Activity / Communication Tabs
   const [activeTab, setActiveTab] = useState<"public" | "internal">("public");
@@ -96,6 +97,16 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
       setIsLoading(false);
     }
   }, [ticketId]);
+
+  const handleReloadConflictTicket = async () => {
+    const draftSummary = resolutionSummaryText;
+    setConflictError(false);
+    setActionError(null);
+    await loadTicket();
+    if (draftSummary.trim().length > 0) {
+      setResolutionSummaryText(draftSummary);
+    }
+  };
 
   // Load communications feeds
   const loadComments = useCallback(async () => {
@@ -186,7 +197,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
     }
   };
 
-  // 4. Update Status Transition
+  // 4. Update Status Transition (BR-11, BR-14, AC-08, AC-09, AC-16)
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStatus) return;
@@ -195,11 +206,18 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
     setActionError(null);
 
     try {
-      const res = await updateTicketStatus(
-        ticketId,
-        selectedStatus,
-        resolutionSummaryText
-      );
+      const res = ticket?.version !== undefined
+        ? await updateTicketStatus(
+            ticketId,
+            selectedStatus,
+            resolutionSummaryText,
+            ticket.version
+          )
+        : await updateTicketStatus(
+            ticketId,
+            selectedStatus,
+            resolutionSummaryText
+          );
       setTicket((prev) =>
         prev
           ? {
@@ -207,14 +225,21 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
               currentStatus: res.currentStatus,
               resolutionSummary: res.resolutionSummary,
               permittedNextStatuses: res.permittedNextStatuses,
+              version: res.version ?? (prev.version !== undefined ? prev.version + 1 : undefined),
               updatedAt: res.updatedAt,
             }
           : null
       );
       setSelectedStatus(res.permittedNextStatuses[0] || "");
+      setConflictError(false);
       setSuccessNotice(`Status successfully updated to ${res.currentStatus}.`);
     } catch (err: any) {
-      setActionError(err.message || "Failed to update ticket status.");
+      if (err.code === "STALE_UPDATE" || err.status === 409) {
+        setConflictError(true);
+        setActionError(null);
+      } else {
+        setActionError(err.message || "Failed to update ticket status.");
+      }
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -423,6 +448,50 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
         </div>
       )}
 
+      {/* 409 Concurrency Conflict Alert Banner (BR-14, AC-08, UI-05) */}
+      {conflictError && (
+        <div
+          className="alert alert-warning d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 shadow-sm p-3"
+          role="alert"
+          data-testid="ticket-conflict-banner"
+          style={{
+            backgroundColor: "var(--color-conflict-bg, #FFF8E1)",
+            border: "1px solid var(--color-conflict-border, #FFA000)",
+            color: "#5D4037",
+          }}
+        >
+          <div className="d-flex align-items-center mb-2 mb-sm-0">
+            <svg
+              className="me-2 flex-shrink-0"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#B78103"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <div>
+              <strong>Update Conflict:</strong> Another staff member has updated this ticket while you were viewing it. Your changes were not saved to prevent overwriting their work.
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-warning ms-sm-3 flex-shrink-0"
+            data-testid="reload-conflict-ticket-btn"
+            onClick={handleReloadConflictTicket}
+          >
+            Reload Latest Ticket Data
+          </button>
+        </div>
+      )}
+
       {/* Ticket Header Card */}
       <div className="card zen-card p-3 mb-4 shadow-sm">
         <div className="d-flex flex-wrap justify-content-between align-items-center">
@@ -438,7 +507,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
         </div>
       </div>
 
-      {/* Requester Indication Callout Banner (BR-05, AC-12) */}
+      {/* Requester Indication Callout Banner (BR-05, AC-12, UI-06) */}
       {ticket.resolutionIndicated && (
         <div
           className="alert alert-warning d-flex align-items-center mb-4 shadow-sm"
@@ -462,7 +531,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
           <div>
-            <strong>Requester Resolution Indication:</strong> The requester has marked this problem as resolved. Please verify and update status.
+            <strong>Requester Resolution Indication:</strong> The requester has marked this problem as resolved. The requester indicated this problem appears resolved. Please verify the work, check completed actions, and formally update the ticket status.
           </div>
         </div>
       )}

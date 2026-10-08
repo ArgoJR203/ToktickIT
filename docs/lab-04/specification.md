@@ -122,7 +122,7 @@ The TokTickIT service desk currently receives tickets, tracks ownership and IT p
 - **BR-10**: **Authoritative 8-Status Ticket Lifecycle**: The permitted Ticket statuses are strictly: `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, and `CANCELLED`.
 - **BR-11**: **Permitted Status Transition Matrix**:
   - `NEW` -> `OPEN`, `IN_PROGRESS`, `CANCELLED`
-  - `OPEN` -> `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CANCELLED`
+  - `OPEN` -> `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `CANCELLED`
   - `IN_PROGRESS` -> `WAITING_FOR_REQUESTER`, `RESOLVED`, `CANCELLED`
   - `WAITING_FOR_REQUESTER` -> `IN_PROGRESS`, `RESOLVED`, `CANCELLED`
   - `RESOLVED` -> `CLOSED`, `REOPENED`
