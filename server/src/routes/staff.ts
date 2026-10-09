@@ -10,6 +10,10 @@ import {
   parseAndValidateVersion,
   validateOptimisticLock,
 } from "../utils/concurrency-validator.js";
+import {
+  formatStaffOperationalMetrics,
+  formatAdminUserStats,
+} from "../utils/dashboard-calculator.js";
 
 export const staffRouter = Router();
 
@@ -660,3 +664,111 @@ staffRouter.patch("/tickets/:id/status", async (req: Request, res: Response) => 
     });
   }
 });
+
+/**
+ * GET /api/staff/dashboard
+ * IT Staff & Administrator Dashboard: Operational metrics, top recent queue tickets, and admin statistics.
+ * (AC-10, AC-11, BR-16, BR-17, API-15, API-16)
+ */
+staffRouter.get("/dashboard", async (req: Request, res: Response) => {
+  try {
+    const staffUserId = req.user!.id;
+    const isAdmin = req.user!.role === "ADMINISTRATOR";
+
+    const [
+      unassignedCount,
+      assignedToMeCount,
+      statusGroups,
+      priorityGroups,
+      recentTickets,
+      adminStats,
+    ] = await Promise.all([
+      // 1. Unassigned non-terminal tickets
+      getPrisma().ticket.count({
+        where: {
+          ownerId: null,
+          currentStatus: { notIn: ["CLOSED", "CANCELLED"] },
+        },
+      }),
+      // 2. Assigned to caller non-terminal tickets
+      getPrisma().ticket.count({
+        where: {
+          ownerId: staffUserId,
+          currentStatus: { notIn: ["CLOSED", "CANCELLED"] },
+        },
+      }),
+      // 3. Status groupings across all tickets
+      getPrisma().ticket.groupBy({
+        by: ["currentStatus"],
+        _count: { _all: true },
+      }),
+      // 4. IT Priority groupings for non-terminal tickets
+      getPrisma().ticket.groupBy({
+        by: ["itPriority"],
+        where: {
+          currentStatus: { notIn: ["CLOSED", "CANCELLED"] },
+        },
+        _count: { _all: true },
+      }),
+      // 5. Recent queue tickets
+      getPrisma().ticket.findMany({
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          currentStatus: true,
+          itPriority: true,
+          owner: { select: { id: true, name: true } },
+          requester: { select: { name: true } },
+          updatedAt: true,
+        },
+      }),
+      // 6. Admin stats (strictly for ADMINISTRATOR role)
+      isAdmin
+        ? Promise.all([
+            getPrisma().user.count(),
+            getPrisma().user.count({ where: { isActive: true } }),
+            getPrisma().user.groupBy({
+              by: ["role"],
+              _count: { _all: true },
+            }),
+          ]).then(([totalUsers, activeUsers, roleGroups]) =>
+            formatAdminUserStats(totalUsers, activeUsers, roleGroups as any)
+          )
+        : Promise.resolve(undefined),
+    ]);
+
+    const metrics = formatStaffOperationalMetrics(
+      unassignedCount,
+      assignedToMeCount,
+      statusGroups as any,
+      priorityGroups as any
+    );
+
+    const responsePayload: Record<string, unknown> = {
+      metrics,
+      recentTickets,
+      drillDownUrls: {
+        unassigned: "/staff/tickets?ownerId=unassigned",
+        assignedToMe: "/staff/tickets?ownerId=me",
+        open: "/staff/tickets?currentStatus=OPEN",
+        inProgress: "/staff/tickets?currentStatus=IN_PROGRESS",
+        waitingForRequester: "/staff/tickets?currentStatus=WAITING_FOR_REQUESTER",
+      },
+    };
+
+    if (adminStats) {
+      responsePayload.adminStats = adminStats;
+    }
+
+    return res.status(200).json(responsePayload);
+  } catch (err) {
+    console.error("Error in GET /api/staff/dashboard:", err);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to fetch staff dashboard." },
+    });
+  }
+});
+

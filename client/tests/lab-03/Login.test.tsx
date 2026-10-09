@@ -21,6 +21,41 @@ vi.mock("../../src/api.js", async (importOriginal) => {
       data: [],
       pagination: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 },
     }),
+    fetchRequesterDashboard: vi.fn().mockResolvedValue({
+      metrics: { totalOpen: 0, waitingForRequester: 0, resolvedCount: 0, closedCount: 0 },
+      recentTickets: [],
+      drillDownUrls: {
+        totalOpen: "/tickets?statusGroup=open",
+        waitingForRequester: "/tickets?currentStatus=WAITING_FOR_REQUESTER",
+        resolvedCount: "/tickets?currentStatus=RESOLVED",
+        closedCount: "/tickets?currentStatus=CLOSED",
+      },
+    }),
+    fetchStaffDashboard: vi.fn().mockResolvedValue({
+      metrics: {
+        unassignedCount: 0,
+        assignedToMeCount: 0,
+        countsByStatus: {
+          NEW: 0,
+          OPEN: 0,
+          IN_PROGRESS: 0,
+          WAITING_FOR_REQUESTER: 0,
+          RESOLVED: 0,
+          CLOSED: 0,
+          REOPENED: 0,
+          CANCELLED: 0,
+        },
+        countsByPriority: { LOW: 0, MEDIUM: 0, HIGH: 0, URGENT: 0 },
+      },
+      recentTickets: [],
+      drillDownUrls: {
+        unassigned: "/staff/tickets?ownerId=unassigned",
+        assignedToMe: "/staff/tickets?ownerId=me",
+        open: "/staff/tickets?currentStatus=OPEN",
+        inProgress: "/staff/tickets?currentStatus=IN_PROGRESS",
+        waitingForRequester: "/staff/tickets?currentStatus=WAITING_FOR_REQUESTER",
+      },
+    }),
   };
 });
 
@@ -180,7 +215,7 @@ describe("Login Component — UI-01 (AC-01, FR-01, FR-02)", () => {
       },
     });
 
-    vi.mocked(api.fetchTickets).mockResolvedValueOnce({
+    vi.mocked(api.fetchTickets).mockResolvedValue({
       data: [
         {
           id: 101,
@@ -207,6 +242,13 @@ describe("Login Component — UI-01 (AC-01, FR-01, FR-02)", () => {
     await user.type(screen.getByLabelText(/Email address/i), "jennifer.anderson@example.com");
     await user.type(screen.getByLabelText(/^Password/i), "Password123!");
     await user.click(screen.getByRole("button", { name: "Sign In" }));
+
+    // Verify landing on Dashboard upon login, then navigate to My Tickets
+    await waitFor(() => {
+      expect(screen.getByText(/Welcome, Jennifer!/i)).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "My Tickets" }));
 
     // Verify tickets dashboard renders with ticket data
     await waitFor(() => {
@@ -244,7 +286,7 @@ describe("Login Component — UI-01 (AC-01, FR-01, FR-02)", () => {
 
     // Wait until logged in
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
+      expect(screen.getByText(/Welcome, Jennifer!/i)).toBeInTheDocument();
     });
 
     // Find and click Logout in Header
