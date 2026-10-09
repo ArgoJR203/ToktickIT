@@ -141,4 +141,59 @@ describe("Dashboard Operational Metrics Calculator (UNIT-04, BR-16, BR-18)", () 
       });
     });
   });
+
+  describe("formatStaffOperationalMetrics & formatAdminUserStats & formatRequesterMetrics (Production DB Formatters)", () => {
+    it("formatStaffOperationalMetrics populates all 8 statuses and 4 priorities with defaults", async () => {
+      const { formatStaffOperationalMetrics } = await import("../../src/utils/dashboard-calculator.js");
+      const res = formatStaffOperationalMetrics(
+        3,
+        2,
+        [
+          { currentStatus: "OPEN", _count: { _all: 5 } },
+          { currentStatus: "RESOLVED", _count: { _all: 8 } },
+        ],
+        [
+          { itPriority: "URGENT", _count: { _all: 2 } },
+          { itPriority: "HIGH", _count: { _all: 4 } },
+        ]
+      );
+
+      expect(res.unassignedCount).toBe(3);
+      expect(res.assignedToMeCount).toBe(2);
+      expect(res.countsByStatus.OPEN).toBe(5);
+      expect(res.countsByStatus.RESOLVED).toBe(8);
+      expect(res.countsByStatus.CLOSED).toBe(0); // Defaulted
+      expect(res.countsByPriority.URGENT).toBe(2);
+      expect(res.countsByPriority.LOW).toBe(0); // Defaulted
+    });
+
+    it("formatAdminUserStats aggregates user count and role distributions", async () => {
+      const { formatAdminUserStats } = await import("../../src/utils/dashboard-calculator.js");
+      const res = formatAdminUserStats(11, 9, [
+        { role: "REQUESTER", _count: { _all: 6 } },
+        { role: "IT_STAFF", _count: { _all: 4 } },
+        { role: "ADMINISTRATOR", _count: { _all: 1 } },
+      ]);
+
+      expect(res.totalUsers).toBe(11);
+      expect(res.activeUsers).toBe(9);
+      expect(res.usersByRole).toEqual({
+        REQUESTER: 6,
+        IT_STAFF: 4,
+        ADMINISTRATOR: 1,
+      });
+    });
+
+    it("formatRequesterMetrics formats requester metric contract", async () => {
+      const { formatRequesterMetrics } = await import("../../src/utils/dashboard-calculator.js");
+      const res = formatRequesterMetrics(3, 1, 2, 5);
+
+      expect(res).toEqual({
+        totalOpen: 3,
+        waitingForRequester: 1,
+        resolvedCount: 2,
+        closedCount: 5,
+      });
+    });
+  });
 });

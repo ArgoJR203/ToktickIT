@@ -260,7 +260,7 @@ describe("StaffDashboard Component Tests (UI-08 / Issue #4-5)", () => {
       expect(screen.getByTestId("empty-recent-queue")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("No active queue tickets found.")).toBeInTheDocument();
+    expect(screen.getByText("No recent queue tickets found.")).toBeInTheDocument();
   });
 
   it("UI-08.8: Refresh button reloads dashboard data", async () => {

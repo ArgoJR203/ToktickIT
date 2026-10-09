@@ -54,6 +54,13 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
       .catch((err) => console.error("Failed to load categories for filter:", err));
   }, []);
 
+  // Sync incoming filter props (e.g. from Dashboard drill-down or Header tab resets)
+  useEffect(() => {
+    setSelectedStatus(initialStatus || "");
+    setSelectedStatusGroup(initialStatusGroup || "");
+    setPage(1);
+  }, [initialStatus, initialStatusGroup]);
+
   // Reset to Page 1 whenever search or filter selections change
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -86,7 +93,9 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
     setPage(1);
   };
 
-  const hasActiveFilters = Boolean(search || selectedCategory || selectedPriority || selectedStatus);
+  const hasActiveFilters = Boolean(
+    search || selectedCategory || selectedPriority || selectedStatus || selectedStatusGroup
+  );
 
   // Toggle sort order or field
   const handleSort = (field: string) => {
@@ -376,6 +385,25 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
             )}
           </div>
         </div>
+
+        {/* Active Filter Chips (e.g. from Drill-down) */}
+        {selectedStatusGroup && (
+          <div className="mt-2 pt-2 border-top d-flex align-items-center gap-2" data-testid="status-group-active-filter">
+            <span className="badge rounded-pill bg-light text-dark border d-inline-flex align-items-center px-2 py-1">
+              <span>Showing: {selectedStatusGroup === "open" ? "Open tickets" : "Resolved tickets"}</span>
+              <button
+                type="button"
+                className="btn-close ms-2"
+                style={{ fontSize: "0.6rem" }}
+                aria-label="Remove filter"
+                onClick={() => {
+                  setSelectedStatusGroup("");
+                  setPage(1);
+                }}
+              />
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Loading State */}

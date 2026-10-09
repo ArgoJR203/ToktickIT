@@ -10,6 +10,10 @@ import {
   parseAndValidateVersion,
   validateOptimisticLock,
 } from "../utils/concurrency-validator.js";
+import {
+  formatStaffOperationalMetrics,
+  formatAdminUserStats,
+} from "../utils/dashboard-calculator.js";
 
 export const staffRouter = Router();
 
@@ -730,63 +734,21 @@ staffRouter.get("/dashboard", async (req: Request, res: Response) => {
               by: ["role"],
               _count: { _all: true },
             }),
-          ]).then(([totalUsers, activeUsers, roleGroups]) => {
-            const usersByRole: Record<string, number> = {
-              REQUESTER: 0,
-              IT_STAFF: 0,
-              ADMINISTRATOR: 0,
-            };
-            for (const rg of roleGroups) {
-              if (rg.role in usersByRole) {
-                usersByRole[rg.role] = rg._count._all;
-              }
-            }
-            return {
-              totalUsers,
-              activeUsers,
-              usersByRole,
-            };
-          })
+          ]).then(([totalUsers, activeUsers, roleGroups]) =>
+            formatAdminUserStats(totalUsers, activeUsers, roleGroups as any)
+          )
         : Promise.resolve(undefined),
     ]);
 
-    // Format all 8 status keys initialized to 0
-    const countsByStatus: Record<TicketStatus, number> = {
-      NEW: 0,
-      OPEN: 0,
-      IN_PROGRESS: 0,
-      WAITING_FOR_REQUESTER: 0,
-      RESOLVED: 0,
-      CLOSED: 0,
-      REOPENED: 0,
-      CANCELLED: 0,
-    };
-    for (const sg of statusGroups) {
-      if (sg.currentStatus in countsByStatus) {
-        countsByStatus[sg.currentStatus] = sg._count._all;
-      }
-    }
-
-    // Format all 4 priority keys initialized to 0
-    const countsByPriority: Record<ITPriority, number> = {
-      LOW: 0,
-      MEDIUM: 0,
-      HIGH: 0,
-      URGENT: 0,
-    };
-    for (const pg of priorityGroups) {
-      if (pg.itPriority in countsByPriority) {
-        countsByPriority[pg.itPriority] = pg._count._all;
-      }
-    }
+    const metrics = formatStaffOperationalMetrics(
+      unassignedCount,
+      assignedToMeCount,
+      statusGroups as any,
+      priorityGroups as any
+    );
 
     const responsePayload: Record<string, unknown> = {
-      metrics: {
-        unassignedCount,
-        assignedToMeCount,
-        countsByStatus,
-        countsByPriority,
-      },
+      metrics,
       recentTickets,
       drillDownUrls: {
         unassigned: "/staff/tickets?ownerId=unassigned",

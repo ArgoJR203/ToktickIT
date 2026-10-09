@@ -50,6 +50,13 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
       .catch((err) => console.error("Failed to load categories:", err));
   }, []);
 
+  // Sync incoming filter props (e.g. from Dashboard drill-down or Header tab resets)
+  useEffect(() => {
+    setSelectedStatus(initialStatus || "");
+    setSelectedAssignment(initialAssignment || "");
+    setPage(1);
+  }, [initialStatus, initialAssignment]);
+
   // 2. Fetch staff ticket queue
   const loadTickets = useCallback(() => {
     let isMounted = true;

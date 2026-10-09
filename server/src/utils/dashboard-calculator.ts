@@ -177,3 +177,92 @@ export function calculateAdminUserStats(
     usersByRole,
   };
 }
+
+/**
+ * Formats and validates staff operational metrics from database query results (AC-10, BR-16).
+ * Ensures all 8 statuses and 4 priorities are populated with defaults.
+ */
+export function formatStaffOperationalMetrics(
+  unassignedCount: number,
+  assignedToMeCount: number,
+  statusGroups: Array<{ currentStatus: TicketStatus; _count: { _all: number } }>,
+  priorityGroups: Array<{ itPriority: ITPriority; _count: { _all: number } }>
+): StaffOperationalMetrics {
+  const countsByStatus: Record<TicketStatus, number> = {
+    NEW: 0,
+    OPEN: 0,
+    IN_PROGRESS: 0,
+    WAITING_FOR_REQUESTER: 0,
+    RESOLVED: 0,
+    CLOSED: 0,
+    REOPENED: 0,
+    CANCELLED: 0,
+  };
+  for (const sg of statusGroups) {
+    if (sg.currentStatus in countsByStatus) {
+      countsByStatus[sg.currentStatus] = sg._count._all;
+    }
+  }
+
+  const countsByPriority: Record<ITPriority, number> = {
+    LOW: 0,
+    MEDIUM: 0,
+    HIGH: 0,
+    URGENT: 0,
+  };
+  for (const pg of priorityGroups) {
+    if (pg.itPriority in countsByPriority) {
+      countsByPriority[pg.itPriority] = pg._count._all;
+    }
+  }
+
+  return {
+    unassignedCount,
+    assignedToMeCount,
+    countsByStatus,
+    countsByPriority,
+  };
+}
+
+/**
+ * Formats and validates Administrator user statistics from database query results (AC-11, BR-17).
+ */
+export function formatAdminUserStats(
+  totalUsers: number,
+  activeUsers: number,
+  roleGroups: Array<{ role: Role; _count: { _all: number } }>
+): AdminUserStats {
+  const usersByRole: Record<Role, number> = {
+    REQUESTER: 0,
+    IT_STAFF: 0,
+    ADMINISTRATOR: 0,
+  };
+  for (const rg of roleGroups) {
+    if (rg.role in usersByRole) {
+      usersByRole[rg.role] = rg._count._all;
+    }
+  }
+
+  return {
+    totalUsers,
+    activeUsers,
+    usersByRole,
+  };
+}
+
+/**
+ * Formats and validates Requester metrics into standard contract shape (AC-02, BR-15).
+ */
+export function formatRequesterMetrics(
+  totalOpen: number,
+  waitingForRequester: number,
+  resolvedCount: number,
+  closedCount: number
+): RequesterMetrics {
+  return {
+    totalOpen,
+    waitingForRequester,
+    resolvedCount,
+    closedCount,
+  };
+}

@@ -170,6 +170,13 @@ app.get("/api/tickets", authenticate, enforcePasswordChange, async (req: Request
         where.currentStatus = {
           in: ["RESOLVED", "CLOSED"],
         };
+      } else {
+        return res.status(400).json({
+          error: {
+            code: "INVALID_INPUT",
+            message: "Invalid statusGroup parameter. Allowed values are 'open' or 'resolved'.",
+          },
+        });
       }
     }
 

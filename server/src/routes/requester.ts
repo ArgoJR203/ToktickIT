@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { getPrisma } from "../prisma.js";
 import { authenticate, enforcePasswordChange, requireRole } from "../middleware/auth.js";
+import { formatRequesterMetrics } from "../utils/dashboard-calculator.js";
 
 export const requesterRouter = Router();
 
@@ -57,13 +58,15 @@ requesterRouter.get("/dashboard", async (req: Request, res: Response) => {
       }),
     ]);
 
+    const metrics = formatRequesterMetrics(
+      totalOpen,
+      waitingForRequester,
+      resolvedCount,
+      closedCount
+    );
+
     return res.status(200).json({
-      metrics: {
-        totalOpen,
-        waitingForRequester,
-        resolvedCount,
-        closedCount,
-      },
+      metrics,
       recentTickets,
       drillDownUrls: {
         totalOpen: "/tickets?statusGroup=open",

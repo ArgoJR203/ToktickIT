@@ -122,4 +122,14 @@ describe("Tickets API Status Group Filtering Integration Tests (API-23)", () => 
     expect(res.body.data.length).toBe(1);
     expect(res.body.data[0].currentStatus).toBe("OPEN");
   });
+
+  it("rejects invalid statusGroup with 400 Bad Request and INVALID_INPUT code", async () => {
+    const res = await request(app)
+      .get("/api/tickets?statusGroup=invalid_group")
+      .set("Authorization", `Bearer ${requesterToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("INVALID_INPUT");
+    expect(res.body.error.message).toContain("statusGroup");
+  });
 });

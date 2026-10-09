@@ -94,6 +94,20 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
     }
   };
 
+  const parseStaffDrillDownUrl = (url?: string): { ownerFilter?: string; statusFilter?: string } => {
+    if (!url) return {};
+    try {
+      const searchPart = url.includes("?") ? url.split("?")[1] : url;
+      const params = new URLSearchParams(searchPart);
+      return {
+        ownerFilter: params.get("ownerId") || undefined,
+        statusFilter: params.get("currentStatus") || undefined,
+      };
+    } catch {
+      return {};
+    }
+  };
+
   const userName = currentUser?.name ? currentUser.name.split(" ")[0] : "Staff";
 
   return (
@@ -158,7 +172,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
               >
                 <div>
                   <span className="text-muted small text-uppercase fw-semibold">Unassigned</span>
-                  <div className="display-6 fw-bold mt-2" style={{ color: "#D32F2F" }}>
+                  <div className="display-6 fw-bold mt-2" style={{ color: "var(--color-error-text, #D32F2F)" }}>
                     {data?.metrics.unassignedCount ?? 0}
                   </div>
                 </div>
@@ -166,9 +180,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   <button
                     type="button"
                     className="btn btn-link p-0 text-decoration-none small fw-semibold"
-                    style={{ color: "#D32F2F" }}
+                    style={{ color: "var(--color-error-text, #D32F2F)" }}
                     data-testid="drilldown-unassigned"
-                    onClick={() => onDrillDown({ ownerFilter: "unassigned" })}
+                    onClick={() => {
+                      const parsed = parseStaffDrillDownUrl(data?.drillDownUrls?.unassigned);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { ownerFilter: "unassigned" });
+                    }}
                   >
                     View queue &rarr;
                   </button>
@@ -193,7 +210,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     type="button"
                     className="btn btn-link p-0 text-decoration-none small fw-semibold text-primary"
                     data-testid="drilldown-open"
-                    onClick={() => onDrillDown({ statusFilter: "OPEN" })}
+                    onClick={() => {
+                      const parsed = parseStaffDrillDownUrl(data?.drillDownUrls?.open);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { statusFilter: "OPEN" });
+                    }}
                   >
                     View open &rarr;
                   </button>
@@ -209,7 +229,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
               >
                 <div>
                   <span className="text-muted small text-uppercase fw-semibold">In Progress</span>
-                  <div className="display-6 fw-bold mt-2" style={{ color: "#F57C00" }}>
+                  <div className="display-6 fw-bold mt-2" style={{ color: "var(--color-warning-badge, #F57C00)" }}>
                     {data?.metrics.countsByStatus.IN_PROGRESS ?? 0}
                   </div>
                 </div>
@@ -217,9 +237,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   <button
                     type="button"
                     className="btn btn-link p-0 text-decoration-none small fw-semibold"
-                    style={{ color: "#F57C00" }}
+                    style={{ color: "var(--color-warning-badge, #F57C00)" }}
                     data-testid="drilldown-in-progress"
-                    onClick={() => onDrillDown({ statusFilter: "IN_PROGRESS" })}
+                    onClick={() => {
+                      const parsed = parseStaffDrillDownUrl(data?.drillDownUrls?.inProgress);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { statusFilter: "IN_PROGRESS" });
+                    }}
                   >
                     View working &rarr;
                   </button>
@@ -244,7 +267,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     type="button"
                     className="btn btn-link p-0 text-decoration-none small fw-semibold text-secondary"
                     data-testid="drilldown-waiting-requester"
-                    onClick={() => onDrillDown({ statusFilter: "WAITING_FOR_REQUESTER" })}
+                    onClick={() => {
+                      const parsed = parseStaffDrillDownUrl(data?.drillDownUrls?.waitingForRequester);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { statusFilter: "WAITING_FOR_REQUESTER" });
+                    }}
                   >
                     View pending &rarr;
                   </button>
@@ -270,7 +296,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     className="btn btn-link p-0 text-decoration-none small fw-semibold"
                     style={{ color: "var(--color-secondary-green, #0B7A46)" }}
                     data-testid="drilldown-assigned-to-me"
-                    onClick={() => onDrillDown({ ownerFilter: "me" })}
+                    onClick={() => {
+                      const parsed = parseStaffDrillDownUrl(data?.drillDownUrls?.assignedToMe);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { ownerFilter: "me" });
+                    }}
                   >
                     View my queue &rarr;
                   </button>
@@ -299,7 +328,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
                 {(!data?.recentTickets || data.recentTickets.length === 0) ? (
                   <div className="text-center py-4 text-muted" data-testid="empty-recent-queue">
-                    <p className="mb-0">No active queue tickets found.</p>
+                    <p className="mb-0">No recent queue tickets found.</p>
                   </div>
                 ) : (
                   <div className="list-group list-group-flush">

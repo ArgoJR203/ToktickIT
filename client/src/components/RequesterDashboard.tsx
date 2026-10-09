@@ -77,6 +77,22 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
     }
   };
 
+  const parseDrillDownUrl = (url?: string): { statusGroup?: "open" | "resolved"; currentStatus?: string } => {
+    if (!url) return {};
+    try {
+      const searchPart = url.includes("?") ? url.split("?")[1] : url;
+      const params = new URLSearchParams(searchPart);
+      const statusGroup = params.get("statusGroup") as "open" | "resolved" | null;
+      const currentStatus = params.get("currentStatus") || undefined;
+      return {
+        statusGroup: statusGroup || undefined,
+        currentStatus,
+      };
+    } catch {
+      return {};
+    }
+  };
+
   const userName = currentUser?.name ? currentUser.name.split(" ")[0] : "there";
 
   return (
@@ -151,7 +167,10 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
                     className="btn btn-link p-0 text-decoration-none small fw-semibold"
                     style={{ color: "var(--color-secondary-green, #0B7A46)" }}
                     data-testid="drilldown-total-open"
-                    onClick={() => onDrillDown({ statusGroup: "open" })}
+                    onClick={() => {
+                      const parsed = parseDrillDownUrl(data?.drillDownUrls?.totalOpen);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { statusGroup: "open" });
+                    }}
                   >
                     View active requests &rarr;
                   </button>
@@ -167,7 +186,7 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
               >
                 <div>
                   <span className="text-muted small text-uppercase fw-semibold">Waiting on Me</span>
-                  <div className="display-6 fw-bold mt-2" style={{ color: "#E65100" }}>
+                  <div className="display-6 fw-bold mt-2" style={{ color: "var(--color-warning-badge, #F57C00)" }}>
                     {data?.metrics.waitingForRequester ?? 0}
                   </div>
                 </div>
@@ -175,9 +194,12 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
                   <button
                     type="button"
                     className="btn btn-link p-0 text-decoration-none small fw-semibold"
-                    style={{ color: "#E65100" }}
+                    style={{ color: "var(--color-warning-badge, #F57C00)" }}
                     data-testid="drilldown-waiting-requester"
-                    onClick={() => onDrillDown({ currentStatus: "WAITING_FOR_REQUESTER" })}
+                    onClick={() => {
+                      const parsed = parseDrillDownUrl(data?.drillDownUrls?.waitingForRequester);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { currentStatus: "WAITING_FOR_REQUESTER" });
+                    }}
                   >
                     Action required &rarr;
                   </button>
@@ -202,7 +224,10 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
                     type="button"
                     className="btn btn-link p-0 text-decoration-none small fw-semibold text-success"
                     data-testid="drilldown-resolved"
-                    onClick={() => onDrillDown({ currentStatus: "RESOLVED" })}
+                    onClick={() => {
+                      const parsed = parseDrillDownUrl(data?.drillDownUrls?.resolvedCount);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { currentStatus: "RESOLVED" });
+                    }}
                   >
                     View resolved &rarr;
                   </button>
@@ -227,7 +252,10 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
                     type="button"
                     className="btn btn-link p-0 text-decoration-none small fw-semibold text-secondary"
                     data-testid="drilldown-closed"
-                    onClick={() => onDrillDown({ currentStatus: "CLOSED" })}
+                    onClick={() => {
+                      const parsed = parseDrillDownUrl(data?.drillDownUrls?.closedCount);
+                      onDrillDown(Object.keys(parsed).length > 0 ? parsed : { currentStatus: "CLOSED" });
+                    }}
                   >
                     View closed &rarr;
                   </button>

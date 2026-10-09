@@ -66,15 +66,15 @@ function MainContent({ initialView }: MainContentProps) {
 
   // Reset detail view, notices, and set role-tailored default tab whenever active identity changes
   useEffect(() => {
-    if (currentUser?.role === "ADMINISTRATOR") {
-      setActiveTab("user-management");
-    } else if (currentUser?.role === "IT_STAFF") {
-      setActiveTab("ticket-queue");
+    if (currentUser) {
+      setActiveTab("dashboard");
     } else {
       setActiveTab("my-tickets");
     }
     setSelectedTicketId(null);
     setCreatedTicketNotice(null);
+    setRequesterFilter({});
+    setStaffQueueFilter({});
   }, [currentUser?.id, currentUser?.role, currentRequester?.id]);
 
   // 1. Mandatory Password Change Gating (BR-02, AC-02, Screen 1.2)
@@ -96,12 +96,16 @@ function MainContent({ initialView }: MainContentProps) {
 
   const handleTicketCreated = (ticket: Ticket) => {
     setCreatedTicketNotice(`Ticket ${ticket.ticketNumber} created successfully.`);
+    setRequesterFilter({});
+    setStaffQueueFilter({});
     setActiveTab("my-tickets");
     setSelectedTicketId(null);
   };
 
   const handleTabChange = (tab: NavTab) => {
     setActiveTab(tab);
+    setRequesterFilter({});
+    setStaffQueueFilter({});
     if (tab !== "ticket-detail") {
       setSelectedTicketId(null);
     }
@@ -187,6 +191,7 @@ function MainContent({ initialView }: MainContentProps) {
         {/* Requester Views */}
         {activeTab === "my-tickets" && (
           <MyTickets
+            key={`${requesterFilter.statusGroup || ""}-${requesterFilter.currentStatus || ""}`}
             onCreateClick={() => {
               setCreatedTicketNotice(null);
               setActiveTab("create-ticket");
@@ -237,6 +242,7 @@ function MainContent({ initialView }: MainContentProps) {
         {/* IT Staff Ticket Queue (Issue #3-6) */}
         {activeTab === "ticket-queue" && (
           <StaffTicketQueue
+            key={`${staffQueueFilter.ownerFilter || ""}-${staffQueueFilter.statusFilter || ""}`}
             onSelectTicket={(ticketId) => {
               setSelectedTicketId(ticketId);
               setActiveTab("ticket-detail");
