@@ -58,7 +58,7 @@ describe("Dashboard API Performance Smoke Tests (PERF-01, BR-18)", () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("metrics");
     expect(res.body).toHaveProperty("drillDownUrls");
-    expect(duration).toBeLessThan(350); // Generous buffer for local virtualized environments while enforcing speed
+    expect(duration).toBeLessThan(200);
   });
 
   it("responds to GET /api/staff/dashboard under 200ms (PERF-01)", async () => {
@@ -72,6 +72,6 @@ describe("Dashboard API Performance Smoke Tests (PERF-01, BR-18)", () => {
     expect(res.body).toHaveProperty("metrics");
     expect(res.body.metrics).toHaveProperty("unassignedCount");
     expect(res.body.metrics).toHaveProperty("countsByStatus");
-    expect(duration).toBeLessThan(350);
+    expect(duration).toBeLessThan(200);
   });
 });

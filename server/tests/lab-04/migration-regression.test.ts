@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import fs from "fs";
+import path from "path";
 import { getPrisma } from "../../src/prisma.js";
 
 /**
@@ -122,5 +124,15 @@ describe("Database Migration & Zero Data Loss Regression Suite (MIGR-01, BR-19)"
       where: { id: testAction.id },
     });
     expect(orphanAction).toBeNull();
+  });
+
+  it("verifies rollback down-migration script exists and contains valid rollback statements (MIGR-01, BR-19)", () => {
+    const rollbackPath = path.resolve(__dirname, "../../prisma/migrations/rollback_20261006124008.sql");
+    expect(fs.existsSync(rollbackPath)).toBe(true);
+    const sqlContent = fs.readFileSync(rollbackPath, "utf-8");
+    expect(sqlContent.length).toBeGreaterThan(0);
+    expect(sqlContent).toContain('DROP TABLE IF EXISTS "ActionTaken"');
+    expect(sqlContent).toContain('DROP TYPE IF EXISTS "ActionStatus"');
+    expect(sqlContent).toContain('ALTER TABLE "Ticket" DROP COLUMN IF EXISTS "version"');
   });
 });

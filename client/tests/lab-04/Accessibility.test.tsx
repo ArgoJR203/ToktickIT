@@ -16,7 +16,7 @@ vi.mock("../../src/api.js", async () => {
   };
 });
 
-describe("WCAG AA Accessibility Audit (A11Y-01)", () => {
+describe("DOM Accessibility & ARIA Semantic Verification (A11Y-01)", () => {
   const mockStaffUser: api.AuthUser = {
     id: 1,
     name: "Alex Thompson",

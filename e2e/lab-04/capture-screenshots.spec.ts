@@ -21,6 +21,29 @@ test.describe("Lab 4 Responsive Screenshot Evidence Capture", () => {
     }
   });
 
+  const verifyLayout = async (page: any, vpName: string) => {
+    // Programmatic verification: no horizontal scrollbar/overflow (RESP-01)
+    const hasHorizontalOverflow = await page.evaluate(() => {
+      return document.documentElement.scrollWidth > window.innerWidth;
+    });
+    expect(hasHorizontalOverflow).toBe(false);
+
+    // On mobile viewports (375px), touch targets should be >= 44px
+    if (vpName === "mobile") {
+      const primaryBtns = page.locator(".btn-zen-primary, .btn-touch-target");
+      const count = await primaryBtns.count();
+      for (let i = 0; i < Math.min(count, 3); i++) {
+        const btn = primaryBtns.nth(i);
+        if (await btn.isVisible()) {
+          const box = await btn.boundingBox();
+          if (box) {
+            expect(box.height).toBeGreaterThanOrEqual(44);
+          }
+        }
+      }
+    }
+  };
+
   for (const vp of viewports) {
     test(`Capture Lab 4 responsive screenshots for ${vp.name} (${vp.width}x${vp.height})`, async ({ page }) => {
       test.setTimeout(90000);
@@ -42,6 +65,7 @@ test.describe("Lab 4 Responsive Screenshot Evidence Capture", () => {
 
       await expect(page.getByTestId("requester-dashboard-view")).toBeVisible({ timeout: 10000 });
       await page.waitForTimeout(400);
+      await verifyLayout(page, vp.name);
 
       const reqDashPath = path.join("artifacts", "lab-04", "screenshots", "requester-dashboard", `${vp.name}-requester-dashboard.png`);
       await page.screenshot({ path: reqDashPath, fullPage: true });
@@ -59,6 +83,7 @@ test.describe("Lab 4 Responsive Screenshot Evidence Capture", () => {
 
       await expect(page.getByTestId("staff-dashboard-view")).toBeVisible({ timeout: 10000 });
       await page.waitForTimeout(400);
+      await verifyLayout(page, vp.name);
 
       const staffDashPath = path.join("artifacts", "lab-04", "screenshots", "staff-dashboard", `${vp.name}-staff-dashboard.png`);
       await page.screenshot({ path: staffDashPath, fullPage: true });
@@ -77,6 +102,7 @@ test.describe("Lab 4 Responsive Screenshot Evidence Capture", () => {
       await expect(page.getByTestId("staff-dashboard-view")).toBeVisible({ timeout: 10000 });
       await expect(page.getByTestId("admin-stats-card")).toBeVisible({ timeout: 10000 });
       await page.waitForTimeout(400);
+      await verifyLayout(page, vp.name);
 
       const adminDashPath = path.join("artifacts", "lab-04", "screenshots", "admin-dashboard", `${vp.name}-admin-dashboard.png`);
       await page.screenshot({ path: adminDashPath, fullPage: true });
@@ -101,6 +127,7 @@ test.describe("Lab 4 Responsive Screenshot Evidence Capture", () => {
       await expect(page.getByTestId("ticket-number")).toBeVisible({ timeout: 10000 });
       await expect(page.getByTestId("actions-taken-section")).toBeVisible({ timeout: 10000 });
       await page.waitForTimeout(500);
+      await verifyLayout(page, vp.name);
 
       const actionsPath = path.join("artifacts", "lab-04", "screenshots", "actions-taken", `${vp.name}-actions-taken.png`);
       await page.screenshot({ path: actionsPath, fullPage: true });

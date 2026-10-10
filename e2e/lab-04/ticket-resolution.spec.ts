@@ -150,10 +150,10 @@ test.describe("Lab 4 E2E Suite: Ticket Resolution Gate & Advisory Indications (E
     await page.getByTestId("resolution-summary-input").fill("Attempting early resolution");
     await page.getByTestId("update-status-btn").click();
 
-    // Verify rejection banner for incomplete actions
+    // Verify rejection banner for incomplete actions (AC-16, BR-20)
     const errorBanner = page.getByTestId("action-error-banner");
     await expect(errorBanner).toBeVisible({ timeout: 10000 });
-    await expect(errorBanner).toContainText(/INCOMPLETE_ACTIONS_TAKEN|actions/i);
+    await expect(errorBanner).toContainText("Cannot resolve or close ticket while actions taken remain pending or incomplete.");
 
     // -----------------------------------------------------------------------
     // Step 5: Staff completes the action, provides summary, and formally resolves ticket

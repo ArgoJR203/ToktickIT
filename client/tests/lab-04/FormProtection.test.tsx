@@ -117,11 +117,13 @@ describe("Form Protection & Input Preservation Tests (UI-09, AC-13, FR-19, FR-20
         target: { value: "AP restarted successfully and beacon broadcast restored." },
       });
 
+      const modal = screen.getByTestId("action-taken-modal");
+      const form = modal.querySelector("form")!;
       const saveBtn = screen.getByTestId("save-action-btn");
 
-      // Rapidly click save button twice
+      // Rapidly click save button and dispatch submit event to test submission guard (AC-13, FR-19)
       fireEvent.click(saveBtn);
-      fireEvent.click(saveBtn);
+      fireEvent.submit(form);
 
       // Verify button is disabled during submission
       expect(saveBtn).toBeDisabled();
@@ -177,7 +179,7 @@ describe("Form Protection & Input Preservation Tests (UI-09, AC-13, FR-19, FR-20
 
       // Modal should remain open and show error message
       await waitFor(() => {
-        expect(screen.getByTestId("action-modal-error")).toBeInTheDocument();
+        expect(screen.getByTestId("modal-error-alert")).toBeInTheDocument();
       });
 
       // Form inputs must remain preserved (not cleared or lost)
@@ -217,7 +219,8 @@ describe("Form Protection & Input Preservation Tests (UI-09, AC-13, FR-19, FR-20
 
       // Inspect pending state
       expect(saveBtn).toBeDisabled();
-      expect(screen.getByRole("status")).toBeInTheDocument();
+      expect(saveBtn).toHaveTextContent(/Saving Action\.\.\./i);
+      expect(saveBtn.querySelector(".spinner-border")).toBeInTheDocument();
 
       resolvePromise!({
         id: 102,
@@ -258,10 +261,11 @@ describe("Form Protection & Input Preservation Tests (UI-09, AC-13, FR-19, FR-20
       });
 
       const submitBtn = screen.getByRole("button", { name: /Submit Ticket/i });
+      const form = submitBtn.closest("form")!;
 
-      // Click rapidly twice
+      // Click rapidly and dispatch submit event directly to prove guard handles duplicate submits
       fireEvent.click(submitBtn);
-      fireEvent.click(submitBtn);
+      fireEvent.submit(form);
 
       // Verify button is disabled
       expect(submitBtn).toBeDisabled();

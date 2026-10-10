@@ -222,6 +222,7 @@ function MainContent({ initialView }: MainContentProps) {
         {activeTab === "ticket-detail" && selectedTicketId !== null && (
           currentUser?.role === "IT_STAFF" || currentUser?.role === "ADMINISTRATOR" ? (
             <StaffTicketDetail
+              key={selectedTicketId}
               ticketId={selectedTicketId}
               onBack={() => {
                 setSelectedTicketId(null);
@@ -230,6 +231,7 @@ function MainContent({ initialView }: MainContentProps) {
             />
           ) : (
             <RequesterTicketDetail
+              key={selectedTicketId}
               ticketId={selectedTicketId}
               onBack={() => {
                 setSelectedTicketId(null);

@@ -18,7 +18,7 @@ vi.mock("../../src/api.js", async () => {
   };
 });
 
-describe("Responsive Layout & Viewport Verification (RESP-01)", () => {
+describe("Responsive Layout CSS Grid & Breakpoint Class Verification (RESP-01)", () => {
   const mockRequester: api.AuthUser = {
     id: 1,
     name: "Jennifer Anderson",
@@ -56,7 +56,7 @@ describe("Responsive Layout & Viewport Verification (RESP-01)", () => {
     );
   };
 
-  it("renders mobile-friendly responsive cards in ActionsTaken with accessible touch targets", async () => {
+  it("renders mobile-responsive breakpoint classes (d-md-none, d-none d-md-block) in ActionsTaken", async () => {
     vi.mocked(api.fetchActionsTaken).mockResolvedValue([
       {
         id: 101,
@@ -153,7 +153,7 @@ describe("Responsive Layout & Viewport Verification (RESP-01)", () => {
     expect(createBtn).toHaveClass("btn", "btn-zen-primary");
   });
 
-  it("renders 5-column responsive grid on Staff Dashboard with touch-friendly quick action buttons", async () => {
+  it("renders responsive column grid classes and quick action layout on Staff Dashboard", async () => {
     vi.mocked(api.fetchStaffDashboard).mockResolvedValue({
       metrics: {
         unassignedCount: 4,

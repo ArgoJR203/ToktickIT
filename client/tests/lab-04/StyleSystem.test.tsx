@@ -1,6 +1,10 @@
 import React from "react";
+// @ts-ignore
+import fs from "node:fs";
+// @ts-ignore
+import path from "node:path";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { StaffDashboard } from "../../src/components/StaffDashboard.js";
 import { AuthContext } from "../../src/context/AuthContext.js";
 import * as api from "../../src/api.js";
@@ -43,17 +47,18 @@ describe("Zen Green Design Token Verification (STYLE-01)", () => {
   };
 
   it("verifies global Zen Green design tokens in index.css", () => {
-    // In jsdom environment, document.documentElement styles are accessible
-    const root = document.documentElement;
-    root.style.setProperty("--color-primary-green", "#006B3C");
-    root.style.setProperty("--color-secondary-green", "#0B7A46");
-    root.style.setProperty("--color-pale-green", "#EAF6EF");
-    root.style.setProperty("--color-focus-ring", "rgba(0, 107, 60, 0.25)");
+    const cssPath = path.resolve((globalThis as any).process.cwd(), "src/index.css");
+    const indexCss = fs.readFileSync(cssPath, "utf-8");
 
-    const computed = getComputedStyle(root);
-    expect(computed.getPropertyValue("--color-primary-green").trim()).toBe("#006B3C");
-    expect(computed.getPropertyValue("--color-secondary-green").trim()).toBe("#0B7A46");
-    expect(computed.getPropertyValue("--color-pale-green").trim()).toBe("#EAF6EF");
+    // Palette tokens defined in index.css
+    expect(indexCss).toMatch(/--color-primary-green:\s*#006B3C/i);
+    expect(indexCss).toMatch(/--color-secondary-green:\s*#0B7A46/i);
+    expect(indexCss).toMatch(/--color-pale-green:\s*#EAF6EF/i);
+    expect(indexCss).toMatch(/--color-focus-ring:\s*#0B7A46/i);
+
+    // Button and Card component classes
+    expect(indexCss).toContain(".btn-zen-primary");
+    expect(indexCss).toContain(".zen-card");
   });
 
   it("applies Zen Green tokens and styling classes to Staff Dashboard components", async () => {
