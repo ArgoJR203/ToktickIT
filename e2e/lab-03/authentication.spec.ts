@@ -41,7 +41,7 @@ test.describe("Lab 3 E2E Suite: Authentication & Role Workflows (E2E-01, E2E-02)
     await signInBtn.click();
 
     // Verify Requester Dashboard & Role Badge
-    await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /My Tickets|Welcome/i })).toBeVisible({ timeout: 10000 });
     const header = page.locator("header");
     await expect(header.getByText("Jennifer Anderson")).toBeVisible();
     await expect(header.getByTestId("role-badge")).toHaveText(/Requester/i);
@@ -62,7 +62,7 @@ test.describe("Lab 3 E2E Suite: Authentication & Role Workflows (E2E-01, E2E-02)
     await signInBtn.click();
 
     // Verify IT Staff Dashboard & Role Badge
-    await expect(page.getByRole("heading", { name: "Ticket Queue" })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /Ticket Queue|Welcome/i })).toBeVisible({ timeout: 10000 });
     await expect(header.getByText("Alex Thompson")).toBeVisible();
     await expect(header.getByTestId("role-badge")).toHaveText(/IT Staff/i);
 
@@ -172,8 +172,8 @@ test.describe("Lab 3 E2E Suite: Authentication & Role Workflows (E2E-01, E2E-02)
     // 4. Submit password change
     await submitChangeBtn.click();
 
-    // 5. Verify successful transition to normal application (My Tickets dashboard)
-    await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible({ timeout: 10000 });
+    // 5. Verify successful transition to normal application (My Tickets dashboard or Dashboard landing)
+    await expect(page.getByRole("heading", { name: /My Tickets|Welcome/i })).toBeVisible({ timeout: 10000 });
     await expect(page.locator("header").getByText(`David Tester ${testId}`)).toBeVisible();
     await expect(page.locator("header").getByRole("button", { name: "My Tickets" })).toBeVisible();
 
@@ -185,8 +185,8 @@ test.describe("Lab 3 E2E Suite: Authentication & Role Workflows (E2E-01, E2E-02)
     await page.locator("#password").fill(newPw);
     await page.getByRole("button", { name: /sign in/i }).click();
 
-    // Directly reaches My Tickets without password change prompt
-    await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible({ timeout: 10000 });
+    // Directly reaches Dashboard or My Tickets without password change prompt
+    await expect(page.getByRole("heading", { name: /My Tickets|Welcome/i })).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole("heading", { name: /Change Your Password/i })).not.toBeVisible();
   });
 });

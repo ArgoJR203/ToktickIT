@@ -112,17 +112,17 @@ The testing strategy for Lab 4 enforces **Specification-Driven Development (Spec
 | **UI-06** | UI | BR-12 | Advisory resolution indication banner | Renders warning notice informing staff of requester's resolution signal | `client/tests/lab-04/TicketWorkflow.test.tsx` | ✅ Passed |
 | **UI-07** | UI | AC-02, AC-12 | Requester Dashboard cards and drill-downs | Displays 4 metric cards, recent tickets, routes to filtered `/tickets` | `client/tests/lab-04/RequesterDashboard.test.tsx` | ✅ Passed |
 | **UI-08** | UI | AC-10, AC-11 | Staff Dashboard operational cards & admin stats | Displays 5 metric cards, recent queue, quick actions, admin user stats | `client/tests/lab-04/StaffDashboard.test.tsx` | ✅ Passed |
-| **UI-09** | UI | AC-13, FR-19 | Submit button debouncing | Disables submit button during in-flight request, preventing duplicate dispatch | `client/tests/lab-04/FormProtection.test.tsx` | ⏳ Pending |
-| **STYLE-01**| Style| Zen Green | Design token adherence | Verifies Zen Green CSS variable tokens across all Lab 4 components | `client/tests/lab-04/StyleSystem.test.tsx` | ⏳ Pending |
-| **RESP-01** | Resp | Responsiveness | Responsive viewport layout verification | Mobile (375px) cards & touch targets >= 44px, Tablet (768px), Desktop (1280px) | `client/tests/lab-04/ResponsiveLayout.test.tsx` | ⏳ Pending |
-| **A11Y-01** | A11y | Accessibility | WCAG AA compliance audit | High-contrast focus rings (`2px solid #0B7A46`), aria labels, dual visual cues | `client/tests/lab-04/Accessibility.test.tsx` | ⏳ Pending |
-| **MIGR-01** | Migr | BR-19 | Database migration & zero data loss | Validates legacy data intactness and rollback script cleanliness | `server/tests/lab-04/migration-regression.test.ts` | ⏳ Pending |
-| **PERF-01** | Perf | Performance | Dashboard API response time smoke test | Asserts dashboard queries execute under 200ms with indexed relations | `server/tests/lab-04/dashboard-perf.test.ts` | ⏳ Pending |
-| **E2E-01** | E2E | AC-01, AC-04 | End-to-end Actions Taken lifecycle | IT Staff logs action, edits action, Requester views read-only | `e2e/lab-04/actions-taken-flow.spec.ts` | ⏳ Pending |
-| **E2E-02** | E2E | AC-03, BR-12 | **Resolution gate workflow** *(Handout §10 exact)* | Requester indicates resolved; status remains unchanged; staff formally resolves | `e2e/lab-04/ticket-resolution.spec.ts` | ⏳ Pending |
-| **E2E-03** | E2E | AC-02, AC-10 | Dashboards metrics and drill-down navigation | Verifies Requester and Staff dashboard counts and filter navigations | `e2e/lab-04/dashboards.spec.ts` | ⏳ Pending |
-| **E2E-04** | E2E | AC-14, BR-19 | Full regression verification across Labs 1–3 | End-to-end check of auth, tickets, attachments, comments, notes, admin users | `e2e/lab-04/regression-smoke.spec.ts` | ⏳ Pending |
-| **E2E-05** | E2E | AC-08, BR-14 | Concurrency collision and UI recovery flow | Context A updates status, Context B updates same ticket, receives 409, reloads | `e2e/lab-04/concurrency-conflict.spec.ts` | ⏳ Pending |
+| **UI-09** | UI | AC-13, FR-19 | Submit button debouncing | Disables submit button during in-flight request, preventing duplicate dispatch | `client/tests/lab-04/FormProtection.test.tsx` | ✅ Passed |
+| **STYLE-01**| Style| Zen Green | Design token adherence | Verifies Zen Green CSS variable tokens across all Lab 4 components | `client/tests/lab-04/StyleSystem.test.tsx` | ✅ Passed |
+| **RESP-01** | Resp | Responsiveness | Responsive viewport layout verification | Mobile (375px) cards & touch targets >= 44px, Tablet (768px), Desktop (1280px) | `client/tests/lab-04/ResponsiveLayout.test.tsx` | ✅ Passed |
+| **A11Y-01** | A11y | Accessibility | WCAG AA compliance audit | High-contrast focus rings (`2px solid #0B7A46`), aria labels, dual visual cues | `client/tests/lab-04/Accessibility.test.tsx` | ✅ Passed |
+| **MIGR-01** | Migr | BR-19 | Database migration & zero data loss | Validates legacy data intactness and rollback script cleanliness | `server/tests/lab-04/migration-regression.test.ts` | ✅ Passed |
+| **PERF-01** | Perf | Performance | Dashboard API response time smoke test | Asserts dashboard queries execute under 200ms with indexed relations | `server/tests/lab-04/dashboard-perf.test.ts` | ✅ Passed |
+| **E2E-01** | E2E | AC-01, AC-04 | End-to-end Actions Taken lifecycle | IT Staff logs action, edits action, Requester views read-only | `e2e/lab-04/actions-taken-flow.spec.ts` | ✅ Passed |
+| **E2E-02** | E2E | AC-03, BR-12 | **Resolution gate workflow** *(Handout §10 exact)* | Requester indicates resolved; status remains unchanged; staff formally resolves | `e2e/lab-04/ticket-resolution.spec.ts` | ✅ Passed |
+| **E2E-03** | E2E | AC-02, AC-10 | Dashboards metrics and drill-down navigation | Verifies Requester and Staff dashboard counts and filter navigations | `e2e/lab-04/dashboards.spec.ts` | ✅ Passed |
+| **E2E-04** | E2E | AC-14, BR-19 | Full regression verification across Labs 1–3 | End-to-end check of auth, tickets, attachments, comments, notes, admin users | `e2e/lab-04/regression-smoke.spec.ts` | ✅ Passed |
+| **E2E-05** | E2E | AC-08, BR-14 | Concurrency collision and UI recovery flow | Context A updates status, Context B updates same ticket, receives 409, reloads | `e2e/lab-04/concurrency-conflict.spec.ts` | ✅ Passed |
 
 ---
 
