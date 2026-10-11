@@ -312,6 +312,7 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
               <div className="d-flex align-items-center gap-2 mt-1">
                 <h2
                   className="h3 fw-bold font-monospace mb-0"
+                  data-testid="ticket-number"
                   style={{ color: "var(--color-primary-green)" }}
                 >
                   {ticket.ticketNumber}

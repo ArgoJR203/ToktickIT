@@ -22,7 +22,7 @@ test.describe("Lab 3 E2E Suite: Staff Ticket Lifecycle & Operations (E2E-03)", (
     await page.locator("#password").fill("Password123!");
     await page.getByRole("button", { name: /sign in/i }).click();
 
-    await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /My Tickets|Welcome/i })).toBeVisible({ timeout: 10000 });
 
     // Create a new ticket
     const uniqueId = Date.now().toString().slice(-6);
@@ -56,7 +56,8 @@ test.describe("Lab 3 E2E Suite: Staff Ticket Lifecycle & Operations (E2E-03)", (
     await page.locator("#password").fill("Password123!");
     await page.getByRole("button", { name: /sign in/i }).click();
 
-    // Verify Staff Ticket Queue (AC-07, UI-03)
+    // Navigate to Ticket Queue from Dashboard (AC-07, UI-03)
+    await page.getByRole("button", { name: "Ticket Queue" }).click();
     await expect(page.getByRole("heading", { name: "Ticket Queue" })).toBeVisible({ timeout: 10000 });
 
     // Test Search Filter (API-14)
@@ -143,6 +144,7 @@ test.describe("Lab 3 E2E Suite: Staff Ticket Lifecycle & Operations (E2E-03)", (
     await page.locator("#password").fill("Password123!");
     await page.getByRole("button", { name: /sign in/i }).click();
 
+    await page.getByTestId("nav-my-tickets-tab").click();
     await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible({ timeout: 10000 });
 
     // Open the same ticket

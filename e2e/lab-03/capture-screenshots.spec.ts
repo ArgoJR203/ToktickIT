@@ -61,6 +61,8 @@ test.describe("Lab 3 Responsive Screenshot Evidence Capture (§14 Part 9)", () =
       await page.locator("#password").fill("Password123!");
       await page.getByRole("button", { name: /sign in/i }).click();
 
+      // Navigate to Ticket Queue from Dashboard
+      await page.getByRole("button", { name: "Ticket Queue" }).click();
       await expect(page.getByRole("heading", { name: "Ticket Queue" })).toBeVisible({ timeout: 10000 });
       await page.waitForTimeout(500);
 

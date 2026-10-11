@@ -379,7 +379,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 <div className="d-grid gap-2">
                   <button
                     type="button"
-                    className="btn btn-success py-2 d-flex align-items-center justify-content-center fw-medium"
+                    className="btn btn-zen-primary btn-success py-2 d-flex align-items-center justify-content-center fw-medium"
                     style={{
                       backgroundColor: "var(--color-primary-green, #006B3C)",
                       borderColor: "var(--color-primary-green, #006B3C)",

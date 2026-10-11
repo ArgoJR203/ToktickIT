@@ -76,8 +76,10 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
   }, [successNotice]);
 
   // Load ticket details and assignees
-  const loadTicket = useCallback(async () => {
-    setIsLoading(true);
+  const loadTicket = useCallback(async (isInitial = false) => {
+    if (isInitial) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const [ticketData, assigneesData] = await Promise.all([
@@ -89,8 +91,21 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
       setAssignees(assigneesData);
       setSelectedOwnerId(ticketData.owner ? ticketData.owner.id.toString() : "");
       setSelectedPriority(ticketData.itPriority);
-      setSelectedStatus(ticketData.permittedNextStatuses[0] || "");
-      setResolutionSummaryText(ticketData.resolutionSummary || "");
+      if (isInitial) {
+        setSelectedStatus(ticketData.permittedNextStatuses[0] || "");
+        setResolutionSummaryText(ticketData.resolutionSummary || "");
+      } else {
+        setSelectedStatus((prev) => {
+          if (prev && ticketData.permittedNextStatuses.includes(prev)) {
+            return prev;
+          }
+          return ticketData.permittedNextStatuses[0] || "";
+        });
+        setResolutionSummaryText((prev) => {
+          if (prev && prev.trim().length > 0) return prev;
+          return ticketData.resolutionSummary || "";
+        });
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load ticket detail.");
     } finally {
@@ -129,14 +144,14 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
   }, [ticketId, isStaffOrAdmin]);
 
   useEffect(() => {
-    loadTicket();
+    loadTicket(true);
     loadComments();
     loadNotes();
   }, [loadTicket, loadComments, loadNotes]);
 
   // 1. Claim Ownership (Assign to Me)
   const handleAssignToMe = async () => {
-    if (!currentUser) return;
+    if (!currentUser || isUpdatingOwner) return;
     setIsUpdatingOwner(true);
     setActionError(null);
     try {
@@ -153,6 +168,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
 
   // 2. Reassign Ownership via Dropdown
   const handleOwnerChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (isUpdatingOwner) return;
     const val = e.target.value;
     setSelectedOwnerId(val);
     setIsUpdatingOwner(true);
@@ -178,6 +194,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
 
   // 3. Update IT Priority
   const handlePriorityChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (isUpdatingPriority) return;
     const newPriority = e.target.value;
     setSelectedPriority(newPriority);
     setIsUpdatingPriority(true);
@@ -200,7 +217,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
   // 4. Update Status Transition (BR-11, BR-14, AC-08, AC-09, AC-16)
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStatus) return;
+    if (!selectedStatus || isUpdatingStatus) return;
 
     setIsUpdatingStatus(true);
     setActionError(null);
@@ -248,6 +265,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
   // 5. Post Public Comment
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPostingComment) return;
     const trimmed = newCommentText.trim();
     if (!trimmed) {
       setCommentError("Comment cannot be empty.");
@@ -271,6 +289,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
   // 6. Post Internal Note
   const handlePostNote = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPostingNote) return;
     const trimmed = newNoteText.trim();
     if (!trimmed) {
       setNoteError("Internal note cannot be empty.");
