@@ -576,29 +576,26 @@ body {
 }
 
 .modal-backdrop-custom .modal-content {
-  background-color: #FFFFFF !important;
-  background: #FFFFFF !important;
+  background-color: #FFFFFF;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 20px 48px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 20px 48px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   border: 1px solid var(--color-surface-border, #E5E7EB);
 }
 
 .modal-backdrop-custom .modal-header {
-  background-color: var(--color-primary-green, #006B3C) !important;
-  color: #FFFFFF !important;
+  background-color: var(--color-primary-green, #006B3C);
+  color: #FFFFFF;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .modal-backdrop-custom .modal-body {
-  background-color: #FFFFFF !important;
-  background: #FFFFFF !important;
+  background-color: #FFFFFF;
   color: var(--color-text-main, #1F2937);
 }
 
 .modal-backdrop-custom .modal-footer {
-  background-color: #F8F9FA !important;
-  background: #F8F9FA !important;
+  background-color: #F8F9FA;
   border-top: 1px solid var(--color-surface-border, #E5E7EB);
 }
 

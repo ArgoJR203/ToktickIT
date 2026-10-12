@@ -686,8 +686,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
         >
           <div className="modal-dialog modal-dialog-centered modal-lg w-100" style={{ maxWidth: "680px" }}>
             <div
-              className="modal-content zen-card bg-white shadow-lg border-0 rounded-3 overflow-hidden"
-              style={{ backgroundColor: "#FFFFFF" }}
+              className="modal-content zen-card shadow-lg border-0 rounded-3 overflow-hidden"
             >
               <div className="modal-header py-3 px-4 border-bottom" style={{ backgroundColor: "var(--color-primary-green)", color: "#FFFFFF" }}>
                 <h4 className="modal-title h5 mb-0 fw-bold" id="action-modal-title" data-testid="action-modal-title">
@@ -705,8 +704,8 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
 
               <form onSubmit={handleSubmit} noValidate>
                 <div
-                  className="modal-body p-4 bg-white"
-                  style={{ maxHeight: "75vh", overflowY: "auto", backgroundColor: "#FFFFFF" }}
+                  className="modal-body p-4"
+                  style={{ maxHeight: "75vh", overflowY: "auto" }}
                 >
                   {/* Stale Update 409 Conflict Banner */}
                   {isConflict && (
@@ -995,10 +994,7 @@ export const ActionsTaken: React.FC<ActionsTakenProps> = ({
                   </div>
                 </div>
 
-                <div
-                  className="modal-footer py-2 px-4 bg-light border-top d-flex justify-content-end"
-                  style={{ backgroundColor: "#F8F9FA" }}
-                >
+                <div className="modal-footer py-2 px-4 border-top d-flex justify-content-end">
                   <button
                     type="button"
                     className="btn btn-outline-secondary me-2"

@@ -65,7 +65,7 @@ TokTickIT implements a strictly gated **Role-Based Access Control (RBAC)** archi
   └─────┬─────┘                    └─────┬─────┘                    └─────┬─────┘
         │                                │                                │
         ├─ Requester Dashboard           ├─ IT Staff Dashboard            ├─ All IT Staff Capabilities
-        │  (4 Cards + Recent Tickets)    │  (5 Cards + Priority/Status)   ├─ Dynamic Admin Statistics
+        │  (4 Cards + Recent Tickets)    │  (5 Operational Cards + Queue) ├─ Dynamic Admin Statistics
         ├─ Create Support Ticket         ├─ Shared Ticket Queue           │  (Total/Active/By-Role Counts)
         ├─ View Own Tickets ("My Tkt")   ├─ Claim ("Assign to Me")        ├─ User Management Console
         ├─ Upload / Download Files       ├─ Adjust IT Priority            ├─ Create New User Accounts
@@ -352,7 +352,7 @@ All default seeded accounts share the initial password: **`Password123!`**
    - Requesters can see work completed by IT Staff (action date, performer, assignee, description, and results).
    - Create and Edit buttons are hidden for requesters. Direct API write attempts receive `403 Forbidden` (`FORBIDDEN_ROLE`).
 5. **"Problem Appears Resolved" Advisory Signal (BR-12, AC-03)**:
-   - If the ticket is in `IN_PROGRESS` or `WAITING_FOR_REQUESTER`, an action button *"Problem Appears Resolved"* appears.
+   - If the ticket is in `OPEN`, `IN_PROGRESS`, or `WAITING_FOR_REQUESTER`, an action button *"Problem Appears Resolved"* appears.
    - Clicking this notifies IT Staff, records an automated public audit comment, and sets `resolutionIndicated = true` without prematurely changing the ticket status.
 
 ---
@@ -364,16 +364,14 @@ All default seeded accounts share the initial password: **`Password123!`**
 #### A. IT Staff Operational Dashboard
 - IT Staff landing in the application see the **Staff Dashboard** (`GET /api/staff/dashboard`).
 - **5 Real-Time Metric Cards**:
-  - **Unassigned Tickets**: Tickets awaiting an owner (`ownerId === null`).
-  - **Assigned to Me**: Tickets claimed by or assigned to the current user.
-  - **In Progress**: Active operational workload across the team.
-  - **Waiting on Requester**: Tickets pending client response or confirmation.
-  - **Resolved / Ready to Close**: Tickets awaiting final verification.
-- **Breakdown Tables & Cards**:
-  - Active tickets grouped by **Current Status** (all 8 statuses).
-  - Open tickets grouped by **IT Priority** (*LOW*, *MEDIUM*, *HIGH*, *URGENT*).
-- **Recent Queue**: Quick access to recently updated tickets across the entire service desk.
-- **Interactive Drill-Down**: Clicking any metric card routes to the Ticket Queue with pre-filtered query parameters (`ownerId=unassigned`, `ownerId=me`, `currentStatus={STATUS}`).
+  - **Unassigned**: Tickets awaiting an owner (`ownerId === null`), highlighted in red.
+  - **Open**: Active tickets in `OPEN` status, highlighted in blue.
+  - **In Progress**: Active operational workload in `IN_PROGRESS`, highlighted in orange.
+  - **Waiting Req**: Tickets pending client response in `WAITING_FOR_REQUESTER`, highlighted in secondary gray.
+  - **My Assigned**: Tickets claimed by or assigned to the current staff member, highlighted in Zen Green.
+- **Recent Queue Tickets**: Direct list of recently updated tickets with ticket number, summary, category, priority/status badges, and updated timestamps.
+- **Quick Actions**: One-click action buttons to **Search Tickets** and **My Queue**.
+- **Interactive Drill-Down**: Clicking any metric card routes to the Ticket Queue with pre-filtered query parameters (`ownerId=unassigned`, `statusFilter=OPEN`, `statusFilter=IN_PROGRESS`, `statusFilter=WAITING_FOR_REQUESTER`, `ownerId=me`).
 
 #### B. The IT Staff Ticket Queue
 - Click **Ticket Queue** in the navigation header.
@@ -410,7 +408,7 @@ Click on any ticket in the queue to open the operational detail view:
      - `WAITING_FOR_REQUESTER` $\rightarrow$ `IN_PROGRESS`, `RESOLVED`, `CANCELLED`
      - `RESOLVED` $\rightarrow$ `CLOSED`, `REOPENED`
      - `CLOSED` $\rightarrow$ `REOPENED`
-     - `REOPENED` $\rightarrow$ `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CANCELLED`
+     - `REOPENED` $\rightarrow$ `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `CANCELLED`
      - `CANCELLED` is strictly terminal.
 5. **Action Completion Resolution Gate (BR-20, AC-16)**:
    - If you attempt to transition the ticket to `RESOLVED` or `CLOSED` while any Action Taken under that ticket is in `PENDING` or `IN_PROGRESS`, OR has `followUpRequired = true AND followUpDone = false`, the transition is **strictly blocked** with `400 Bad Request` (`code: "INCOMPLETE_ACTIONS_TAKEN"`).
@@ -439,7 +437,7 @@ Administrators possess all IT Staff capabilities plus full access to the **User 
   - **Total Users**: Authoritative database user count.
   - **Active Users**: Users currently permitted to authenticate.
   - **Users by Role**: Dynamic distribution of Requesters, IT Staff, and Administrators.
-- Quick navigation button to **Manage Users**.
+- Dedicated navigation link to **User Management** in the top navigation header.
 
 #### B. Accessing User Management
 - Click **User Management** in the top navigation bar.
@@ -498,39 +496,35 @@ The Actions Taken subsystem provides granular execution tracking beneath each ti
 
 ### 8-Status Lifecycle State Machine & Resolution Gates
 
-```
-                    ┌─────────┐
-                    │   NEW   │
-                    └──┬───┬──┘
-         ┌─────────────┘   └─────────────┐
-         ▼                               ▼
-   ┌───────────┐                   ┌───────────┐
-   │   OPEN    │                   │ CANCELLED │ ◄── [Terminal]
-   └──┬─────┬──┘                   └───────────┘
-      │     └──────────────┐             ▲
-      ▼                    ▼             │
-┌─────────────┐     ┌──────────────┐     │
-│ IN_PROGRESS │◄───►│ WAITING_FOR_ │     │
-└──┬──────────┘     │  REQUESTER   │     │
-   │                └──────┬───────┘     │
-   │ (Gate Checks:         │             │
-   │  - Actions Complete   │             │
-   │  - Res. Summary)      │             │
-   ├───────────────────────┘             │
-   ▼                                     │
-┌─────────────┐                          │
-│  RESOLVED   │                          │
-└──┬──────────┘                          │
-   ├─────────────────────────────────────┤
-   ▼                                     │
-┌─────────────┐                          │
-│   CLOSED    │                          │
-└──┬──────────┘                          │
-   │ (Reopen)                            │
-   ▼                                     │
-┌─────────────┐                          │
-│  REOPENED   │──────────────────────────┘
-└─────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> NEW
+    NEW --> OPEN
+    NEW --> IN_PROGRESS
+    NEW --> CANCELLED
+
+    OPEN --> IN_PROGRESS
+    OPEN --> WAITING_FOR_REQUESTER
+    OPEN --> CANCELLED
+
+    IN_PROGRESS --> WAITING_FOR_REQUESTER
+    IN_PROGRESS --> RESOLVED: Gate Checks (BR-20, BR-13)
+    IN_PROGRESS --> CANCELLED
+
+    WAITING_FOR_REQUESTER --> IN_PROGRESS
+    WAITING_FOR_REQUESTER --> RESOLVED: Gate Checks (BR-20, BR-13)
+    WAITING_FOR_REQUESTER --> CANCELLED
+
+    RESOLVED --> CLOSED
+    RESOLVED --> REOPENED
+
+    CLOSED --> REOPENED
+
+    REOPENED --> IN_PROGRESS
+    REOPENED --> WAITING_FOR_REQUESTER
+    REOPENED --> CANCELLED
+
+    CANCELLED --> [*]
 ```
 
 #### Transition Matrix (`BR-10`, `BR-11`):
@@ -540,7 +534,7 @@ The Actions Taken subsystem provides granular execution tracking beneath each ti
 - `WAITING_FOR_REQUESTER` $\rightarrow$ `IN_PROGRESS`, `RESOLVED`, `CANCELLED`
 - `RESOLVED` $\rightarrow$ `CLOSED`, `REOPENED`
 - `CLOSED` $\rightarrow$ `REOPENED`
-- `REOPENED` $\rightarrow$ `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CANCELLED`
+- `REOPENED` $\rightarrow$ `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `CANCELLED`
 - `CANCELLED` $\rightarrow$ None (strictly terminal)
 
 #### Resolution Gate Enforcement:
@@ -603,7 +597,7 @@ TokTickIT is engineered with a strict **Specification-Driven Development (Spec D
 - **Server Test Suite**: **253 tests** across 34 test files (including 12 files dedicated to Lab 4).
 - **Client Test Suite**: **133 tests** across 21 test files (including 9 files dedicated to Lab 4).
 - **E2E Test Suite**: **5 Playwright suites** in `e2e/lab-04/` + **15 visual evidence screenshots** in `artifacts/lab-04/screenshots/`.
-- **Master Plan Traceability**: **40/40 planned tests** passed (detailed in [`docs/lab-04/tests.md`](file:///d:/AllStudyProject/CPE334/TokTickIT/docs/lab-04/tests.md)).
+- **Master Plan Traceability**: **47/47 planned tests** passed (detailed in [`docs/lab-04/tests.md`](docs/lab-04/tests.md)).
 
 ---
 
@@ -643,7 +637,7 @@ npm run test:e2e
 #### What the E2E Suites Test:
 1. **`e2e/lab-04/actions-taken-flow.spec.ts` (`E2E-01`)**:
    - IT Staff logs in, opens ticket, logs Action Taken with performer auto-assigned, approved assignee, and follow-up note.
-   - Staff member edits action and marks follow-up done.
+   - Staff member edits action result and verifies updated text in the table.
    - Requester logs in to confirm strict read-only view (no create or edit buttons).
 2. **`e2e/lab-04/ticket-resolution.spec.ts` (`E2E-02`)**:
    - Requester clicks *"Problem Appears Resolved"*; verifies status remains unchanged.
@@ -651,29 +645,29 @@ npm run test:e2e
    - IT Staff completes all actions, enters mandatory resolution summary, and successfully resolves the ticket.
 3. **`e2e/lab-04/dashboards.spec.ts` (`E2E-03`)**:
    - Verifies Requester Dashboard metric counts and drill-downs.
-   - Verifies Staff Dashboard operational cards, priority/status breakdowns, and queue drill-downs.
+   - Verifies Staff Dashboard 5 operational metric cards, recent queue items, and queue drill-downs.
    - Verifies Admin Dashboard displays live `adminStats` user account metrics.
 4. **`e2e/lab-04/regression-smoke.spec.ts` (`E2E-04`)**:
    - Comprehensive full-system regression verifying authentication, mandatory password change gating, ticket creation, file attachments, public comments, amber internal notes, and administrator user management.
 5. **`e2e/lab-04/concurrency-conflict.spec.ts` (`E2E-05`)**:
    - Two browser contexts open the same ticket simultaneously.
    - Context A submits a status change; Context B submits an update with stale version.
-   - Context B receives `409 Conflict` notice and clicks "Reload Latest Ticket Data" to recover gracefully without losing unsaved drafts.
+   - Context B receives `409 Conflict` notice and clicks "Reload Latest Ticket Data" to synchronize the latest status and version, allowing subsequent transitions to succeed.
 
 ---
 
 ### Non-Functional & Quality Audits
 
 - **Database Migration & Rollback Regression (`MIGR-01`)**:
-  - `server/tests/lab-04/migration-regression.test.ts` validates zero data loss for legacy tickets, attachments, comments, and notes across Prisma migrations, and asserts clean schema integrity.
+  - `server/tests/lab-04/migration-regression.test.ts` validates schema integrity, default version counter preservation, cascade deletion from Ticket to ActionsTaken (`BR-01`), and rollback down-migration script existence.
 - **Dashboard Response Time Benchmark (`PERF-01`)**:
   - `server/tests/lab-04/dashboard-perf.test.ts` asserts that warmed `/api/staff/dashboard` and `/api/requester/dashboard` endpoints execute under **200ms** using indexed SQL queries.
 - **Zen Green Design System Token Audit (`STYLE-01`)**:
-  - `client/tests/lab-04/StyleSystem.test.tsx` verifies that all cards, badges, buttons, and headers use canonical Zen Green CSS variables (`--color-primary-green`, etc.) without hardcoded ad-hoc styles.
+  - `client/tests/lab-04/StyleSystem.test.tsx` verifies that canonical Zen Green design tokens and button/card styling classes are properly declared in `index.css`.
 - **Responsive Layout Across Viewports (`RESP-01`)**:
   - `client/tests/lab-04/ResponsiveLayout.test.tsx` and Playwright tests verify rendering at Mobile (375px), Tablet (768px), and Desktop (1280px), ensuring zero horizontal scrolling and touch targets $\ge 44$px.
 - **WCAG AA Accessibility Audit (`A11Y-01`)**:
-  - `client/tests/lab-04/Accessibility.test.tsx` audits high-contrast focus rings (`2px solid #0B7A46`), `aria-current="page"` navigation attributes, screen-reader labels on metric cards, and dual cues for status indicators.
+  - `client/tests/lab-04/Accessibility.test.tsx` audits semantic headings, `aria-current="page"` navigation attributes, accessible button names, and dual cues (text + badge) for status indicators.
 - **Visual Evidence Screenshots**:
   - 15 responsive screenshots captured across Desktop, Tablet, and Mobile viewports stored in `artifacts/lab-04/screenshots/`:
     - `requester-dashboard/` (Desktop, Tablet, Mobile)
@@ -734,7 +728,7 @@ TokTickIT/
 │   │   │   ├── dashboard-calculator.ts # Operational metric aggregation algorithms
 │   │   │   ├── jwt.ts                  # Secure JWT signer & verifier
 │   │   │   ├── password-validator.ts   # Complexity validator (BR-07)
-│   │   │   ├── status-transition-validator.ts # State machine matrix & resolution gates
+│   │   │   ├── status-transition-validator.ts # State machine transition matrix validation (BR-10, BR-11)
 │   │   │   ├── ticket-generator.ts     # TKT-YYYY-XXXXXX ticket ID generator
 │   │   │   └── token-revocation.ts     # In-memory revocation store (BR-09)
 │   │   ├── app.ts                      # Express application, routes & middlewares
@@ -744,7 +738,7 @@ TokTickIT/
 │   │   ├── migrations/                 # Database migrations (User, Ticket, Note, ActionTaken)
 │   │   ├── schema.prisma               # Prisma data models with version counters
 │   │   └── seed.ts                     # Idempotent database seeder (8 statuses, actions taken)
-│   ├── tests/                          # Server test suites (252 tests)
+│   ├── tests/                          # Server test suites (253 tests)
 │   │   ├── lab-01/
 │   │   ├── lab-02/
 │   │   ├── lab-03/
@@ -779,7 +773,7 @@ TokTickIT/
 │   ├── lab-03/
 │   └── lab-04/
 │       ├── specification.md            # Requirements & Business Rules (BR-01..21)
-│       ├── tests.md                    # Master test traceability matrix (40/40 Passed)
+│       ├── tests.md                    # Master test traceability matrix (47/47 Passed)
 │       ├── ui-spec.md                  # UI design tokens & responsive specifications
 │       ├── api-spec.md                 # REST API endpoints contract
 │       ├── reviewer.md                 # Peer code review log
@@ -798,8 +792,8 @@ TokTickIT/
 
 | Command | Description |
 | :--- | :--- |
-| `npm run test:e2e` | Run Playwright E2E tests for Lab 4 (`e2e/lab-04/`) |
-| `npm run test:e2e:lab4` | Run Playwright E2E tests for Lab 4 (`e2e/lab-04/`) |
+| `npm run test:e2e` | Default alias to run current sprint E2E tests (`e2e/lab-04/`) |
+| `npm run test:e2e:lab4` | Run Playwright E2E tests specifically for Lab 4 (`e2e/lab-04/`) |
 | `npm run test:e2e:lab3` | Run Playwright E2E tests for Lab 3 (`e2e/lab-03/`) |
 | `npm run test:e2e:lab2` | Run Playwright E2E tests for Lab 2 (`e2e/lab-02/`) |
 | `npm run test:e2e:all` | Run all Playwright E2E test suites across all labs (`e2e/`) |
