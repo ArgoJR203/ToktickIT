@@ -11,9 +11,9 @@
 | :--------------------------------------------- | :------------------------------------- | :--------------- |
 | https://github.com/ArgoJR203/ToktickIT/pull/49 | `feature/4-1-contract-spec`            | Approved         |
 | https://github.com/ArgoJR203/ToktickIT/pull/56 | `feature/4-2-actions-taken-foundation` | Approved         |
-| https://github.com/ArgoJR203/ToktickIT/pull/57 | `feature/4-3-actions-taken-ui`         | Pending          |
-|                                                | `feature/4-4-ticket-workflow`          | Not Implemented  |
-|                                                | `feature/4-5-role-dashboards`          | Not Implemented  |
-|                                                | `feature/4-6-hardening-release`        | Not Implemented  |
+| https://github.com/ArgoJR203/ToktickIT/pull/57 | `feature/4-3-actions-taken-ui`         | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/58 | `feature/4-4-ticket-workflow`          | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/59 | `feature/4-5-role-dashboards`          | Approved         |
+| https://github.com/ArgoJR203/ToktickIT/pull/61 | `feature/4-6-hardening-release`        | Approved         |
 
 ---
