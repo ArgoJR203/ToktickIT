@@ -371,7 +371,7 @@ All default seeded accounts share the initial password: **`Password123!`**
   - **My Assigned**: Tickets claimed by or assigned to the current staff member, highlighted in Zen Green.
 - **Recent Queue Tickets**: Direct list of recently updated tickets with ticket number, summary, category, priority/status badges, and updated timestamps.
 - **Quick Actions**: One-click action buttons to **Search Tickets** and **My Queue**.
-- **Interactive Drill-Down**: Clicking any metric card routes to the Ticket Queue with pre-filtered query parameters (`ownerId=unassigned`, `statusFilter=OPEN`, `statusFilter=IN_PROGRESS`, `statusFilter=WAITING_FOR_REQUESTER`, `ownerId=me`).
+- **Interactive Drill-Down**: Clicking any metric card routes to the Ticket Queue with pre-filtered query parameters (`ownerId=unassigned`, `currentStatus=OPEN`, `currentStatus=IN_PROGRESS`, `currentStatus=WAITING_FOR_REQUESTER`, `ownerId=me`).
 
 #### B. The IT Staff Ticket Queue
 - Click **Ticket Queue** in the navigation header.
