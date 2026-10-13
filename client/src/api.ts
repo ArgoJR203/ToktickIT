@@ -157,6 +157,7 @@ export interface FetchTicketsParams {
   categoryId?: string | number;
   requestedPriority?: string;
   currentStatus?: string;
+  statusGroup?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   page?: number;
@@ -186,6 +187,7 @@ export async function fetchTickets(
   if (params.categoryId) query.set("categoryId", params.categoryId.toString());
   if (params.requestedPriority) query.set("requestedPriority", params.requestedPriority);
   if (params.currentStatus) query.set("currentStatus", params.currentStatus);
+  if (params.statusGroup) query.set("statusGroup", params.statusGroup);
   if (params.sortBy) query.set("sortBy", params.sortBy);
   if (params.sortOrder) query.set("sortOrder", params.sortOrder);
   if (params.page) query.set("page", params.page.toString());
@@ -818,6 +820,7 @@ export interface StaffTicketDetailData {
   resolutionIndicated?: boolean;
   resolutionIndicatedAt?: string | null;
   resolutionSummary?: string | null;
+  version?: number;
   permittedNextStatuses: string[];
   attachments: AttachmentItem[];
   createdAt: string;
@@ -920,21 +923,29 @@ export async function updateTicketPriority(
 export async function updateTicketStatus(
   ticketId: number,
   status: string,
-  resolutionSummary?: string
+  resolutionSummary?: string,
+  version?: number
 ): Promise<{
   id: number;
+  ticketNumber?: string;
   currentStatus: string;
   resolutionSummary: string | null;
+  version?: number;
   permittedNextStatuses: string[];
   updatedAt: string;
 }> {
+  const body: Record<string, any> = { status, resolutionSummary };
+  if (version !== undefined && version !== null) {
+    body.version = version;
+  }
+
   const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       ...getAuthHeaders(),
     },
-    body: JSON.stringify({ status, resolutionSummary }),
+    body: JSON.stringify(body),
   });
 
   let data: Record<string, any> = {};
@@ -944,13 +955,20 @@ export async function updateTicketStatus(
 
   if (!res.ok) {
     const errorMsg = data.error?.message || data.message || "Failed to update ticket status.";
-    throw new Error(errorMsg);
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).currentTicket = data?.currentTicket || data?.error?.details?.currentTicket;
+    (err as any).field = data?.error?.field;
+    (err as any).status = res.status;
+    throw err;
   }
 
   return data as {
     id: number;
+    ticketNumber?: string;
     currentStatus: string;
     resolutionSummary: string | null;
+    version?: number;
     permittedNextStatuses: string[];
     updatedAt: string;
   };
@@ -1158,5 +1176,278 @@ export async function resetAdminUserPassword(
 
   return data;
 }
+
+// ---------------------------------------------------------------------------
+// Lab 4 — Actions Taken APIs (Issue #4-2, #4-3)
+// ---------------------------------------------------------------------------
+
+export type ActionStatusType = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface ActionTakenUser {
+  id: number;
+  name: string;
+  email?: string;
+  role: string;
+}
+
+export interface ActionTakenItem {
+  id: number;
+  ticketId: number;
+  performedById: number;
+  performedBy: ActionTakenUser;
+  assigneeId: number | null;
+  assignee: ActionTakenUser | null;
+  updatedById: number | null;
+  status: ActionStatusType;
+  version: number;
+  actionDateTime: string;
+  description: string;
+  result: string;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  followUpDone: boolean;
+  attachmentNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenPayload {
+  description: string;
+  result: string;
+  status?: ActionStatusType;
+  actionDateTime?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  followUpDone?: boolean;
+  attachmentNotes?: string | null;
+}
+
+export interface UpdateActionTakenPayload {
+  description?: string;
+  result?: string;
+  status?: ActionStatusType;
+  actionDateTime?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  followUpDone?: boolean;
+  attachmentNotes?: string | null;
+  version?: number;
+}
+
+/**
+ * Fetch Actions Taken for a ticket (Issue #4-2, #4-3)
+ */
+export async function fetchActionsTaken(ticketId: number): Promise<ActionTakenItem[]> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load actions taken.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data.actionsTaken || [];
+}
+
+/**
+ * Create a new Action Taken under a ticket (Issue #4-2, #4-3)
+ */
+export async function createActionTaken(
+  ticketId: number,
+  payload: CreateActionTakenPayload
+): Promise<ActionTakenItem> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to create action taken.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).field = data?.error?.field;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+/**
+ * Update an existing Action Taken with optimistic concurrency control (Issue #4-2, #4-3)
+ */
+export async function updateActionTaken(
+  ticketId: number,
+  actionId: number,
+  payload: UpdateActionTakenPayload
+): Promise<ActionTakenItem> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken/${actionId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to update action taken.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).currentAction = data?.currentAction || data?.error?.details?.currentAction;
+    (err as any).field = data?.error?.field;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Lab 4 — Role-Appropriate Operational Dashboards (Issue #4-5)
+// ---------------------------------------------------------------------------
+
+export interface RequesterRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  requestedPriority: string;
+  category: { name: string } | null;
+  updatedAt: string;
+}
+
+export interface RequesterDashboardData {
+  metrics: {
+    totalOpen: number;
+    waitingForRequester: number;
+    resolvedCount: number;
+    closedCount: number;
+  };
+  recentTickets: RequesterRecentTicket[];
+  drillDownUrls: {
+    totalOpen: string;
+    waitingForRequester: string;
+    resolvedCount: string;
+    closedCount: string;
+  };
+}
+
+/**
+ * Fetch Requester Dashboard (AC-02, BR-15, API-14)
+ */
+export async function fetchRequesterDashboard(): Promise<RequesterDashboardData> {
+  const res = await fetch(`${API_URL}/api/requester/dashboard`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load requester dashboard.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+export interface StaffRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  itPriority: string;
+  owner: { id: number; name: string } | null;
+  requester: { name: string } | null;
+  updatedAt: string;
+}
+
+export interface StaffDashboardData {
+  metrics: {
+    unassignedCount: number;
+    assignedToMeCount: number;
+    countsByStatus: Record<string, number>;
+    countsByPriority: Record<string, number>;
+  };
+  recentTickets: StaffRecentTicket[];
+  adminStats?: {
+    totalUsers: number;
+    activeUsers: number;
+    usersByRole: {
+      REQUESTER: number;
+      IT_STAFF: number;
+      ADMINISTRATOR: number;
+    };
+  };
+  drillDownUrls: {
+    unassigned: string;
+    assignedToMe: string;
+    open: string;
+    inProgress: string;
+    waitingForRequester: string;
+  };
+}
+
+/**
+ * Fetch IT Staff & Admin Dashboard (AC-10, AC-11, BR-16, BR-17, API-15, API-16)
+ */
+export async function fetchStaffDashboard(): Promise<StaffDashboardData> {
+  const res = await fetch(`${API_URL}/api/staff/dashboard`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.message || "Failed to load staff dashboard.";
+    const err = new Error(errorMsg);
+    (err as any).code = data?.error?.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
 
 

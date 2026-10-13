@@ -9,9 +9,15 @@ import {
 
 interface StaffTicketQueueProps {
   onSelectTicket?: (ticketId: number) => void;
+  initialStatus?: string;
+  initialAssignment?: string;
 }
 
-export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTicket }) => {
+export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
+  onSelectTicket,
+  initialStatus,
+  initialAssignment,
+}) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tickets, setTickets] = useState<StaffTicketItem[]>([]);
   const [pagination, setPagination] = useState({
@@ -24,9 +30,9 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
   // Filter and Search States
   const [search, setSearch] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus || "");
   const [selectedPriority, setSelectedPriority] = useState<string>("");
-  const [selectedAssignment, setSelectedAssignment] = useState<string>("");
+  const [selectedAssignment, setSelectedAssignment] = useState<string>(initialAssignment || "");
 
   // Sorting & Pagination States
   const [sortBy, setSortBy] = useState<string>("createdAt");
@@ -43,6 +49,13 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
       .then((data) => setCategories(data))
       .catch((err) => console.error("Failed to load categories:", err));
   }, []);
+
+  // Sync incoming filter props (e.g. from Dashboard drill-down or Header tab resets)
+  useEffect(() => {
+    setSelectedStatus(initialStatus || "");
+    setSelectedAssignment(initialAssignment || "");
+    setPage(1);
+  }, [initialStatus, initialAssignment]);
 
   // 2. Fetch staff ticket queue
   const loadTickets = useCallback(() => {

@@ -12,9 +12,16 @@ import {
 interface MyTicketsProps {
   onCreateClick: () => void;
   onSelectTicket?: (ticketId: number) => void;
+  initialStatus?: string;
+  initialStatusGroup?: "open" | "resolved";
 }
 
-export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTicket }) => {
+export const MyTickets: React.FC<MyTicketsProps> = ({
+  onCreateClick,
+  onSelectTicket,
+  initialStatus,
+  initialStatusGroup,
+}) => {
   const auth = useOptionalAuth();
   const { currentRequester } = useRequester();
   const activeUser = auth?.currentUser || currentRequester;
@@ -31,7 +38,8 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
   const [search, setSearch] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPriority, setSelectedPriority] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus || "");
+  const [selectedStatusGroup, setSelectedStatusGroup] = useState<string>(initialStatusGroup || "");
   const [sortBy, setSortBy] = useState<string>("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState<number>(1);
@@ -45,6 +53,13 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
       .then((data) => setCategories(data))
       .catch((err) => console.error("Failed to load categories for filter:", err));
   }, []);
+
+  // Sync incoming filter props (e.g. from Dashboard drill-down or Header tab resets)
+  useEffect(() => {
+    setSelectedStatus(initialStatus || "");
+    setSelectedStatusGroup(initialStatusGroup || "");
+    setPage(1);
+  }, [initialStatus, initialStatusGroup]);
 
   // Reset to Page 1 whenever search or filter selections change
   const handleSearchChange = (val: string) => {
@@ -72,12 +87,15 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
     setSelectedCategory("");
     setSelectedPriority("");
     setSelectedStatus("");
+    setSelectedStatusGroup("");
     setSortBy("createdAt");
     setSortOrder("desc");
     setPage(1);
   };
 
-  const hasActiveFilters = Boolean(search || selectedCategory || selectedPriority || selectedStatus);
+  const hasActiveFilters = Boolean(
+    search || selectedCategory || selectedPriority || selectedStatus || selectedStatusGroup
+  );
 
   // Toggle sort order or field
   const handleSort = (field: string) => {
@@ -107,6 +125,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
         categoryId: selectedCategory,
         requestedPriority: selectedPriority,
         currentStatus: selectedStatus,
+        statusGroup: selectedStatusGroup || undefined,
         sortBy,
         sortOrder,
         page,
@@ -138,6 +157,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
     selectedCategory,
     selectedPriority,
     selectedStatus,
+    selectedStatusGroup,
     sortBy,
     sortOrder,
     page,
@@ -365,6 +385,25 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
             )}
           </div>
         </div>
+
+        {/* Active Filter Chips (e.g. from Drill-down) */}
+        {selectedStatusGroup && (
+          <div className="mt-2 pt-2 border-top d-flex align-items-center gap-2" data-testid="status-group-active-filter">
+            <span className="badge rounded-pill bg-light text-dark border d-inline-flex align-items-center px-2 py-1">
+              <span>Showing: {selectedStatusGroup === "open" ? "Open tickets" : "Resolved tickets"}</span>
+              <button
+                type="button"
+                className="btn-close ms-2"
+                style={{ fontSize: "0.6rem" }}
+                aria-label="Remove filter"
+                onClick={() => {
+                  setSelectedStatusGroup("");
+                  setPage(1);
+                }}
+              />
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Loading State */}

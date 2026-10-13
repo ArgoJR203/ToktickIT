@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.js";
 import { RequesterContext } from "../context/RequesterContext.js";
 
 export type NavTab =
+  | "dashboard"
   | "my-tickets"
   | "create-ticket"
   | "ticket-detail"
@@ -33,10 +34,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
 
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (currentUser?.role === "ADMINISTRATOR") {
-      onTabChange("user-management");
-    } else if (currentUser?.role === "IT_STAFF") {
-      onTabChange("ticket-queue");
+    if (currentUser) {
+      onTabChange("dashboard");
     } else {
       onTabChange("my-tickets");
     }
@@ -187,18 +186,21 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
               {/* Administrator Navigation */}
               <button
                 className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
-                  activeTab === "user-management" ? "fw-semibold" : "opacity-75"
+                  activeTab === "dashboard" ? "fw-semibold" : "opacity-75"
                 }`}
                 style={{
                   backgroundColor:
-                    activeTab === "user-management"
-                      ? "var(--color-secondary-green)"
+                    activeTab === "dashboard"
+                      ? "var(--color-secondary-green, #0B7A46)"
                       : "transparent",
+                  borderBottom: activeTab === "dashboard" ? "3px solid #FFFFFF" : "3px solid transparent",
                   transition: "all 0.15s ease",
                 }}
-                onClick={() => onTabChange("user-management")}
+                aria-current={activeTab === "dashboard" ? "page" : undefined}
+                data-testid="nav-dashboard-tab"
+                onClick={() => onTabChange("dashboard")}
               >
-                User Management
+                Dashboard
               </button>
               <button
                 className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
@@ -206,13 +208,34 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                 }`}
                 style={{
                   backgroundColor: isQueueActive
-                    ? "var(--color-secondary-green)"
+                    ? "var(--color-secondary-green, #0B7A46)"
                     : "transparent",
+                  borderBottom: isQueueActive ? "3px solid #FFFFFF" : "3px solid transparent",
                   transition: "all 0.15s ease",
                 }}
+                aria-current={isQueueActive ? "page" : undefined}
+                data-testid="nav-ticket-queue-tab"
                 onClick={() => onTabChange("ticket-queue")}
               >
                 Ticket Queue
+              </button>
+              <button
+                className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
+                  activeTab === "user-management" ? "fw-semibold" : "opacity-75"
+                }`}
+                style={{
+                  backgroundColor:
+                    activeTab === "user-management"
+                      ? "var(--color-secondary-green, #0B7A46)"
+                      : "transparent",
+                  borderBottom: activeTab === "user-management" ? "3px solid #FFFFFF" : "3px solid transparent",
+                  transition: "all 0.15s ease",
+                }}
+                aria-current={activeTab === "user-management" ? "page" : undefined}
+                data-testid="nav-user-management-tab"
+                onClick={() => onTabChange("user-management")}
+              >
+                User Management
               </button>
             </>
           ) : currentUser?.role === "IT_STAFF" ? (
@@ -220,14 +243,35 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
               {/* IT Staff Navigation */}
               <button
                 className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
+                  activeTab === "dashboard" ? "fw-semibold" : "opacity-75"
+                }`}
+                style={{
+                  backgroundColor:
+                    activeTab === "dashboard"
+                      ? "var(--color-secondary-green, #0B7A46)"
+                      : "transparent",
+                  borderBottom: activeTab === "dashboard" ? "3px solid #FFFFFF" : "3px solid transparent",
+                  transition: "all 0.15s ease",
+                }}
+                aria-current={activeTab === "dashboard" ? "page" : undefined}
+                data-testid="nav-dashboard-tab"
+                onClick={() => onTabChange("dashboard")}
+              >
+                Dashboard
+              </button>
+              <button
+                className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
                   isQueueActive ? "fw-semibold" : "opacity-75"
                 }`}
                 style={{
                   backgroundColor: isQueueActive
-                    ? "var(--color-secondary-green)"
+                    ? "var(--color-secondary-green, #0B7A46)"
                     : "transparent",
+                  borderBottom: isQueueActive ? "3px solid #FFFFFF" : "3px solid transparent",
                   transition: "all 0.15s ease",
                 }}
+                aria-current={isQueueActive ? "page" : undefined}
+                data-testid="nav-ticket-queue-tab"
                 onClick={() => onTabChange("ticket-queue")}
               >
                 Ticket Queue
@@ -239,10 +283,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                 style={{
                   backgroundColor:
                     activeTab === "create-ticket"
-                      ? "var(--color-secondary-green)"
+                      ? "var(--color-secondary-green, #0B7A46)"
                       : "transparent",
+                  borderBottom: activeTab === "create-ticket" ? "3px solid #FFFFFF" : "3px solid transparent",
                   transition: "all 0.15s ease",
                 }}
+                aria-current={activeTab === "create-ticket" ? "page" : undefined}
+                data-testid="nav-create-ticket-tab"
                 onClick={() => onTabChange("create-ticket")}
               >
                 Create Ticket
@@ -251,16 +298,39 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
           ) : (
             <>
               {/* Requester Navigation (Default & Fallback) */}
+              {currentUser && (
+                <button
+                  className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
+                    activeTab === "dashboard" ? "fw-semibold" : "opacity-75"
+                  }`}
+                  style={{
+                    backgroundColor:
+                      activeTab === "dashboard"
+                        ? "var(--color-secondary-green, #0B7A46)"
+                        : "transparent",
+                    borderBottom: activeTab === "dashboard" ? "3px solid #FFFFFF" : "3px solid transparent",
+                    transition: "all 0.15s ease",
+                  }}
+                  aria-current={activeTab === "dashboard" ? "page" : undefined}
+                  data-testid="nav-dashboard-tab"
+                  onClick={() => onTabChange("dashboard")}
+                >
+                  Dashboard
+                </button>
+              )}
               <button
                 className={`btn btn-link text-white text-decoration-none px-3 py-2 rounded flex-fill flex-lg-grow-0 text-center ${
                   isMyTicketsActive ? "fw-semibold" : "opacity-75"
                 }`}
                 style={{
                   backgroundColor: isMyTicketsActive
-                    ? "var(--color-secondary-green)"
+                    ? "var(--color-secondary-green, #0B7A46)"
                     : "transparent",
+                  borderBottom: isMyTicketsActive ? "3px solid #FFFFFF" : "3px solid transparent",
                   transition: "all 0.15s ease",
                 }}
+                aria-current={isMyTicketsActive ? "page" : undefined}
+                data-testid="nav-my-tickets-tab"
                 onClick={() => onTabChange("my-tickets")}
               >
                 My Tickets
@@ -272,10 +342,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
                 style={{
                   backgroundColor:
                     activeTab === "create-ticket"
-                      ? "var(--color-secondary-green)"
+                      ? "var(--color-secondary-green, #0B7A46)"
                       : "transparent",
+                  borderBottom: activeTab === "create-ticket" ? "3px solid #FFFFFF" : "3px solid transparent",
                   transition: "all 0.15s ease",
                 }}
+                aria-current={activeTab === "create-ticket" ? "page" : undefined}
+                data-testid="nav-create-ticket-tab"
                 onClick={() => onTabChange("create-ticket")}
               >
                 Create Ticket

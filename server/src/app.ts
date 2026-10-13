@@ -7,6 +7,8 @@ import { uploadMiddleware } from "./middleware/upload.js";
 import { authRouter } from "./routes/auth.js";
 import { staffRouter } from "./routes/staff.js";
 import { adminRouter } from "./routes/admin.js";
+import { actionsTakenRouter } from "./routes/actions-taken.js";
+import { requesterRouter } from "./routes/requester.js";
 import { authenticate, enforcePasswordChange, requireRole } from "./middleware/auth.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
@@ -22,6 +24,12 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/staff", staffRouter);
 app.use("/api/admin", adminRouter);
+
+// ---------------------------------------------------------------------------
+// Lab 4 — Actions Taken & Role Dashboard Routes (Issue #4-2, #4-5)
+// ---------------------------------------------------------------------------
+app.use("/api/tickets", actionsTakenRouter);
+app.use("/api/requester", requesterRouter);
 
 // Protected endpoints for RBAC and password change gating verification
 app.get("/api/test/gated-endpoint", authenticate, enforcePasswordChange, (_req: Request, res: Response) => {
@@ -150,7 +158,29 @@ app.get("/api/tickets", authenticate, enforcePasswordChange, async (req: Request
       where.requestedPriority = requestedPriority.trim();
     }
 
-    // Status filter
+    // Status group filter (API-23, AC-12, FR-18)
+    const { statusGroup } = req.query;
+    if (typeof statusGroup === "string") {
+      const trimmedGroup = statusGroup.trim().toLowerCase();
+      if (trimmedGroup === "open") {
+        where.currentStatus = {
+          in: ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "REOPENED"],
+        };
+      } else if (trimmedGroup === "resolved") {
+        where.currentStatus = {
+          in: ["RESOLVED", "CLOSED"],
+        };
+      } else {
+        return res.status(400).json({
+          error: {
+            code: "INVALID_INPUT",
+            message: "Invalid statusGroup parameter. Allowed values are 'open' or 'resolved'.",
+          },
+        });
+      }
+    }
+
+    // Status filter (takes specific precedence if provided)
     const validStatuses = [
       "NEW",
       "OPEN",
@@ -968,7 +998,7 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
 
     const ticket = await getPrisma().ticket.findUnique({
       where: { id: ticketId },
-      select: { id: true, requesterId: true, currentStatus: true, resolutionIndicated: true },
+      select: { id: true, ticketNumber: true, requesterId: true, currentStatus: true, resolutionIndicated: true },
     });
 
     if (!ticket) {
@@ -986,11 +1016,15 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
       });
     }
 
-    if (ticket.currentStatus !== "IN_PROGRESS" && ticket.currentStatus !== "WAITING_FOR_REQUESTER") {
+    if (
+      ticket.currentStatus !== "OPEN" &&
+      ticket.currentStatus !== "IN_PROGRESS" &&
+      ticket.currentStatus !== "WAITING_FOR_REQUESTER"
+    ) {
       return res.status(400).json({
         error: {
           code: "INVALID_TRANSITION",
-          message: "Resolution indication can only be submitted when ticket is in progress or waiting for requester.",
+          message: "Resolution indication can only be submitted when ticket is open, in progress, or waiting for requester.",
         },
       });
     }
@@ -1008,7 +1042,7 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
         data: {
           ticketId,
           authorId: req.user!.id,
-          content: "Requester indicated that the problem appears resolved.",
+          content: "Requester indicated that the problem appears resolved. Awaiting IT Staff review.",
         },
       });
 
@@ -1016,10 +1050,13 @@ app.post("/api/tickets/:id/resolve-indication", authenticate, enforcePasswordCha
     });
 
     return res.status(200).json({
-      message: "Problem resolution indicated. IT Staff have been notified to review and finalize.",
+      id: updated.id,
       ticketId: updated.id,
+      ticketNumber: updated.ticketNumber,
+      currentStatus: updated.currentStatus,
       resolutionIndicated: updated.resolutionIndicated,
       resolutionIndicatedAt: updated.resolutionIndicatedAt,
+      message: "Problem resolution indicated. IT Staff will review and formally close the ticket.",
     });
   } catch (err) {
     console.error("Error in POST /api/tickets/:id/resolve-indication:", err);

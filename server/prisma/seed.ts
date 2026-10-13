@@ -14,6 +14,12 @@ import { getPrisma } from "../src/prisma.js";
 // ---------------------------------------------------------------------------
 
 async function main() {
+  // Production environment safeguard (Issue #4-2 review feedback)
+  if (process.env.NODE_ENV === "production") {
+    console.warn("WARNING: Running seed in production environment is aborted to prevent data corruption.");
+    return;
+  }
+
   const prisma = getPrisma();
 
   // --- 1. Categories (4) ---------------------------------------------------
@@ -101,7 +107,7 @@ async function main() {
         name: u.name,
         role: u.role,
         isActive: u.isActive,
-        mustChangePassword: u.mustChangePassword,
+        // passwordHash & mustChangePassword omitted to preserve user credentials on repeated seed runs
       },
       create: {
         name: u.name,
@@ -148,6 +154,32 @@ async function main() {
           content: "Checked hybrid connector logs; AD connector delta sync delayed by 15 mins.",
         },
       ],
+      actionsTaken: [
+        {
+          performedByEmail: "alex.thompson@toktickit.com",
+          assigneeEmail: "alex.thompson@toktickit.com",
+          status: "COMPLETED" as const,
+          actionDateTime: new Date(Date.now() - 7200000),
+          description: "Diagnosed Azure AD delta sync delay in hybrid connector",
+          result: "Identified 15-minute queue backlog in directory synchronization worker",
+          followUpRequired: false,
+          followUpNote: null,
+          followUpDone: false,
+          attachmentNotes: "ADSync-Logs-20260512.evtx",
+        },
+        {
+          performedByEmail: "lisa.martinez@toktickit.com",
+          assigneeEmail: "lisa.martinez@toktickit.com",
+          status: "IN_PROGRESS" as const,
+          actionDateTime: new Date(Date.now() - 3600000),
+          description: "Force manual delta sync on AD connector and verify token renewal",
+          result: "Synchronization job initiated; waiting for sync cycle completion",
+          followUpRequired: true,
+          followUpNote: "Verify Jennifer's Outlook client token cache after sync completes",
+          followUpDone: false,
+          attachmentNotes: null,
+        },
+      ],
     },
     {
       ticketNumber: "TKT-2026-000002",
@@ -165,6 +197,7 @@ async function main() {
       resolutionSummary: null,
       publicComments: [],
       internalNotes: [],
+      actionsTaken: [],
     },
     {
       ticketNumber: "TKT-2026-000003",
@@ -196,6 +229,20 @@ async function main() {
           content: "Memory limit on export worker pod was increased from 256MB to 1GB. Monitored CPU usage is normal.",
         },
       ],
+      actionsTaken: [
+        {
+          performedByEmail: "lisa.martinez@toktickit.com",
+          assigneeEmail: "lisa.martinez@toktickit.com",
+          status: "COMPLETED" as const,
+          actionDateTime: new Date(Date.now() - 14400000),
+          description: "Adjusted pod resource limits for LEB2 grade export worker from 256MB to 1GB",
+          result: "Worker pods restarted successfully with increased memory; export completed without 500 errors",
+          followUpRequired: true,
+          followUpNote: "Monitor worker memory profile during peak submission week",
+          followUpDone: true,
+          attachmentNotes: "leb2-k8s-pod-spec-updated.yaml",
+        },
+      ],
     },
     {
       ticketNumber: "TKT-2026-000004",
@@ -223,6 +270,20 @@ async function main() {
           content: "Old battery sent for recycling. Inventory stock updated (Remaining: 3 units).",
         },
       ],
+      actionsTaken: [
+        {
+          performedByEmail: "kevin.patel@toktickit.com",
+          assigneeEmail: "kevin.patel@toktickit.com",
+          status: "COMPLETED" as const,
+          actionDateTime: new Date(Date.now() - 86400000),
+          description: "Replaced degraded Dell Latitude 5420 battery with new 58Wh OEM pack",
+          result: "Diagnostic battery test passed with 100% health report",
+          followUpRequired: false,
+          followUpNote: null,
+          followUpDone: false,
+          attachmentNotes: "Battery-Diagnostic-Report.pdf",
+        },
+      ],
     },
     {
       ticketNumber: "TKT-2026-000005",
@@ -245,6 +306,20 @@ async function main() {
         },
       ],
       internalNotes: [],
+      actionsTaken: [
+        {
+          performedByEmail: "alex.thompson@toktickit.com",
+          assigneeEmail: "alex.thompson@toktickit.com",
+          status: "COMPLETED" as const,
+          actionDateTime: new Date(Date.now() - 172800000),
+          description: "Cleared paper jam in Tray 2 rollers and replaced depleted yellow toner cartridge",
+          result: "Test prints clean, no misfeeds or toner streaks",
+          followUpRequired: false,
+          followUpNote: null,
+          followUpDone: false,
+          attachmentNotes: null,
+        },
+      ],
     },
     {
       ticketNumber: "TKT-2026-000006",
@@ -265,6 +340,97 @@ async function main() {
         {
           authorEmail: "alex.thompson@toktickit.com",
           content: "Remote reboot performed on AP-B4-LH3. Channel overlap suspected with neighboring AP-B4-LH2.",
+        },
+      ],
+      actionsTaken: [
+        {
+          performedByEmail: "alex.thompson@toktickit.com",
+          assigneeEmail: "kevin.patel@toktickit.com",
+          status: "PENDING" as const,
+          actionDateTime: new Date(Date.now() + 86400000),
+          description: "Perform RF spectrum analysis in Building 4 Lecture Hall 3 during evening downtime",
+          result: "Scheduled measurement awaiting physical site inspection",
+          followUpRequired: true,
+          followUpNote: "Coordinate access key with building facilities manager",
+          followUpDone: false,
+          attachmentNotes: "bldg4-lh3-floorplan.png",
+        },
+      ],
+    },
+    {
+      ticketNumber: "TKT-2026-000007",
+      requesterEmail: "sarah.johnson@example.com",
+      ownerEmail: "lisa.martinez@toktickit.com",
+      categoryName: "Software",
+      systemName: "LEB2 App",
+      summary: "Grade export remarks column still truncated after previous release",
+      description: "Reopened ticket: Export succeeded but remarks column with UTF-8 notes is truncated at 50 chars.",
+      requestedPriority: "HIGH" as const,
+      itPriority: "HIGH" as const,
+      currentStatus: "REOPENED" as const,
+      resolutionIndicated: false,
+      resolutionIndicatedAt: null,
+      resolutionSummary: null,
+      publicComments: [
+        {
+          authorEmail: "sarah.johnson@example.com",
+          content: "Reopened: Remarks column still cuts off student feedback text.",
+        },
+      ],
+      internalNotes: [
+        {
+          authorEmail: "lisa.martinez@toktickit.com",
+          content: "Investigating legacy database character encoding on export view.",
+        },
+      ],
+      actionsTaken: [
+        {
+          performedByEmail: "lisa.martinez@toktickit.com",
+          assigneeEmail: "alex.thompson@toktickit.com",
+          status: "IN_PROGRESS" as const,
+          actionDateTime: new Date(Date.now() - 1800000),
+          description: "Inspect character encoding limit on SQL export view",
+          result: "Found VARCHAR(50) limit on export staging view",
+          followUpRequired: true,
+          followUpNote: "Coordinate view migration with database administrator",
+          followUpDone: false,
+          attachmentNotes: null,
+        },
+      ],
+    },
+    {
+      ticketNumber: "TKT-2026-000008",
+      requesterEmail: "amanda.clark@example.com",
+      ownerEmail: "kevin.patel@toktickit.com",
+      categoryName: "Hardware",
+      systemName: "Corporate Laptop",
+      summary: "Duplicate request for replacement charging adapter",
+      description: "User submitted duplicate ticket for laptop charging adapter; already processed under TKT-2026-000004.",
+      requestedPriority: "LOW" as const,
+      itPriority: "LOW" as const,
+      currentStatus: "CANCELLED" as const,
+      resolutionIndicated: false,
+      resolutionIndicatedAt: null,
+      resolutionSummary: "Cancelled as duplicate request of TKT-2026-000004.",
+      publicComments: [
+        {
+          authorEmail: "kevin.patel@toktickit.com",
+          content: "Ticket cancelled as duplicate. Replacement charger was provided at the Helpdesk under ticket TKT-2026-000004.",
+        },
+      ],
+      internalNotes: [],
+      actionsTaken: [
+        {
+          performedByEmail: "kevin.patel@toktickit.com",
+          assigneeEmail: "kevin.patel@toktickit.com",
+          status: "CANCELLED" as const,
+          actionDateTime: new Date(Date.now() - 900000),
+          description: "Verified ticket duplication with user Amanda Clark",
+          result: "Confirmed adapter was already provided and tested",
+          followUpRequired: false,
+          followUpNote: null,
+          followUpDone: false,
+          attachmentNotes: null,
         },
       ],
     },
@@ -353,9 +519,40 @@ async function main() {
         }
       }
     }
+
+    // Seed Actions Taken (idempotent: avoid duplicating exact description)
+    for (const action of t.actionsTaken ?? []) {
+      const performedBy = users[action.performedByEmail];
+      const assignee = action.assigneeEmail ? users[action.assigneeEmail] : null;
+      if (performedBy) {
+        const existing = await prisma.actionTaken.findFirst({
+          where: {
+            ticketId: ticket.id,
+            description: action.description,
+          },
+        });
+        if (!existing) {
+          await prisma.actionTaken.create({
+            data: {
+              ticketId: ticket.id,
+              performedById: performedBy.id,
+              assigneeId: assignee?.id ?? null,
+              status: action.status,
+              actionDateTime: action.actionDateTime,
+              description: action.description,
+              result: action.result,
+              followUpRequired: action.followUpRequired,
+              followUpNote: action.followUpNote,
+              followUpDone: action.followUpDone,
+              attachmentNotes: action.attachmentNotes,
+            },
+          });
+        }
+      }
+    }
   }
 
-  console.log(`Seeded ${sampleTickets.length} operational sample tickets with comments and notes.`);
+  console.log(`Seeded ${sampleTickets.length} operational sample tickets with comments, notes, and actions taken.`);
 }
 
 main()
